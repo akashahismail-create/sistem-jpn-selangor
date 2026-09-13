@@ -11,15 +11,15 @@ st.set_page_config(page_title="JPN Selangor", layout="wide")
 
 # Sembunyikan header + footer + manage app Streamlit
 hide_st_style = """
-            <style>
-            #MainMenu {visibility: hidden;}
-            header {visibility: hidden;}
-            footer {visibility: hidden;}
-            div[data-testid="stToolbar"] {visibility: hidden;}
-            div[data-testid="stDecoration"] {display:none;}
-            div[data-testid="stStatusWidget"] {display:none;}
-            </style>
-            """
+    <style>
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    div[data-testid="stDecoration"] {display:none;}
+    div[data-testid="stStatusWidget"] {display:none;}
+    /* JANGAN SOROK BUTTON SIDEBAR */
+    </style>
+    """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # Kredit kecil di atas
