@@ -13,15 +13,16 @@ st.set_page_config(page_title="JPN Selangor", layout="wide")
 hide_st_style = """
     <style>
     #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
     footer {visibility: hidden;}
     div[data-testid="stDecoration"] {display:none;}
     div[data-testid="stStatusWidget"] {display:none;}
-    /* JANGAN SOROK BUTTON SIDEBAR */
+    
+    /* BIARKAN HEADER & SIDEBAR BUTTON */
+    header {visibility: visible;}
+    div[data-testid="stToolbar"] {visibility: visible;}
     </style>
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
-
 # Kredit kecil di atas
 st.markdown("""
     <div style='text-align: right; font-size: 10px; color: grey; margin-bottom: -10px;'>
