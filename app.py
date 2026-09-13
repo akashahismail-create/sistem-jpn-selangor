@@ -22,6 +22,12 @@ hide_st_style = """
             """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
+# Kredit kecil di atas
+st.markdown("""
+    <div style='text-align: right; font-size: 10px; color: grey; margin-bottom: -10px;'>
+        Created by: Akashah Ismail
+    </div>
+    """, unsafe_allow_html=True)
 # ========== DATA ASAL ==========
 DATA_ASAL = {
     "Petaling Perdana": {"A-Sekolah Kerajaan": 13671, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 800, "D-Sekolah Swasta": 1200, "E-Calon Persendirian": 300, "Penyelia Kawasan": 15, "Ketua Pengawas": 25, "Timbalan Ketua Pengawas": 25, "Pengawas": 100, "Pengemas Bilik": 15, "Sukarelawan": 50},
