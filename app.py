@@ -17,9 +17,15 @@ hide_st_style = """
     div[data-testid="stDecoration"] {display:none;}
     div[data-testid="stStatusWidget"] {display:none;}
     
-    /* BIARKAN HEADER & SIDEBAR BUTTON */
-    header {visibility: visible;}
-    div[data-testid="stToolbar"] {visibility: visible;}
+    /* Sorok button Share, Star, Edit, Github */
+    [data-testid="stToolbar"] {visibility: hidden;}
+    
+    /* Tapi tunjukkan balik button > untuk buka sidebar */
+    [data-testid="collapsedControl"] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
     </style>
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
