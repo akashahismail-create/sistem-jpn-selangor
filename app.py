@@ -29,17 +29,18 @@ st.markdown("""
 if 'menu_state' not in st.session_state:
     st.session_state.menu_state = True
 
-# BUTTON UNTUK TUTUP/BUKA SIDEBAR
-if st.button("☰ TUTUP/BUKA MENU"):
-    st.session_state.menu_state = not st.session_state.menu_state
-    st.rerun()
+# ========== MENU ATAS ==========
+st.markdown("---")
+col1, col2 = st.columns(2)
 
-# SIDEBAR KITA
-if st.session_state.menu_state:
-    with st.sidebar:
-        st.title("📊 MENU")
-        st.write("Sila pilih di sini")
-        st.info("Download & Filter ada di sini")
+with col1:
+    st.download_button("📥 Download Data", data="", file_name="data.xlsx")
+
+with col2:
+    st.selectbox("🔍 Pilih Daerah", ["Semua", "Petaling", "Gombak"])
+
+st.markdown("---")
+# ========== DATA ASAL ==========
 # ========== DATA ASAL ==========
 DATA_ASAL = {
     "Petaling Perdana": {"A-Sekolah Kerajaan": 13671, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 800, "D-Sekolah Swasta": 1200, "E-Calon Persendirian": 300, "Penyelia Kawasan": 15, "Ketua Pengawas": 25, "Timbalan Ketua Pengawas": 25, "Pengawas": 100, "Pengemas Bilik": 15, "Sukarelawan": 50},
