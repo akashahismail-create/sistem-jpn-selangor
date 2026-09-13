@@ -14,17 +14,22 @@ hide_st_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
+    header {visibility: hidden;}
     div[data-testid="stDecoration"] {display:none;}
     div[data-testid="stStatusWidget"] {display:none;}
     
-    /* Sorok button Share, Star, Edit, Github */
-    [data-testid="stToolbar"] {visibility: hidden;}
+    /* Sorok semua button atas kanan */
+    div[data-testid="stToolbar"] {
+        display: none !important;
+    }
     
-    /* Tapi tunjukkan balik button > untuk buka sidebar */
-    [data-testid="collapsedControl"] {
+    /* Paksa button buka sidebar keluar */
+    button[kind="header"] {
         display: block !important;
-        visibility: visible !important;
-        opacity: 1 !important;
+        position: fixed !important;
+        top: 1rem !important;
+        left: 1rem !important;
+        z-index: 9999 !important;
     }
     </style>
     """
