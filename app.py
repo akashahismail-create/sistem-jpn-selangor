@@ -191,25 +191,22 @@ def page_cari_mp():
                 st.download_button("📥 Export Hasil Carian ke Excel", csv, f"hasil_carian_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv", use_container_width=True)
             else: st.error("⚠️ Tiada pusat yang menawarkan mata pelajaran tersebut")
 
-def page_senarai_pusat(): # FUNCTION BARU
+def page_senarai_pusat():
     st.header("📋 Senarai Pusat Peperiksaan")
     df_pusat = st.session_state["data_pusat"]
     if df_pusat.empty:
         st.warning("Tiada data pusat. Sila masukkan data di menu Selenggara Data > Selenggara Pusat")
     else:
-        # Filter ikut PPD jika login PPD
         if st.session_state.get("role") == "PPD":
             df_pusat = df_pusat[df_pusat["Kod_PPD"] == st.session_state["kod_ppd"]]
             st.info(f"Menunjukkan senarai pusat untuk: {st.session_state['daerah_ppd']}")
 
-        # Pilih kolum yang nak tunjuk
         df_output = df_pusat[["Kod_PPD", "No_Pusat", "Nama_Pusat", "Nama_Bilik_Kebal", "Bil_Calon_Pusat"]].copy()
         df_output = df_output.sort_values(by=["Kod_PPD", "No_Pusat"])
 
         st.metric("Jumlah Pusat", len(df_output))
         st.dataframe(df_output, use_container_width=True, hide_index=True)
 
-        # Butang export
         csv = df_output.to_csv(index=False).encode('utf-8')
         st.download_button("📥 Export Senarai Pusat ke Excel", csv, f"senarai_pusat_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv", use_container_width=True)
 
@@ -227,12 +224,12 @@ with col2:
 st.markdown("<h4 style='color:#0A2A66; border-bottom:2px solid #0A2A66; padding-bottom:5px;'>SIJIL PELAJARAN MALAYSIA</h4>", unsafe_allow_html=True)
 st.write("---")
 
-# ========== SIDEBAR - DAH TAMBAH BUTTON SENARAI PUSAT ==========
+# ========== SIDEBAR ==========
 with st.sidebar:
     st.markdown("### Menu")
     if st.button("📊 Dashboard", use_container_width=True): st.session_state["menu"] = "Dashboard"; st.rerun()
     if st.button("📅 Jadual Waktu", use_container_width=True): st.session_state["menu"] = "Jadual"; st.rerun()
-    if st.button("📋 Senarai Pusat", use_container_width=True): st.session_state["menu"] = "SenaraiPusat"; st.rerun() # BUTTON BARU
+    if st.button("📋 Senarai Pusat", use_container_width=True): st.session_state["menu"] = "SenaraiPusat"; st.rerun()
     if st.button("📚 Cari Mata Pelajaran", use_container_width=True): st.session_state["menu"] = "CariMP"; st.rerun()
     if st.button("🛠️ Selenggara Data", use_container_width=True): st.session_state["show_editor"] = not st.session_state["show_editor"]; st.session_state["menu"] = "Dashboard"
 
@@ -278,12 +275,13 @@ if st.session_state["menu"] == "Dashboard":
     else: kategori_list = SEMUA_KATEGORI
     jumlah = sum(sum(data[d][k] for k in kategori_list) for d in data) if daerah == "Semua Daerah" else sum(data[daerah][k] for k in kategori_list)
     jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
-    jumlah_pusat_total = st.session_state["data_pusat"]['No_Pusat'].nunique()
+    jumlah_pusat_total = len(st.session_state["data_pusat"]) # <-- DAH FIX: KIRA SEMUA BARIS
     st.info(f"Daerah: **{daerah}** | Data: **{jenis_data}** | Filter: **{sub_filter}**")
     colA, colB, colC = st.columns(3)
     with colA: st.metric(f"Jumlah", f"{jumlah:,}")
     with colB: st.metric("Jumlah Petugas Negeri", f"{jumlah_petugas_total:,}")
-    with colC: st.metric("Jumlah Pusat Negeri", f"{jumlah_pusat_total:,}")
+    with colC: st.metric("Jumlah Rekod Pusat", f"{jumlah_pusat_total:,}") # <-- DAH FIX: TUKAR LABEL
+
     st.write("---")
     if jenis_data == "Calon" or jenis_data == "Semua":
         st.subheader("📊 Bilangan Calon Mengikut Daerah")
@@ -316,7 +314,7 @@ elif st.session_state["menu"] == "Jadual":
 
 elif st.session_state["menu"] == "Selenggara": page_selenggara_pusat()
 elif st.session_state["menu"] == "CariMP": page_cari_mp()
-elif st.session_state["menu"] == "SenaraiPusat": page_senarai_pusat() # ROUTING BARU
+elif st.session_state["menu"] == "SenaraiPusat": page_senarai_pusat()
 
 if st.session_state.get("show_editor", False) and st.session_state.get("editor_login", False):
     st.write("---"); role = st.session_state["role"]; st.subheader("🛠️ Selenggara Data Calon & Petugas")
