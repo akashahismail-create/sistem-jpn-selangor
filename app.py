@@ -25,15 +25,21 @@ st.markdown("""
         Created by: Akashah Ismail
     </div>
     """, unsafe_allow_html=True)
-# BUTTON UNTUK BUKA SIDEBAR
-# SIDEBAR MENU
-with st.sidebar:
-    st.title("📊 MENU")
-    st.write("Sila pilih di sini")
-    st.info("Menu Download & Filter ada di sini")
+# INI KOD UNTUK BUTTON BOLEH KLIK
+if 'menu_state' not in st.session_state:
+    st.session_state.menu_state = True
 
-# BUTTON NI BUAT HIASAN JE
-st.button("☰  MENU ADA DI KIRI >>")
+# BUTTON UNTUK TUTUP/BUKA SIDEBAR
+if st.button("☰ TUTUP/BUKA MENU"):
+    st.session_state.menu_state = not st.session_state.menu_state
+    st.rerun()
+
+# SIDEBAR KITA
+if st.session_state.menu_state:
+    with st.sidebar:
+        st.title("📊 MENU")
+        st.write("Sila pilih di sini")
+        st.info("Download & Filter ada di sini")
 # ========== DATA ASAL ==========
 DATA_ASAL = {
     "Petaling Perdana": {"A-Sekolah Kerajaan": 13671, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 800, "D-Sekolah Swasta": 1200, "E-Calon Persendirian": 300, "Penyelia Kawasan": 15, "Ketua Pengawas": 25, "Timbalan Ketua Pengawas": 25, "Pengawas": 100, "Pengemas Bilik": 15, "Sukarelawan": 50},
