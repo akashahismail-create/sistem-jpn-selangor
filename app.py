@@ -10,7 +10,7 @@ st.set_page_config(page_title="JPN Selangor", layout="wide")
 
 # ========== DATA ASAL ==========
 DATA_ASAL = {
-    "Petaling Perdana": {"A-Sekolah Kerajaan": 5200, "B-Sekolah Agensi": 150, "C-Sekolah Bantuan Kerajaan": 800, "D-Sekolah Swasta": 1200, "E-Calon Persendirian": 300, "Penyelia Kawasan": 15, "Ketua Pengawas": 25, "Timbalan Ketua Pengawas": 25, "Pengawas": 100, "Pengemas Bilik": 15, "Sukarelawan": 50},
+    "Petaling Perdana": {"A-Sekolah Kerajaan": 13671, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 800, "D-Sekolah Swasta": 1200, "E-Calon Persendirian": 300, "Penyelia Kawasan": 15, "Ketua Pengawas": 25, "Timbalan Ketua Pengawas": 25, "Pengawas": 100, "Pengemas Bilik": 15, "Sukarelawan": 50},
     "Petaling Utama": {"A-Sekolah Kerajaan": 5500, "B-Sekolah Agensi": 160, "C-Sekolah Bantuan Kerajaan": 850, "D-Sekolah Swasta": 1300, "E-Calon Persendirian": 320, "Penyelia Kawasan": 16, "Ketua Pengawas": 27, "Timbalan Ketua Pengawas": 27, "Pengawas": 110, "Pengemas Bilik": 16, "Sukarelawan": 55},
     "Hulu Langat": {"A-Sekolah Kerajaan": 4800, "B-Sekolah Agensi": 120, "C-Sekolah Bantuan Kerajaan": 650, "D-Sekolah Swasta": 900, "E-Calon Persendirian": 250, "Penyelia Kawasan": 12, "Ketua Pengawas": 22, "Timbalan Ketua Pengawas": 22, "Pengawas": 90, "Pengemas Bilik": 14, "Sukarelawan": 45},
     "Gombak": {"A-Sekolah Kerajaan": 4500, "B-Sekolah Agensi": 100, "C-Sekolah Bantuan Kerajaan": 700, "D-Sekolah Swasta": 1100, "E-Calon Persendirian": 200, "Penyelia Kawasan": 14, "Ketua Pengawas": 20, "Timbalan Ketua Pengawas": 20, "Pengawas": 85, "Pengemas Bilik": 12, "Sukarelawan": 40},
