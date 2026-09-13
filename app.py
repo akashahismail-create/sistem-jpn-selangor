@@ -26,11 +26,14 @@ st.markdown("""
     </div>
     """, unsafe_allow_html=True)
 # BUTTON UNTUK BUKA SIDEBAR
+# SIDEBAR MENU
 with st.sidebar:
-    st.success("Menu Sidebar Aktif")
+    st.title("📊 MENU")
+    st.write("Sila pilih di sini")
+    st.info("Menu Download & Filter ada di sini")
 
-if st.button("☰  BUKA MENU"):
-    st.sidebar.open()
+# BUTTON NI BUAT HIASAN JE
+st.button("☰  MENU ADA DI KIRI >>")
 # ========== DATA ASAL ==========
 DATA_ASAL = {
     "Petaling Perdana": {"A-Sekolah Kerajaan": 13671, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 800, "D-Sekolah Swasta": 1200, "E-Calon Persendirian": 300, "Penyelia Kawasan": 15, "Ketua Pengawas": 25, "Timbalan Ketua Pengawas": 25, "Pengawas": 100, "Pengemas Bilik": 15, "Sukarelawan": 50},
