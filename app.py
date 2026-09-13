@@ -300,18 +300,12 @@ if st.session_state["menu"] == "Dashboard":
 
 elif st.session_state["menu"] == "Jadual":
     st.subheader("📅 Jadual Waktu SPM")
-    if st.session_state.get("editor_login", False) and st.session_state.get("role", "") == "Admin":
-        st.info("Admin sahaja boleh upload fail PDF Jadual Waktu")
-        uploaded_file = st.file_uploader("Upload Fail PDF Jadual Waktu", type="pdf")
-        if uploaded_file is not None: st.session_state["pdf_jadual"] = uploaded_file; st.success("Fail berjaya diupload!")
-    if st.session_state["pdf_jadual"] is not None:
-        st.write("---"); st.markdown("#### Paparan Jadual Waktu")
-        base64_pdf = base64.b64encode(st.session_state["pdf_jadual"].getvalue()).decode('utf-8')
-        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="100%" height="800" type="application/pdf"></iframe>'
-        st.markdown(pdf_display, unsafe_allow_html=True)
-        st.download_button(label="⬇️ Muat Turun PDF", data=st.session_state["pdf_jadual"], file_name="Jadual_Waktu_SPM.pdf", mime="application/pdf")
-    else: st.warning("Tiada Jadual Waktu diupload lagi. Sila minta Admin upload.")
-
+    st.info("Untuk kemaskini Jadual: Upload file `Jadual_Waktu_SPM.pdf` ke Github dan update LINK_JADUAL_PDF dalam kod")
+    
+    LINK_JADUAL_PDF = "https://raw.githubusercontent.com/akashahismail-create/sistem-jpn-selangor/main/Jadual_Waktu_SPM.pdf"
+    
+    st.markdown(f"[📥 Klik sini untuk Muat Turun Jadual Waktu]({LINK_JADUAL_PDF})")
+    st.markdown(f'<iframe src="{LINK_JADUAL_PDF}" width="100%" height="800" type="application/pdf"></iframe>', unsafe_allow_html=True)
 elif st.session_state["menu"] == "Selenggara": page_selenggara_pusat()
 elif st.session_state["menu"] == "CariMP": page_cari_mp()
 elif st.session_state["menu"] == "SenaraiPusat": page_senarai_pusat()
