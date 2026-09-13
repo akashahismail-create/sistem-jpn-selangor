@@ -15,22 +15,7 @@ hide_st_style = """
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    div[data-testid="stDecoration"] {display:none;}
-    div[data-testid="stStatusWidget"] {display:none;}
-    
-    /* Sorok semua button atas kanan */
-    div[data-testid="stToolbar"] {
-        display: none !important;
-    }
-    
-    /* Paksa button buka sidebar keluar */
-    button[kind="header"] {
-        display: block !important;
-        position: fixed !important;
-        top: 1rem !important;
-        left: 1rem !important;
-        z-index: 9999 !important;
-    }
+    div[data-testid="stToolbar"] {display: none;}
     </style>
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -40,6 +25,12 @@ st.markdown("""
         Created by: Akashah Ismail
     </div>
     """, unsafe_allow_html=True)
+# BUTTON UNTUK BUKA SIDEBAR
+with st.sidebar:
+    st.success("Menu Sidebar Aktif")
+
+if st.button("☰  BUKA MENU"):
+    st.sidebar.open()
 # ========== DATA ASAL ==========
 DATA_ASAL = {
     "Petaling Perdana": {"A-Sekolah Kerajaan": 13671, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 800, "D-Sekolah Swasta": 1200, "E-Calon Persendirian": 300, "Penyelia Kawasan": 15, "Ketua Pengawas": 25, "Timbalan Ketua Pengawas": 25, "Pengawas": 100, "Pengemas Bilik": 15, "Sukarelawan": 50},
