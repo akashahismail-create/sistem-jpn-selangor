@@ -41,9 +41,9 @@ if 'menu_state' not in st.session_state:
 
 # ========== DATA ASAL ==========
 DATA_ASAL = {
-    "Petaling Perdana": {"A-Sekolah Kerajaan": 13106, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 0, "D-Sekolah Swasta": 571, "E-Calon Persendirian": 974, "Penyelia Kawasan": 30, "Ketua Pengawas": 91, "Timbalan Ketua Pengawas": 91, "Pengawas": 1027, "Pengemas Bilik": 91, "Sukarelawan": 50},
+    "Petaling Perdana": {"A-Sekolah Kerajaan": 13671, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 0, "D-Sekolah Swasta": 571, "E-Calon Persendirian": 975, "Penyelia Kawasan": 30, "Ketua Pengawas": 91, "Timbalan Ketua Pengawas": 91, "Pengawas": 1027, "Pengemas Bilik": 91, "Sukarelawan": 50},
     "Petaling Utama": {"A-Sekolah Kerajaan": 5209, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 0, "D-Sekolah Swasta": 317, "E-Calon Persendirian": 491, "Penyelia Kawasan": 22, "Ketua Pengawas": 43, "Timbalan Ketua Pengawas": 43, "Pengawas": 494, "Pengemas Bilik": 43, "Sukarelawan": 50},
-    "Hulu Langat": {"A-Sekolah Kerajaan": 12659, "B-Sekolah Agensi": 4, "C-Sekolah Bantuan Kerajaan": 32, "D-Sekolah Swasta": 352, "E-Calon Persendirian": 1150, "Penyelia Kawasan": 32, "Ketua Pengawas": 90, "Timbalan Ketua Pengawas": 90, "Pengawas": 1046, "Pengemas Bilik": 90, "Sukarelawan": 45},
+    "Hulu Langat": {"A-Sekolah Kerajaan": 12669, "B-Sekolah Agensi": 4, "C-Sekolah Bantuan Kerajaan": 32, "D-Sekolah Swasta": 352, "E-Calon Persendirian": 1150, "Penyelia Kawasan": 32, "Ketua Pengawas": 90, "Timbalan Ketua Pengawas": 90, "Pengawas": 1046, "Pengemas Bilik": 90, "Sukarelawan": 45},
     "Gombak": {"A-Sekolah Kerajaan": 9317, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 0, "D-Sekolah Swasta": 318, "E-Calon Persendirian": 381, "Penyelia Kawasan": 28, "Ketua Pengawas": 61, "Timbalan Ketua Pengawas": 61, "Pengawas": 845, "Pengemas Bilik": 61, "Sukarelawan": 40},
     "Klang": {"A-Sekolah Kerajaan": 11742, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 50, "D-Sekolah Swasta": 941, "E-Calon Persendirian": 791, "Penyelia Kawasan": 30, "Ketua Pengawas": 78, "Timbalan Ketua Pengawas": 78, "Pengawas": 863, "Pengemas Bilik": 78, "Sukarelawan": 48},
     "Kuala Langat": {"A-Sekolah Kerajaan": 4331, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 44, "D-Sekolah Swasta": 0, "E-Calon Persendirian": 323, "Penyelia Kawasan": 12, "Ketua Pengawas": 32, "Timbalan Ketua Pengawas": 32, "Pengawas": 358, "Pengemas Bilik": 32, "Sukarelawan": 20},
@@ -301,7 +301,7 @@ with col_sidebar:
         else: sub_filter = "Semua"
     else: daerah, jenis_data, sub_filter = "Semua Daerah", "Semua", "Semua"
 
-# ========== KANAN = SEMUA KOD PAPARAN UTAMA ==========
+# ========== KAN = SEMUA KOD PAPARAN UTAMA ==========
 with col_main:
     if st.session_state["menu"] == "Dashboard":
         data = st.session_state["data_calon"]
@@ -336,9 +336,7 @@ with col_main:
     elif st.session_state["menu"] == "Jadual":
         st.subheader("📅 Jadual Waktu SPM")
         st.info("Untuk kemaskini Jadual: Upload file `Jadual_Waktu_SPM.pdf` ke Github dan update LINK_JADUAL_PDF dalam kod")
-
         LINK_JADUAL_PDF = "https://raw.githubusercontent.com/akashahismail-create/sistem-jpn-selangor/main/Jadual_Waktu_SPM.pdf"
-
         st.markdown(f"[📥 Klik sini untuk Muat Turun Jadual Waktu]({LINK_JADUAL_PDF})")
         st.markdown(f'<iframe src="{LINK_JADUAL_PDF}" width="100%" height="800" type="application/pdf"></iframe>', unsafe_allow_html=True)
     elif st.session_state["menu"] == "Selenggara": page_selenggara_pusat()
@@ -348,23 +346,24 @@ with col_main:
     if st.session_state.get("show_editor", False) and st.session_state.get("editor_login", False):
         st.write("---"); role = st.session_state["role"]; st.subheader("🛠️ Selenggara Data Calon & Petugas")
         if role == "Admin":
- st.info("🔒 Kawasan Admin")
+            st.info("🔒 Kawasan Admin")
 
-    with st.expander("⬇️ Download Backup Kod Sumber"):
-        pwd_backup = st.text_input("Masukkan Kata Laluan untuk Download", type="password", key="pwd_backup")
-        if pwd_backup == "aaa":
-            with open(__file__, "r", encoding="utf-8") as f: kod_semasa = f.read()
-            st.download_button(
-                label="✅ Download Backup Kod Sumber V1.9",
-                data=kod_semasa,
-                file_name="JPN_Selangor_V1.9.py",
-                mime="text/plain",
-                use_container_width=True,
-                type="primary"
-            )
-        elif pwd_backup != "":
-            st.error("Kata laluan salah!")
-    st.write("---")
+            with st.expander("⬇️ Download Backup Kod Sumber"):
+                pwd_backup = st.text_input("Masukkan Kata Laluan untuk Download", type="password", key="pwd_backup")
+                if pwd_backup == "aaa":
+                    with open(__file__, "r", encoding="utf-8") as f: kod_semasa = f.read()
+                    st.download_button(
+                        label="✅ Download Backup Kod Sumber V1.9",
+                        data=kod_semasa,
+                        file_name="JPN_Selangor_V1.9.py",
+                        mime="text/plain",
+                        use_container_width=True,
+                        type="primary"
+                    )
+                elif pwd_backup!= "":
+                    st.error("Kata laluan salah!")
+            st.write("---")
+
         data_asal = st.session_state["data_calon"]
         if role == "PPD": daerah_list_edit = [st.session_state["daerah_ppd"]]; st.warning(f"Anda hanya boleh edit data untuk: **{daerah_list_edit[0]}**")
         else: daerah_list_edit = list(data_asal.keys())
