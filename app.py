@@ -8,16 +8,36 @@ from io import BytesIO
 
 st.set_page_config(page_title="JPN Selangor", layout="wide")
 
+# ========== SOROK BUTTON STREAMLIT + BUAT RUPA SIDEBAR ==========
+hide_st_style = """
+    <style>
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    div[data-testid="stToolbar"] {display: none;}
+
+    /* Buat column kiri jadi macam sidebar */
+    [data-testid="column"]:nth-child(1) {
+        background-color: #F0F2F6;
+        padding: 1rem;
+        border-right: 1px solid #D0D0D0;
+        height: 100vh;
+        overflow-y: auto;
+    }
+    </style>
+    """
+st.markdown(hide_st_style, unsafe_allow_html=True)
+
 # Kredit kecil di atas
 st.markdown("""
     <div style='text-align: right; font-size: 10px; color: grey; margin-bottom: -10px;'>
         Created by: Akashah Ismail
     </div>
     """, unsafe_allow_html=True)
+
 # INI KOD UNTUK BUTTON BOLEH KLIK
 if 'menu_state' not in st.session_state:
     st.session_state.menu_state = True
-
 
 # ========== DATA ASAL ==========
 DATA_ASAL = {
@@ -235,8 +255,11 @@ with col2:
 st.markdown("<h4 style='color:#0A2A66; border-bottom:2px solid #0A2A66; padding-bottom:5px;'>SIJIL PELAJARAN MALAYSIA</h4>", unsafe_allow_html=True)
 st.write("---")
 
-# ========== SIDEBAR ==========
-with st.sidebar:
+# ========== BUAT 2 COLUMN - KIRI JADI SIDEBAR KEKAL ==========
+col_sidebar, col_main = st.columns([1, 4])
+
+# ========== KIRI = SEMUA KOD SIDEBAR LAMA PINDAH SINI ==========
+with col_sidebar:
     st.markdown("### Menu")
     if st.button("📊 Dashboard", use_container_width=True): st.session_state["menu"] = "Dashboard"; st.rerun()
     if st.button("📅 Jadual Waktu", use_container_width=True): st.session_state["menu"] = "Jadual"; st.rerun()
@@ -278,75 +301,76 @@ with st.sidebar:
         else: sub_filter = "Semua"
     else: daerah, jenis_data, sub_filter = "Semua Daerah", "Semua", "Semua"
 
-# ========== PAPARAN UTAMA ==========
-if st.session_state["menu"] == "Dashboard":
-    data = st.session_state["data_calon"]
-    if jenis_data == "Calon": kategori_list = JENIS_CALON[1:] if sub_filter == "Semua Jenis" else [sub_filter]
-    elif jenis_data == "Petugas": kategori_list = JENIS_PETUGAS[1:] if sub_filter == "Semua Jawatan" else [sub_filter]
-    else: kategori_list = SEMUA_KATEGORI
-    jumlah = sum(sum(data[d][k] for k in kategori_list) for d in data) if daerah == "Semua Daerah" else sum(data[daerah][k] for k in kategori_list)
-    jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
-    jumlah_pusat_total = len(st.session_state["data_pusat"]) # <-- DAH FIX: KIRA SEMUA BARIS
-    st.info(f"Daerah: **{daerah}** | Data: **{jenis_data}** | Filter: **{sub_filter}**")
-    colA, colB, colC = st.columns(3)
-    with colA: st.metric(f"Jumlah", f"{jumlah:,}")
-    with colB: st.metric("Jumlah Petugas Negeri", f"{jumlah_petugas_total:,}")
-    with colC: st.metric("Jumlah Rekod Pusat", f"{jumlah_pusat_total:,}") # <-- DAH FIX: TUKAR LABEL
+# ========== KANAN = SEMUA KOD PAPARAN UTAMA ==========
+with col_main:
+    if st.session_state["menu"] == "Dashboard":
+        data = st.session_state["data_calon"]
+        if jenis_data == "Calon": kategori_list = JENIS_CALON[1:] if sub_filter == "Semua Jenis" else [sub_filter]
+        elif jenis_data == "Petugas": kategori_list = JENIS_PETUGAS[1:] if sub_filter == "Semua Jawatan" else [sub_filter]
+        else: kategori_list = SEMUA_KATEGORI
+        jumlah = sum(sum(data[d][k] for k in kategori_list) for d in data) if daerah == "Semua Daerah" else sum(data[daerah][k] for k in kategori_list)
+        jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
+        jumlah_pusat_total = len(st.session_state["data_pusat"])
+        st.info(f"Daerah: **{daerah}** | Data: **{jenis_data}** | Filter: **{sub_filter}**")
+        colA, colB, colC = st.columns(3)
+        with colA: st.metric(f"Jumlah", f"{jumlah:,}")
+        with colB: st.metric("Jumlah Petugas Negeri", f"{jumlah_petugas_total:,}")
+        with colC: st.metric("Jumlah Rekod Pusat", f"{jumlah_pusat_total:,}")
 
-    st.write("---")
-    if jenis_data == "Calon" or jenis_data == "Semua":
-        st.subheader("📊 Bilangan Calon Mengikut Daerah")
-        df_calon = pd.DataFrame([{k: v[k] for k in JENIS_CALON[1:]} for v in data.values()], index=data.keys())
-        if daerah!= "Semua Daerah": df_calon = df_calon.loc[[daerah]]
-        if sub_filter!= "Semua Jenis" and jenis_data == "Calon": df_calon = df_calon[[sub_filter]]
-        st.dataframe(df_calon, use_container_width=True)
-        fig1, ax1 = plt.subplots(figsize=(10, 5)); df_calon.plot(kind='bar', ax=ax1); ax1.set_ylabel("Bilangan Calon"); ax1.set_xlabel("Daerah"); ax1.legend(title="Jenis Calon", bbox_to_anchor=(1.05, 1), loc='upper left'); plt.xticks(rotation=90); plt.tight_layout(); st.pyplot(fig1)
-    if jenis_data == "Petugas" or jenis_data == "Semua":
-        st.write("---"); st.subheader("👮 Bilangan Petugas Mengikut Daerah")
-        df_petugas = pd.DataFrame([{k: v[k] for k in JENIS_PETUGAS[1:]} for v in data.values()], index=data.keys())
-        if daerah!= "Semua Daerah": df_petugas = df_petugas.loc[[daerah]]
-        if sub_filter!= "Semua Jawatan" and jenis_data == "Petugas": df_petugas = df_petugas[[sub_filter]]
-        st.dataframe(df_petugas, use_container_width=True)
-        fig2, ax2 = plt.subplots(figsize=(10, 5)); df_petugas.plot(kind='bar', ax=ax2); ax2.set_ylabel("Bilangan Petugas"); ax2.set_xlabel("Daerah"); ax2.legend(title="Jawatan Petugas", bbox_to_anchor=(1.05, 1), loc='upper left'); plt.xticks(rotation=90); plt.tight_layout(); st.pyplot(fig2)
-
-elif st.session_state["menu"] == "Jadual":
-    st.subheader("📅 Jadual Waktu SPM")
-    st.info("Untuk kemaskini Jadual: Upload file `Jadual_Waktu_SPM.pdf` ke Github dan update LINK_JADUAL_PDF dalam kod")
-    
-    LINK_JADUAL_PDF = "https://raw.githubusercontent.com/akashahismail-create/sistem-jpn-selangor/main/Jadual_Waktu_SPM.pdf"
-    
-    st.markdown(f"[📥 Klik sini untuk Muat Turun Jadual Waktu]({LINK_JADUAL_PDF})")
-    st.markdown(f'<iframe src="{LINK_JADUAL_PDF}" width="100%" height="800" type="application/pdf"></iframe>', unsafe_allow_html=True)
-elif st.session_state["menu"] == "Selenggara": page_selenggara_pusat()
-elif st.session_state["menu"] == "CariMP": page_cari_mp()
-elif st.session_state["menu"] == "SenaraiPusat": page_senarai_pusat()
-
-if st.session_state.get("show_editor", False) and st.session_state.get("editor_login", False):
-    st.write("---"); role = st.session_state["role"]; st.subheader("🛠️ Selenggara Data Calon & Petugas")
-    if role == "Admin":
-        st.info("🔒 Kawasan Admin")
-        with open(__file__, "r", encoding="utf-8") as f: kod_semasa = f.read()
-        st.download_button(label="⬇️ Download Backup Kod Sumber V1.9", data=kod_semasa, file_name="JPN_Selangor_V1.9.py", mime="text/plain", use_container_width=True, type="primary")
         st.write("---")
-    data_asal = st.session_state["data_calon"]
-    if role == "PPD": daerah_list_edit = [st.session_state["daerah_ppd"]]; st.warning(f"Anda hanya boleh edit data untuk: **{daerah_list_edit[0]}**")
-    else: daerah_list_edit = list(data_asal.keys())
-    with st.form("form_edit_data"):
-        data_baru = {}
-        for d in daerah_list_edit:
-            st.markdown(f"### 📍 {d}")
-            st.markdown("#### **Data Calon**")
-            cols_calon = st.columns(5); data_baru[d] = {}
-            for i, kat in enumerate(JENIS_CALON[1:]):
-                with cols_calon[i]:
-                    with st.container(border=True): st.markdown(f"<div style='text-align:center; font-size:13px;'>{kat}</div>", unsafe_allow_html=True)
-                    data_baru[d][kat] = st.number_input(label="", value=int(data_asal[d][kat]), key=f"{d}_{kat}", step=1, label_visibility="collapsed")
-            st.markdown("#### **Data Petugas**")
-            cols_petugas = st.columns(6)
-            for i, kat in enumerate(JENIS_PETUGAS[1:]):
-                with cols_petugas[i]:
-                    with st.container(border=True): st.markdown(f"<div style='text-align:center; font-size:13px;'>{kat}</div>", unsafe_allow_html=True)
-                    data_baru[d][kat] = st.number_input(label="", value=int(data_asal[d][kat]), key=f"{d}_{kat}_petugas", step=1, label_visibility="collapsed")
+        if jenis_data == "Calon" or jenis_data == "Semua":
+            st.subheader("📊 Bilangan Calon Mengikut Daerah")
+            df_calon = pd.DataFrame([{k: v[k] for k in JENIS_CALON[1:]} for v in data.values()], index=data.keys())
+            if daerah!= "Semua Daerah": df_calon = df_calon.loc[[daerah]]
+            if sub_filter!= "Semua Jenis" and jenis_data == "Calon": df_calon = df_calon[[sub_filter]]
+            st.dataframe(df_calon, use_container_width=True)
+            fig1, ax1 = plt.subplots(figsize=(10, 5)); df_calon.plot(kind='bar', ax=ax1); ax1.set_ylabel("Bilangan Calon"); ax1.set_xlabel("Daerah"); ax1.legend(title="Jenis Calon", bbox_to_anchor=(1.05, 1), loc='upper left'); plt.xticks(rotation=90); plt.tight_layout(); st.pyplot(fig1)
+        if jenis_data == "Petugas" or jenis_data == "Semua":
+            st.write("---"); st.subheader("👮 Bilangan Petugas Mengikut Daerah")
+            df_petugas = pd.DataFrame([{k: v[k] for k in JENIS_PETUGAS[1:]} for v in data.values()], index=data.keys())
+            if daerah!= "Semua Daerah": df_petugas = df_petugas.loc[[daerah]]
+            if sub_filter!= "Semua Jawatan" and jenis_data == "Petugas": df_petugas = df_petugas[[sub_filter]]
+            st.dataframe(df_petugas, use_container_width=True)
+            fig2, ax2 = plt.subplots(figsize=(10, 5)); df_petugas.plot(kind='bar', ax=ax2); ax2.set_ylabel("Bilangan Petugas"); ax2.set_xlabel("Daerah"); ax2.legend(title="Jawatan Petugas", bbox_to_anchor=(1.05, 1), loc='upper left'); plt.xticks(rotation=90); plt.tight_layout(); st.pyplot(fig2)
+
+    elif st.session_state["menu"] == "Jadual":
+        st.subheader("📅 Jadual Waktu SPM")
+        st.info("Untuk kemaskini Jadual: Upload file `Jadual_Waktu_SPM.pdf` ke Github dan update LINK_JADUAL_PDF dalam kod")
+
+        LINK_JADUAL_PDF = "https://raw.githubusercontent.com/akashahismail-create/sistem-jpn-selangor/main/Jadual_Waktu_SPM.pdf"
+
+        st.markdown(f"[📥 Klik sini untuk Muat Turun Jadual Waktu]({LINK_JADUAL_PDF})")
+        st.markdown(f'<iframe src="{LINK_JADUAL_PDF}" width="100%" height="800" type="application/pdf"></iframe>', unsafe_allow_html=True)
+    elif st.session_state["menu"] == "Selenggara": page_selenggara_pusat()
+    elif st.session_state["menu"] == "CariMP": page_cari_mp()
+    elif st.session_state["menu"] == "SenaraiPusat": page_senarai_pusat()
+
+    if st.session_state.get("show_editor", False) and st.session_state.get("editor_login", False):
+        st.write("---"); role = st.session_state["role"]; st.subheader("🛠️ Selenggara Data Calon & Petugas")
+        if role == "Admin":
+            st.info("🔒 Kawasan Admin")
+            with open(__file__, "r", encoding="utf-8") as f: kod_semasa = f.read()
+            st.download_button(label="⬇️ Download Backup Kod Sumber V1.9", data=kod_semasa, file_name="JPN_Selangor_V1.9.py", mime="text/plain", use_container_width=True, type="primary")
             st.write("---")
-        submitted = st.form_submit_button("💾 Simpan Semua Perubahan", type="primary", use_container_width=True)
-        if submitted: st.session_state["data_calon"].update(data_baru); st.success("Data berjaya disimpan!"); st.rerun()
+        data_asal = st.session_state["data_calon"]
+        if role == "PPD": daerah_list_edit = [st.session_state["daerah_ppd"]]; st.warning(f"Anda hanya boleh edit data untuk: **{daerah_list_edit[0]}**")
+        else: daerah_list_edit = list(data_asal.keys())
+        with st.form("form_edit_data"):
+            data_baru = {}
+            for d in daerah_list_edit:
+                st.markdown(f"### 📍 {d}")
+                st.markdown("#### **Data Calon**")
+                cols_calon = st.columns(5); data_baru[d] = {}
+                for i, kat in enumerate(JENIS_CALON[1:]):
+                    with cols_calon[i]:
+                        with st.container(border=True): st.markdown(f"<div style='text-align:center; font-size:13px;'>{kat}</div>", unsafe_allow_html=True)
+                        data_baru[d][kat] = st.number_input(label="", value=int(data_asal[d][kat]), key=f"{d}_{kat}", step=1, label_visibility="collapsed")
+                st.markdown("#### **Data Petugas**")
+                cols_petugas = st.columns(6)
+                for i, kat in enumerate(JENIS_PETUGAS[1:]):
+                    with cols_petugas[i]:
+                        with st.container(border=True): st.markdown(f"<div style='text-align:center; font-size:13px;'>{kat}</div>", unsafe_allow_html=True)
+                        data_baru[d][kat] = st.number_input(label="", value=int(data_asal[d][kat]), key=f"{d}_{kat}_petugas", step=1, label_visibility="collapsed")
+                st.write("---")
+            submitted = st.form_submit_button("💾 Simpan Semua Perubahan", type="primary", use_container_width=True)
+            if submitted: st.session_state["data_calon"].update(data_baru); st.success("Data berjaya disimpan!"); st.rerun()
