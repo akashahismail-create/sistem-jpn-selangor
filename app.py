@@ -348,22 +348,23 @@ with col_main:
     if st.session_state.get("show_editor", False) and st.session_state.get("editor_login", False):
         st.write("---"); role = st.session_state["role"]; st.subheader("🛠️ Selenggara Data Calon & Petugas")
         if role == "Admin":
-            st.info("🔒 Kawasan Admin")
-           with st.expander("⬇️ Download Backup Kod Sumber"):
-    pwd_backup = st.text_input("Masukkan Kata Laluan untuk Download", type="password", key="pwd_backup")
-    if pwd_backup == "aaa":
-        with open(__file__, "r", encoding="utf-8") as f: kod_semasa = f.read()
-        st.download_button(
-            label="✅ Download Backup Kod Sumber V1.9",
-            data=kod_semasa,
-            file_name="JPN_Selangor_V1.9.py",
-            mime="text/plain",
-            use_container_width=True,
-            type="primary"
-        )
-    elif pwd_backup!= "":
-        st.error("Kata laluan salah!")
-st.write("---")
+ st.info("🔒 Kawasan Admin")
+
+    with st.expander("⬇️ Download Backup Kod Sumber"):
+        pwd_backup = st.text_input("Masukkan Kata Laluan untuk Download", type="password", key="pwd_backup")
+        if pwd_backup == "aaa":
+            with open(__file__, "r", encoding="utf-8") as f: kod_semasa = f.read()
+            st.download_button(
+                label="✅ Download Backup Kod Sumber V1.9",
+                data=kod_semasa,
+                file_name="JPN_Selangor_V1.9.py",
+                mime="text/plain",
+                use_container_width=True,
+                type="primary"
+            )
+        elif pwd_backup != "":
+            st.error("Kata laluan salah!")
+    st.write("---")
         data_asal = st.session_state["data_calon"]
         if role == "PPD": daerah_list_edit = [st.session_state["daerah_ppd"]]; st.warning(f"Anda hanya boleh edit data untuk: **{daerah_list_edit[0]}**")
         else: daerah_list_edit = list(data_asal.keys())
