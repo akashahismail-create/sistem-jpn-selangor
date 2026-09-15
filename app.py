@@ -16,57 +16,42 @@ hide_st_style = """
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* Kotak Menu Hijau */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) {
+    /* HANYA MENU KIRI SAJA HIJAU */
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(1) {
         background: linear-gradient(180deg, #00695C 0%, #004D40 100%) !important;
         border-radius: 15px !important;
         padding: 20px 15px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         border: 2px solid #FFD700;
     }
-    /* Tajuk Menu */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) h3 {
-        color: #FFD700 !important;
-        text-align: center;
-        border-bottom: 2px solid #FFD700;
-        padding-bottom: 10px;
-        font-weight: bold;
-        letter-spacing: 1px;
-    }
-    /* Semua label kuning */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) label,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) p {
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(1) h3,
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(1) label,
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(1) p {
         color: #FFD700 !important;
         font-weight: 600 !important;
-        font-size: 14px !important;
     }
-
-    /* Button Menu */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) .stButton > button {
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(1) .stButton > button {
         background-color: rgba(255,255,255,0.1) !important;
         color: #FFD700 !important;
         border: 1px solid #FFD700 !important;
         border-radius: 8px !important;
-        font-weight: bold !important;
-        transition: all 0.3s;
-        text-align: left !important;
-        padding-left: 15px !important;
     }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) .stButton > button:hover {
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(1) .stButton > button:hover {
         background-color: #FFD700 !important;
         color: #004D40 !important;
-        transform: translateX(5px);
-        box-shadow: 0 2px 8px rgba(255,215,0,0.4);
     }
-    
-    /* Betulkan warna dalam selectbox supaya nampak */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div[data-baseweb="select"] {
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(1) div[data-baseweb="select"] {
         background-color: white !important;
-        border-radius: 8px;
     }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div[data-baseweb="select"] span,
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div[data-baseweb="select"] div {
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(1) div[data-baseweb="select"] span,
+    div[data-testid="stHorizontalBlock"]:first-of-type > div:nth-child(1) div[data-baseweb="select"] div {
         color: #004D40 !important;
+    }
+
+    /* KOTAK JUMLAH KEMBALI PUTIH */
+    div[data-testid="stMetric"] {
+        background-color: #FFFFFF !important;
+        border: 1px solid #E0E0E0 !important;
+        border-radius: 10px !important;
     }
     </style>
     """
