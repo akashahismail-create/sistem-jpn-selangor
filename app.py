@@ -15,28 +15,21 @@ hide_st_style = """
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-
-    /* MENU KIRI SAJA HIJAU - Pakai selector paling luar sahaja */
     section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) > div[data-testid="stVerticalBlock"] {
         background: linear-gradient(180deg, #00695C 0%, #004D40 100%)!important;
         border-radius: 15px!important;
         padding: 15px!important;
         border: 2px solid #FFD700!important;
     }
-
-    /* RESET - Pastikan column dalam content tak ada hijau */
     div[data-testid="stMetric"] {
         background: transparent!important;
         border: none!important;
     }
-    /* PAKSA COLUMN YANG ADA METRIC JADI TRANSPARENT - buang double border */
     div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
         background: transparent!important;
         border: none!important;
         box-shadow: none!important;
     }
-
-    /* 3 KOTAK JUMLAH - SEMUA HIJAU SAMA LEVEL CANTIK */
     div[data-testid="stMetric"] > div {
         background: transparent!important;
     }
@@ -58,7 +51,6 @@ hide_st_style = """
         font-weight: bold!important;
         font-size: 34px!important;
     }
-    /* Bagi 3 column metric sama tinggi */
     div[data-testid="stHorizontalBlock"] {
         align-items: stretch!important;
     }
@@ -234,23 +226,62 @@ def page_selenggara_pusat():
             st.balloons()
             st.rerun()
 
+# ========== UPDATED - ADA 4 KOTAK + JUMLAH PUSAT ==========
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
     df_mp = st.session_state["data_mp"]
-    if df_mp.empty: st.warning("Sheet 'MataPelajaran' masih kosong.")
+    if df_mp.empty:
+        st.warning("Sheet 'MataPelajaran' masih kosong.")
     else:
-        col1, col2, col3 = st.columns([2,2,1])
-        with col1: cari_kod = st.text_input("1. Masukkan Kod Mata Pelajaran", placeholder="Contoh: 1449")
-        with col2: cari_nama = st.text_input("2. ATAU Nama Mata Pelajaran", placeholder="Contoh: MATEMATIK")
-        with col3: cari_kertas = st.selectbox("3. Pilih Kertas", ["Semua", "1", "2", "3"])
+        col1, col2, col3, col4 = st.columns([2,2,1,2])
+        with col1:
+            cari_kod = st.text_input("1. Masukkan Kod Mata Pelajaran", placeholder="Contoh: 1103")
+        with col2:
+            cari_nama = st.text_input("2. ATAU Nama Mata Pelajaran", placeholder="Contoh: MATEMATIK")
+        with col3:
+            cari_kertas = st.selectbox("3. Pilih Kertas", ["Semua", "1", "2", "3"])
+        with col4:
+            # Kotak baru Pilih Daerah
+            cari_daerah = st.selectbox("4. Pilih Daerah", ["Semua Daerah"] + list(KOD_PPD.keys()))
+
         if st.button("🔍 Cari Sekarang", type="primary", use_container_width=True):
             df_filter = df_mp.copy()
-            if st.session_state.get("role") == "PPD": df_filter = df_filter[df_filter["Kod_PPD"] == st.session_state["kod_ppd"]]
-            if cari_kod: df_filter = df_filter[df_filter["KodMP"].str.contains(cari_kod, case=False, na=False)]
-            elif cari_nama: df_filter = df_filter[df_filter["NamaMP"].str.contains(cari_nama, case=False, na=False)]
-            if cari_kertas!= "Semua": df_filter = df_filter[df_filter["Kertas"].astype(str) == cari_kertas]
-            if not df_filter.empty: st.success(f"✅ Jumpa {len(df_filter)} rekod"); st.dataframe(df_filter[COLUMNS_MP].drop_duplicates(), use_container_width=True)
-            else: st.error("⚠️ Tiada pusat yang menawarkan mata pelajaran tersebut")
+
+            # Filter PPD login
+            if st.session_state.get("role") == "PPD":
+                df_filter = df_filter[df_filter["Kod_PPD"] == st.session_state["kod_ppd"]]
+            else:
+                # Admin boleh filter daerah
+                if cari_daerah!= "Semua Daerah":
+                    kod_ppd_pilihan = KOD_PPD[cari_daerah]
+                    df_filter = df_filter[df_filter["Kod_PPD"] == kod_ppd_pilihan]
+
+            if cari_kod:
+                df_filter = df_filter[df_filter["KodMP"].str.contains(cari_kod, case=False, na=False)]
+            elif cari_nama:
+                df_filter = df_filter[df_filter["NamaMP"].str.contains(cari_nama, case=False, na=False)]
+
+            if cari_kertas!= "Semua":
+                df_filter = df_filter[df_filter["Kertas"].astype(str) == cari_kertas]
+
+            if not df_filter.empty:
+                jumlah_rekod = len(df_filter)
+                # Kira pusat unik
+                jumlah_pusat_unik = df_filter.drop_duplicates(subset=["Kod_PPD", "No_Pusat"]).shape[0]
+
+                st.success(f"✅ Jumpa {jumlah_rekod} rekod")
+
+                # Papar 2 kotak jumlah - hijau sama level
+                m1, m2 = st.columns(2)
+                with m1:
+                    st.metric("Jumlah Rekod MP", f"{jumlah_rekod:,}")
+                with m2:
+                    label_pusat = f"Jumlah Pusat Tawar {cari_kod if cari_kod else cari_nama if cari_nama else 'MP'}"
+                    st.metric(label_pusat, f"{jumlah_pusat_unik:,} pusat")
+
+                st.dataframe(df_filter[COLUMNS_MP].drop_duplicates(), use_container_width=True)
+            else:
+                st.error("⚠️ Tiada pusat yang menawarkan mata pelajaran tersebut")
 
 def page_senarai_pusat():
     st.header("📋 Senarai Pusat Peperiksaan")
@@ -334,13 +365,10 @@ with col_main:
         jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
         jumlah_pusat_total = len(st.session_state["data_pusat"])
         st.info(f"Daerah: **{daerah}** | Data: **{jenis_data}** | Filter: **{sub_filter}**")
-
-        # 3 KOTAK SEKATA - GUNA st.metric TAPI DAH HIJAU SAMA
         colA, colB, colC = st.columns(3)
         with colA: st.metric(f"Jumlah", f"{jumlah:,}")
         with colB: st.metric("Jumlah Petugas Negeri", f"{jumlah_petugas_total:,}")
         with colC: st.metric("Jumlah Rekod Pusat", f"{jumlah_pusat_total:,}")
-
         st.write("---")
         if jenis_data == "Calon" or jenis_data == "Semua":
             st.subheader("📊 Bilangan Calon Mengikut Daerah")
