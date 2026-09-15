@@ -9,51 +9,58 @@ from io import BytesIO
 
 st.set_page_config(page_title="JPN Selangor", layout="wide")
 
-# ========== CSS MENU HIJAU KUNING - VERSI CANTIK ==========
+# ========== CSS FIX FINAL - MENU HIJAU, 3 KOTAK HIJAU SEKATA ==========
 hide_st_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* MENU KIRI HIJAU */
-    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) {
-        background: linear-gradient(180deg, #00695C 0%, #004D40 100%) !important;
-        border-radius: 15px !important;
-        padding: 15px !important;
-        border: 2px solid #FFD700 !important;
+    /* MENU KIRI SAJA HIJAU - Pakai selector paling luar sahaja */
+    section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) > div[data-testid="stVerticalBlock"] {
+        background: linear-gradient(180deg, #00695C 0%, #004D40 100%)!important;
+        border-radius: 15px!important;
+        padding: 15px!important;
+        border: 2px solid #FFD700!important;
     }
 
-    /* RESET - Buang semua padding hijau lama yang buat tak sama level */
-    div[data-testid="stHorizontalBlock"] {
-        align-items: stretch !important;
-        gap: 15px !important;
+    /* RESET - Pastikan column dalam content tak ada hijau */
+    div[data-testid="stMetric"] {
+        background: transparent!important;
+        border: none!important;
     }
-    div[data-testid="column"] {
-        padding-top: 0px !important;
+    /* PAKSA COLUMN YANG ADA METRIC JADI TRANSPARENT - buang double border */
+    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
+        background: transparent!important;
+        border: none!important;
+        box-shadow: none!important;
     }
 
     /* 3 KOTAK JUMLAH - SEMUA HIJAU SAMA LEVEL CANTIK */
+    div[data-testid="stMetric"] > div {
+        background: transparent!important;
+    }
     div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #009688 0%, #004D40 100%) !important;
-        border: 2px solid #FFD700 !important;
-        border-radius: 15px !important;
-        padding: 20px !important;
-        height: 110px !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
+        background: linear-gradient(135deg, #00897B 0%, #004D40 100%)!important;
+        border: 2px solid #FFD700!important;
+        border-radius: 15px!important;
+        padding: 20px!important;
+        height: 115px!important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2)!important;
     }
     div[data-testid="stMetric"] label {
-        color: #FFEB3B !important;
-        font-weight: bold !important;
-        font-size: 15px !important;
+        color: #FFEB3B!important;
+        font-weight: bold!important;
+        font-size: 14px!important;
     }
     div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-        color: #FFEB3B !important;
-        font-weight: bold !important;
-        font-size: 36px !important;
+        color: #FFEB3B!important;
+        font-weight: bold!important;
+        font-size: 34px!important;
+    }
+    /* Bagi 3 column metric sama tinggi */
+    div[data-testid="stHorizontalBlock"] {
+        align-items: stretch!important;
     }
     </style>
     """
@@ -255,7 +262,7 @@ def page_senarai_pusat():
         st.metric("Jumlah Pusat", len(df_output))
         st.dataframe(df_output, use_container_width=True, hide_index=True)
 
-# ========== HEADER HIJAU KUNING - VERSI SELAMAT ==========
+# ========== HEADER HIJAU KUNING ==========
 if os.path.exists("logo.png"):
     with open("logo.png", "rb") as f:
         logo_b64 = base64.b64encode(f.read()).decode()
@@ -327,10 +334,13 @@ with col_main:
         jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
         jumlah_pusat_total = len(st.session_state["data_pusat"])
         st.info(f"Daerah: **{daerah}** | Data: **{jenis_data}** | Filter: **{sub_filter}**")
+
+        # 3 KOTAK SEKATA - GUNA st.metric TAPI DAH HIJAU SAMA
         colA, colB, colC = st.columns(3)
         with colA: st.metric(f"Jumlah", f"{jumlah:,}")
         with colB: st.metric("Jumlah Petugas Negeri", f"{jumlah_petugas_total:,}")
         with colC: st.metric("Jumlah Rekod Pusat", f"{jumlah_pusat_total:,}")
+
         st.write("---")
         if jenis_data == "Calon" or jenis_data == "Semua":
             st.subheader("📊 Bilangan Calon Mengikut Daerah")
