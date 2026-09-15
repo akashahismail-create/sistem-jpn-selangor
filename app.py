@@ -15,12 +15,30 @@ hide_st_style = """
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
+
+    /* MENU KIRI SAJA HIJAU - Pakai selector paling luar sahaja */
     section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) > div[data-testid="stVerticalBlock"] {
         background: linear-gradient(180deg, #00695C 0%, #004D40 100%)!important;
         border-radius: 15px!important;
         padding: 15px!important;
         border: 2px solid #FFD700!important;
     }
+
+    /* 4 BUTANG MENU ATAS JADI HIJAU KUNING */
+    section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) button {
+        background: linear-gradient(135deg, #00897B 0%, #004D40 100%)!important;
+        color: #FFEB3B!important;
+        border: 2px solid #FFD700!important;
+        border-radius: 10px!important;
+        font-weight: bold!important;
+    }
+    section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) button:hover {
+        background: linear-gradient(135deg, #00695C 0%, #004D40 100%)!important;
+        color: white!important;
+        border-color: white!important;
+    }
+
+    /* RESET - Pastikan column dalam content tak ada hijau */
     div[data-testid="stMetric"] {
         background: transparent!important;
         border: none!important;
@@ -30,6 +48,8 @@ hide_st_style = """
         border: none!important;
         box-shadow: none!important;
     }
+
+    /* 3 KOTAK JUMLAH - SEMUA HIJAU SAMA LEVEL CANTIK */
     div[data-testid="stMetric"] > div {
         background: transparent!important;
     }
