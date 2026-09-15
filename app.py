@@ -47,11 +47,22 @@ hide_st_style = """
         color: #004D40 !important;
     }
 
-    /* KOTAK JUMLAH KEMBALI PUTIH */
+      /* 3 KOTAK JUMLAH - SEMUA HIJAU TULISAN HITAM JELAS */
     div[data-testid="stMetric"] {
-        background-color: #FFFFFF !important;
-        border: 1px solid #E0E0E0 !important;
-        border-radius: 10px !important;
+        background-color: #E0F2F1 !important;
+        border: 2px solid #004D40 !important;
+        border-radius: 12px !important;
+        padding: 15px !important;
+    }
+    div[data-testid="stMetric"] label {
+        color: #004D40 !important;
+        font-weight: bold !important;
+        font-size: 15px !important;
+    }
+    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+        color: #000000 !important;
+        font-weight: bold !important;
+        font-size: 32px !important;
     }
     </style>
     """
