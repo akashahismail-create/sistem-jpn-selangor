@@ -16,52 +16,44 @@ hide_st_style = """
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* MENU KIRI SAJA HIJAU - Tak kacau kotak Jumlah */
+    /* MENU KIRI HIJAU */
     div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) {
         background: linear-gradient(180deg, #00695C 0%, #004D40 100%) !important;
         border-radius: 15px !important;
         padding: 15px !important;
         border: 2px solid #FFD700 !important;
     }
-    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) h3,
-    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) p,
-    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) label {
-        color: #FFD700 !important;
+
+    /* RESET - Buang semua padding hijau lama yang buat tak sama level */
+    div[data-testid="stHorizontalBlock"] {
+        align-items: stretch !important;
+        gap: 15px !important;
     }
-    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) .stButton > button {
-        background-color: rgba(255,255,255,0.1) !important;
-        color: #FFD700 !important;
-        border: 1px solid #FFD700 !important;
-        border-radius: 8px !important;
-        width: 100% !important;
-    }
-    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) .stButton > button:hover {
-        background-color: #FFD700 !important;
-        color: #004D40 !important;
-    }
-    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) div[data-baseweb="select"] {
-        background-color: white !important;
+    div[data-testid="column"] {
+        padding-top: 0px !important;
     }
 
-    /* 3 KOTAK JUMLAH - PAKSA JADI PUTIH SEKATA, TULISAN HITAM */
+    /* 3 KOTAK JUMLAH - SEMUA HIJAU SAMA LEVEL CANTIK */
     div[data-testid="stMetric"] {
-        background-color: #FFFFFF !important;
-        border: 2px solid #004D40 !important;
-        border-radius: 12px !important;
-        padding: 15px !important;
+        background: linear-gradient(135deg, #009688 0%, #004D40 100%) !important;
+        border: 2px solid #FFD700 !important;
+        border-radius: 15px !important;
+        padding: 20px !important;
+        height: 110px !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
     }
     div[data-testid="stMetric"] label {
-        color: #004D40 !important;
+        color: #FFEB3B !important;
         font-weight: bold !important;
+        font-size: 15px !important;
     }
     div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-        color: #000000 !important;
+        color: #FFEB3B !important;
         font-weight: bold !important;
-        font-size: 32px !important;
-    }
-    /* Buang background hijau dari column Jumlah */
-    div[data-testid="stMetric"] ~ div, div[data-testid="stMetric"] {
-        background: transparent !important;
+        font-size: 36px !important;
     }
     </style>
     """
