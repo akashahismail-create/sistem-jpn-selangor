@@ -268,18 +268,18 @@ def page_senarai_pusat():
         st.metric("Jumlah Pusat", len(df_output))
         st.dataframe(df_output, use_container_width=True, hide_index=True)
 
-# ========== HEADER ==========
+# ========== HEADER ==========     <-- line 271 PADAM MULA SINI
 col1, col2 = st.columns([1, 5])
 with col1:
     if os.path.exists("logo.png"):
         with open("logo.png", "rb") as f: logo_bytes = f.read()
         logo_b64 = base64.b64encode(logo_bytes).decode()
-        st.markdown(f'<img src="data:image/png;base64,{logo_b64}" width="100">', unsafe_allow_html=True)
+        st.markdown(f'<img src="data:image/png;base64,{logo_b64}" width="100">', unsafe_allow...
 with col2:
-    st.markdown("<h3 style='color:#0A2A66; margin-bottom:0px;'>JABATAN PENDIDIKAN SELANGOR</h3>", unsafe_allow_html=True)
-    st.markdown("<h4 style='color:#0A2A66; margin-top:-8px;'>SEKTOR PENTAKSIRAN DAN PEPERIKSAAN</h4>", unsafe_allow_html=True)
-st.markdown("<h4 style='color:#0A2A66; border-bottom:2px solid #0A2A66; padding-bottom:5px;'>SIJIL PELAJARAN MALAYSIA</h4>", unsafe_allow_html=True)
-st.write("---")
+    st.markdown("<h3 style='color:#0A2A66;...'>JABATAN...
+    st.markdown("<h4 style='color:#0A2A66;...'>SEKTOR...
+st.markdown("<h4 style='color:#0A2A66; border-bottom...
+st.write("---")                      <-- SAMPAI SINI PADAM
 
 # ========== 2 COLUMN ==========
 col_sidebar, col_main = st.columns([1, 4])
