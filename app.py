@@ -9,74 +9,38 @@ from io import BytesIO
 
 st.set_page_config(page_title="JPN Selangor", layout="wide")
 
-# ========== CSS UTAMA - MENU HIJAU KUNING ==========
+# ========== CSS MENU HIJAU KUNING - VERSI KUAT ==========
 hide_st_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    div[data-testid="stToolbar"] {display: none;}
-
-    /* PAPARAN 1 : MENU KIRI - HIJAU */
-    [data-testid="column"]:nth-child(1) {
-        background-color: #004D40!important;
-        padding: 1.5rem 1rem;
-        border-radius: 12px;
-        min-height: 100vh;
+    
+    /* Target column pertama dengan lebih kuat */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) {
+        background-color: #004D40 !important;
+        border-radius: 15px;
+        padding: 15px !important;
     }
-
-    /* Semua tulisan dalam menu jadi KUNING */
-    [data-testid="column"]:nth-child(1) h1,
-    [data-testid="column"]:nth-child(1) h2,
-    [data-testid="column"]:nth-child(1) h3,
-    [data-testid="column"]:nth-child(1) p,
-    [data-testid="column"]:nth-child(1) label,
-    [data-testid="column"]:nth-child(1) span,
-    [data-testid="column"]:nth-child(1) div {
-        color: #FFD700!important;
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) * {
+        color: #FFD700 !important;
     }
-
-    /* Button Menu - Hijau + Border Kuning */
-    [data-testid="column"]:nth-child(1).stButton > button {
-        background-color: #00695C!important;
-        color: #FFD700!important;
-        border: 1px solid #FFD700!important;
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) .stButton > button {
+        background-color: #00695C !important;
+        color: #FFD700 !important;
+        border: 1px solid #FFD700 !important;
         font-weight: bold;
-        width: 100%;
-        text-align: left;
-        border-radius: 8px;
     }
-    [data-testid="column"]:nth-child(1).stButton > button:hover {
-        background-color: #FFD700!important;
-        color: #004D40!important;
-        border: 1px solid #004D40!important;
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) .stButton > button:hover {
+        background-color: #FFD700 !important;
+        color: #004D40 !important;
     }
-
-    /* Selectbox dalam menu */
-    [data-testid="column"]:nth-child(1).stSelectbox div[data-baseweb="select"] {
-        background-color: #FFFFFF!important;
+    /* Supaya tulisan dalam selectbox tak jadi kuning (jadi hitam baru nampak) */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div[data-baseweb="select"] span {
+        color: black !important;
     }
-    [data-testid="column"]:nth-child(1).stSelectbox div[data-baseweb="select"] span {
-        color: #004D40!important;
-    }
-
-    /* Link Button Pautan */
-    [data-testid="column"]:nth-child(1).stLinkButton > a {
-        background-color: transparent!important;
-        color: #FFD700!important;
-        border: 1px solid #FFD700!important;
-        border-radius: 8px;
-    }
-    [data-testid="column"]:nth-child(1).stLinkButton > a:hover {
-        background-color: #FFD700!important;
-        color: #004D40!important;
-    }
-
-    /* PAPARAN 2 : DASHBOARD KANAN - KEKAL PUTIH */
-    [data-testid="column"]:nth-child(2) {
-        background-color: #FFFFFF!important;
-        padding: 1rem 2rem;
-        border-radius: 12px;
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div[data-baseweb="select"] div {
+        color: black !important;
     }
     </style>
     """
