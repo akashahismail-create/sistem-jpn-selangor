@@ -328,7 +328,7 @@ with col_sidebar:
     st.markdown("### 🔗 Pautan Sistem Lain")
     st.link_button("1. SPPAT", "https://sppat.moe.gov.my", use_container_width=True)
     st.link_button("2. ELP Portal", "https://elp.moe.gov.my/eportal/login", use_container_width=True)
-    if st.session_state.get("editor_login", False): st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True)
+    if st.session_state.get("editor_login", False): st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True, type="primary")
     if st.session_state.get("editor_login", False):
         st.write("---")
         st.markdown("### 📁 Pautan Pengurusan")
