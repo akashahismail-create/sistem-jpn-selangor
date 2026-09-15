@@ -16,46 +16,34 @@ hide_st_style = """
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* RESET - BUANG SEMUA HIJAU LAMA */
-    div[data-testid="stHorizontalBlock"] > div {
-        background: transparent !important;
-        border: none !important;
-        box-shadow: none !important;
-    }
-
-    /* HANYA KOTAK FILTER KIRI SEKALI SAHAJA JADI HIJAU */
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child(1) > div[data-testid="stVerticalBlock"] {
+    /* MENU KIRI SAJA HIJAU - Tak kacau kotak Jumlah */
+    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) {
         background: linear-gradient(180deg, #00695C 0%, #004D40 100%) !important;
         border-radius: 15px !important;
-        padding: 20px 15px !important;
+        padding: 15px !important;
         border: 2px solid #FFD700 !important;
     }
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child(1) h3,
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child(1) label,
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child(1) p {
+    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) h3,
+    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) p,
+    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) label {
         color: #FFD700 !important;
-        font-weight: 600 !important;
     }
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child(1) .stButton > button {
+    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) .stButton > button {
         background-color: rgba(255,255,255,0.1) !important;
         color: #FFD700 !important;
         border: 1px solid #FFD700 !important;
         border-radius: 8px !important;
+        width: 100% !important;
     }
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child(1) .stButton > button:hover {
+    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) .stButton > button:hover {
         background-color: #FFD700 !important;
         color: #004D40 !important;
     }
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child(1) div[data-baseweb="select"] {
+    div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:first-child > div:nth-child(1) div[data-baseweb="select"] {
         background-color: white !important;
-        border-radius: 8px !important;
-    }
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child(1) div[data-baseweb="select"] span,
-    div[data-testid="stHorizontalBlock"]:nth-of-type(1) > div:nth-child(1) div[data-baseweb="select"] div {
-        color: #004D40 !important;
     }
 
-    /* 3 KOTAK JUMLAH - SEMUA SEKATA, PUTIH, TULISAN HITAM JELAS */
+    /* 3 KOTAK JUMLAH - PAKSA JADI PUTIH SEKATA, TULISAN HITAM */
     div[data-testid="stMetric"] {
         background-color: #FFFFFF !important;
         border: 2px solid #004D40 !important;
@@ -70,6 +58,10 @@ hide_st_style = """
         color: #000000 !important;
         font-weight: bold !important;
         font-size: 32px !important;
+    }
+    /* Buang background hijau dari column Jumlah */
+    div[data-testid="stMetric"] ~ div, div[data-testid="stMetric"] {
+        background: transparent !important;
     }
     </style>
     """
