@@ -9,19 +9,74 @@ from io import BytesIO
 
 st.set_page_config(page_title="JPN Selangor", layout="wide")
 
-# ========== SOROK MENU STREAMLIT ==========
+# ========== CSS UTAMA - MENU HIJAU KUNING ==========
 hide_st_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     div[data-testid="stToolbar"] {display: none;}
+
+    /* PAPARAN 1 : MENU KIRI - HIJAU */
     [data-testid="column"]:nth-child(1) {
-        background-color: #F0F2F6;
-        padding: 1rem;
-        border-right: 1px solid #D0D0D0;
+        background-color: #004D40!important;
+        padding: 1.5rem 1rem;
+        border-radius: 12px;
         min-height: 100vh;
-        overflow-y: auto;
+    }
+
+    /* Semua tulisan dalam menu jadi KUNING */
+    [data-testid="column"]:nth-child(1) h1,
+    [data-testid="column"]:nth-child(1) h2,
+    [data-testid="column"]:nth-child(1) h3,
+    [data-testid="column"]:nth-child(1) p,
+    [data-testid="column"]:nth-child(1) label,
+    [data-testid="column"]:nth-child(1) span,
+    [data-testid="column"]:nth-child(1) div {
+        color: #FFD700!important;
+    }
+
+    /* Button Menu - Hijau + Border Kuning */
+    [data-testid="column"]:nth-child(1).stButton > button {
+        background-color: #00695C!important;
+        color: #FFD700!important;
+        border: 1px solid #FFD700!important;
+        font-weight: bold;
+        width: 100%;
+        text-align: left;
+        border-radius: 8px;
+    }
+    [data-testid="column"]:nth-child(1).stButton > button:hover {
+        background-color: #FFD700!important;
+        color: #004D40!important;
+        border: 1px solid #004D40!important;
+    }
+
+    /* Selectbox dalam menu */
+    [data-testid="column"]:nth-child(1).stSelectbox div[data-baseweb="select"] {
+        background-color: #FFFFFF!important;
+    }
+    [data-testid="column"]:nth-child(1).stSelectbox div[data-baseweb="select"] span {
+        color: #004D40!important;
+    }
+
+    /* Link Button Pautan */
+    [data-testid="column"]:nth-child(1).stLinkButton > a {
+        background-color: transparent!important;
+        color: #FFD700!important;
+        border: 1px solid #FFD700!important;
+        border-radius: 8px;
+    }
+    [data-testid="column"]:nth-child(1).stLinkButton > a:hover {
+        background-color: #FFD700!important;
+        color: #004D40!important;
+    }
+
+    /* PAPARAN 2 : DASHBOARD KANAN - KEKAL PUTIH */
+    [data-testid="column"]:nth-child(2) {
+        background-color: #FFFFFF!important;
+        padding: 1rem 2rem;
+        border-radius: 12px;
     }
     </style>
     """
@@ -32,7 +87,6 @@ st.markdown("<div style='text-align: right; font-size: 10px; color: grey;'>Creat
 if 'menu_state' not in st.session_state:
     st.session_state.menu_state = True
 
-# ========== DATA ASAL - JADI BACKUP SAJA ==========
 DATA_ASAL = {
     "Petaling Perdana": {"A-Sekolah Kerajaan": 13106, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 0, "D-Sekolah Swasta": 571, "E-Calon Persendirian": 974, "Penyelia Kawasan": 30, "Ketua Pengawas": 91, "Timbalan Ketua Pengawas": 91, "Pengawas": 1027, "Pengemas Bilik": 91, "Sukarelawan": 50},
     "Petaling Utama": {"A-Sekolah Kerajaan": 5209, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 0, "D-Sekolah Swasta": 317, "E-Calon Persendirian": 491, "Penyelia Kawasan": 22, "Ketua Pengawas": 43, "Timbalan Ketua Pengawas": 43, "Pengawas": 494, "Pengemas Bilik": 43, "Sukarelawan": 50},
@@ -45,7 +99,6 @@ DATA_ASAL = {
     "Sabak Bernam": {"A-Sekolah Kerajaan": 1990, "B-Sekolah Agensi": 158, "C-Sekolah Bantuan Kerajaan": 58, "D-Sekolah Swasta": 16, "E-Calon Persendirian": 85, "Penyelia Kawasan": 12, "Ketua Pengawas": 24, "Timbalan Ketua Pengawas": 24, "Pengawas": 197, "Pengemas Bilik": 24, "Sukarelawan": 15},
     "Sepang": {"A-Sekolah Kerajaan": 3477, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 48, "D-Sekolah Swasta": 110, "E-Calon Persendirian": 382, "Penyelia Kawasan": 22, "Ketua Pengawas": 28, "Timbalan Ketua Pengawas": 28, "Pengawas": 265, "Pengemas Bilik": 28, "Sukarelawan": 30},
 }
-
 JENIS_CALON = ["Semua Jenis"] + ["A-Sekolah Kerajaan", "B-Sekolah Agensi", "C-Sekolah Bantuan Kerajaan", "D-Sekolah Swasta", "E-Calon Persendirian"]
 JENIS_PETUGAS = ["Semua Jawatan"] + ["Penyelia Kawasan", "Ketua Pengawas", "Timbalan Ketua Pengawas", "Pengawas", "Pengemas Bilik", "Sukarelawan"]
 SEMUA_KATEGORI = JENIS_CALON[1:] + JENIS_PETUGAS[1:]
@@ -69,8 +122,6 @@ SHEET_MP = "MataPelajaran"
 COLUMNS_PUSAT = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Nama_Bilik_Kebal","Dikemaskini_Oleh","Tarikh_Kemaskini"]
 COLUMNS_MP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Tarikh"]
 LINK_PENGURUSAN = "https://drive.google.com/drive/folders/193ELWVyPDORTVE7ZSVe2B3rsZILkg7f6?usp=drive_link"
-
-# ========== FUNGSI BARU UNTUK DATA CALON - INI KUNCI DIA ==========
 FILE_CALON_JSON = "data_calon.json"
 
 def load_data_calon():
@@ -78,17 +129,13 @@ def load_data_calon():
         try:
             with open(FILE_CALON_JSON, "r") as f:
                 return json.load(f)
-        except:
-            return DATA_ASAL
-    else:
-        return DATA_ASAL
+        except: return DATA_ASAL
+    else: return DATA_ASAL
 
 def simpan_data_calon(data):
-    with open(FILE_CALON_JSON, "w") as f:
-        json.dump(data, f, indent=2)
+    with open(FILE_CALON_JSON, "w") as f: json.dump(data, f, indent=2)
     st.session_state["data_calon"] = data
 
-#... [fungsi excel yang lain kekal sama]...
 def load_data_pusat():
     if os.path.exists(FILE_EXCEL):
         try: return pd.read_excel(FILE_EXCEL, sheet_name=SHEET_PUSAT, engine='openpyxl', dtype=str)
@@ -130,9 +177,7 @@ def upload_pukal(uploaded_file, dikemaskini_oleh):
         return True, f"Berjaya upload {len(df_upload)} rekod"
     except Exception as e: return False, f"Ralat: {e}. Pastikan header sama: {COLUMNS_PUSAT}"
 
-# ========== SESSION STATE ==========
-if "data_calon" not in st.session_state:
-    st.session_state["data_calon"] = load_data_calon() # <-- DASHBOARD BACA DARI SINI
+if "data_calon" not in st.session_state: st.session_state["data_calon"] = load_data_calon()
 if "data_pusat" not in st.session_state: st.session_state["data_pusat"] = load_data_pusat()
 if "data_mp" not in st.session_state: st.session_state["data_mp"] = load_data_mp()
 if "editor_login" not in st.session_state: st.session_state["editor_login"] = False
@@ -195,16 +240,13 @@ def page_selenggara_pusat():
             except Exception as e: st.error(f"Ralat: {e}")
     with tab3:
         st.subheader("🛠️ Selenggara Bilangan Calon & Petugas - Dashboard Auto Update")
-        st.info("Ubah nombor di sini, klik Simpan, Dashboard terus berubah. Data akan disimpan kekal dalam data_calon.json")
-
+        st.info("Ubah nombor di sini, klik Simpan, Dashboard terus berubah.")
         df_edit = pd.DataFrame.from_dict(st.session_state["data_calon"], orient='index')
-        st.write("Edit terus dalam jadual:")
         edited_df = st.data_editor(df_edit, use_container_width=True, num_rows="dynamic")
-
         if st.button("💾 SIMPAN & UPDATE DASHBOARD", type="primary", use_container_width=True):
             data_baru_dict = edited_df.to_dict(orient='index')
             simpan_data_calon(data_baru_dict)
-            st.success("Berjaya! Data calon & petugas dah update. Sila lihat Dashboard.")
+            st.success("Berjaya! Dashboard dah guna data baru.")
             st.balloons()
             st.rerun()
 
@@ -223,9 +265,7 @@ def page_cari_mp():
             if cari_kod: df_filter = df_filter[df_filter["KodMP"].str.contains(cari_kod, case=False, na=False)]
             elif cari_nama: df_filter = df_filter[df_filter["NamaMP"].str.contains(cari_nama, case=False, na=False)]
             if cari_kertas!= "Semua": df_filter = df_filter[df_filter["Kertas"].astype(str) == cari_kertas]
-            if not df_filter.empty:
-                st.success(f"✅ Jumpa {len(df_filter)} rekod")
-                st.dataframe(df_filter[COLUMNS_MP].drop_duplicates(), use_container_width=True)
+            if not df_filter.empty: st.success(f"✅ Jumpa {len(df_filter)} rekod"); st.dataframe(df_filter[COLUMNS_MP].drop_duplicates(), use_container_width=True)
             else: st.error("⚠️ Tiada pusat yang menawarkan mata pelajaran tersebut")
 
 def page_senarai_pusat():
