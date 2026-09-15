@@ -16,7 +16,7 @@ hide_st_style = """
     footer {visibility: hidden;}
     header {visibility: hidden;}
 
-    /* MENU KIRI SAJA HIJAU - Pakai selector paling luar sahaja */
+    /* MENU KIRI SAJA HIJAU */
     section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) > div[data-testid="stVerticalBlock"] {
         background: linear-gradient(180deg, #00695C 0%, #004D40 100%)!important;
         border-radius: 15px!important;
@@ -24,21 +24,29 @@ hide_st_style = """
         border: 2px solid #FFD700!important;
     }
 
-    /* 4 BUTANG MENU ATAS JADI HIJAU KUNING */
-    section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) button {
+    /* PAKSA SEMUA BUTANG PUTIH (SECONDARY) JADI HIJAU KUNING */
+    button[kind="secondary"] {
         background: linear-gradient(135deg, #00897B 0%, #004D40 100%)!important;
         color: #FFEB3B!important;
         border: 2px solid #FFD700!important;
         border-radius: 10px!important;
         font-weight: bold!important;
     }
-    section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) button:hover {
+    button[kind="secondary"]:hover {
         background: linear-gradient(135deg, #00695C 0%, #004D40 100%)!important;
         color: white!important;
         border-color: white!important;
     }
+    /* BUTANG MERAH BIAQ MERAH */
+    button[kind="primary"] {
+        background: linear-gradient(135deg, #C62828 0%, #B71C1C 100%)!important;
+        border: 2px solid #FFD700!important;
+        color: white!important;
+        border-radius: 10px!important;
+        font-weight: bold!important;
+    }
 
-    /* RESET - Pastikan column dalam content tak ada hijau */
+    /* RESET METRIC */
     div[data-testid="stMetric"] {
         background: transparent!important;
         border: none!important;
@@ -48,8 +56,6 @@ hide_st_style = """
         border: none!important;
         box-shadow: none!important;
     }
-
-    /* 3 KOTAK JUMLAH - SEMUA HIJAU SAMA LEVEL CANTIK */
     div[data-testid="stMetric"] > div {
         background: transparent!important;
     }
