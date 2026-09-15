@@ -1,6 +1,7 @@
 import streamlit as st
 import base64
 import os
+import json
 import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
@@ -8,38 +9,30 @@ from io import BytesIO
 
 st.set_page_config(page_title="JPN Selangor", layout="wide")
 
-# ========== SOROK BUTTON STREAMLIT + BUAT RUPA SIDEBAR ==========
+# ========== SOROK MENU STREAMLIT ==========
 hide_st_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
     div[data-testid="stToolbar"] {display: none;}
-
-    /* Buat column kiri jadi macam sidebar */
     [data-testid="column"]:nth-child(1) {
         background-color: #F0F2F6;
         padding: 1rem;
         border-right: 1px solid #D0D0D0;
-        height: 100vh;
+        min-height: 100vh;
         overflow-y: auto;
     }
     </style>
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
-# Kredit kecil di atas
-st.markdown("""
-    <div style='text-align: right; font-size: 10px; color: grey; margin-bottom: -10px;'>
-        Created by: Akashah Ismail
-    </div>
-    """, unsafe_allow_html=True)
+st.markdown("<div style='text-align: right; font-size: 10px; color: grey;'>Created by: Akashah Ismail</div>", unsafe_allow_html=True)
 
-# INI KOD UNTUK BUTTON BOLEH KLIK
 if 'menu_state' not in st.session_state:
     st.session_state.menu_state = True
 
-# ========== DATA ASAL ==========
+# ========== DATA ASAL - JADI BACKUP SAJA ==========
 DATA_ASAL = {
     "Petaling Perdana": {"A-Sekolah Kerajaan": 13106, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 0, "D-Sekolah Swasta": 571, "E-Calon Persendirian": 974, "Penyelia Kawasan": 30, "Ketua Pengawas": 91, "Timbalan Ketua Pengawas": 91, "Pengawas": 1027, "Pengemas Bilik": 91, "Sukarelawan": 50},
     "Petaling Utama": {"A-Sekolah Kerajaan": 5209, "B-Sekolah Agensi": 0, "C-Sekolah Bantuan Kerajaan": 0, "D-Sekolah Swasta": 317, "E-Calon Persendirian": 491, "Penyelia Kawasan": 22, "Ketua Pengawas": 43, "Timbalan Ketua Pengawas": 43, "Pengawas": 494, "Pengemas Bilik": 43, "Sukarelawan": 50},
@@ -56,9 +49,7 @@ DATA_ASAL = {
 JENIS_CALON = ["Semua Jenis"] + ["A-Sekolah Kerajaan", "B-Sekolah Agensi", "C-Sekolah Bantuan Kerajaan", "D-Sekolah Swasta", "E-Calon Persendirian"]
 JENIS_PETUGAS = ["Semua Jawatan"] + ["Penyelia Kawasan", "Ketua Pengawas", "Timbalan Ketua Pengawas", "Pengawas", "Pengemas Bilik", "Sukarelawan"]
 SEMUA_KATEGORI = JENIS_CALON[1:] + JENIS_PETUGAS[1:]
-
 KOD_PPD = {"Petaling Perdana": "BH", "Petaling Utama": "BK", "Hulu Langat": "BD", "Gombak": "BG", "Klang": "BA", "Kuala Langat": "BB", "Kuala Selangor": "BC", "Hulu Selangor": "BE", "Sabak Bernam": "BF", "Sepang": "BJ"}
-
 USERS = {
     "admin": {"password": "jpn2025", "role": "Admin", "tahap": "JPN"},
     "ppd_petaling_perdana": {"password": "ppdpp2025", "role": "PPD", "daerah": "Petaling Perdana"},
@@ -72,49 +63,59 @@ USERS = {
     "ppd_sabak_bernam": {"password": "ppdsb2025", "role": "PPD", "daerah": "Sabak Bernam"},
     "ppd_sepang": {"password": "ppdsp2025", "role": "PPD", "daerah": "Sepang"},
 }
-
 FILE_EXCEL = "data_v1.1.xlsx"
 SHEET_PUSAT = "selenggara_pusat"
 SHEET_MP = "MataPelajaran"
 COLUMNS_PUSAT = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Nama_Bilik_Kebal","Dikemaskini_Oleh","Tarikh_Kemaskini"]
 COLUMNS_MP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Tarikh"]
-
 LINK_PENGURUSAN = "https://drive.google.com/drive/folders/193ELWVyPDORTVE7ZSVe2B3rsZILkg7f6?usp=drive_link"
 
-# ========== FUNGSI EXCEL ==========
+# ========== FUNGSI BARU UNTUK DATA CALON - INI KUNCI DIA ==========
+FILE_CALON_JSON = "data_calon.json"
+
+def load_data_calon():
+    if os.path.exists(FILE_CALON_JSON):
+        try:
+            with open(FILE_CALON_JSON, "r") as f:
+                return json.load(f)
+        except:
+            return DATA_ASAL
+    else:
+        return DATA_ASAL
+
+def simpan_data_calon(data):
+    with open(FILE_CALON_JSON, "w") as f:
+        json.dump(data, f, indent=2)
+    st.session_state["data_calon"] = data
+
+#... [fungsi excel yang lain kekal sama]...
 def load_data_pusat():
     if os.path.exists(FILE_EXCEL):
         try: return pd.read_excel(FILE_EXCEL, sheet_name=SHEET_PUSAT, engine='openpyxl', dtype=str)
         except: return pd.DataFrame(columns=COLUMNS_PUSAT)
     else: return pd.DataFrame(columns=COLUMNS_PUSAT)
-
 def load_data_mp():
     if os.path.exists(FILE_EXCEL):
         try: return pd.read_excel(FILE_EXCEL, sheet_name=SHEET_MP, engine='openpyxl', dtype=str)
         except: return pd.DataFrame(columns=COLUMNS_MP)
     else: return pd.DataFrame(columns=COLUMNS_MP)
-
 def to_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer: df.to_excel(writer, index=False, sheet_name='Sheet1')
     return output.getvalue()
-
 def simpan_ke_excel():
     with pd.ExcelWriter(FILE_EXCEL, engine='openpyxl', mode='w') as writer:
         st.session_state["data_pusat"].to_excel(writer, sheet_name=SHEET_PUSAT, index=False)
         st.session_state["data_mp"].to_excel(writer, sheet_name=SHEET_MP, index=False)
-
 def simpan_data_pusat(kod_ppd, no_pusat, nama_pusat, bil_calon, nama_kebal, dikemaskini_oleh):
     df = st.session_state["data_pusat"]
     df = df[df['No_Pusat']!= no_pusat]
     data_baru = pd.DataFrame([{'Kod_PPD': kod_ppd, 'No_Pusat': no_pusat, 'Nama_Pusat': nama_pusat, 'Bil_Calon_Pusat': bil_calon, 'Nama_Bilik_Kebal': nama_kebal, 'Dikemaskini_Oleh': dikemaskini_oleh, 'Tarikh_Kemaskini': datetime.now().strftime("%Y-%m-%d %H:%M")}])
     st.session_state["data_pusat"] = pd.concat([df, data_baru], ignore_index=True)
     simpan_ke_excel()
-
 def simpan_data_mp(df_baru):
     st.session_state["data_mp"] = df_baru
     simpan_ke_excel()
-
 def upload_pukal(uploaded_file, dikemaskini_oleh):
     try:
         df_upload = pd.read_excel(uploaded_file, engine='openpyxl', dtype=str)
@@ -130,15 +131,14 @@ def upload_pukal(uploaded_file, dikemaskini_oleh):
     except Exception as e: return False, f"Ralat: {e}. Pastikan header sama: {COLUMNS_PUSAT}"
 
 # ========== SESSION STATE ==========
-if "data_calon" not in st.session_state: st.session_state["data_calon"] = DATA_ASAL
+if "data_calon" not in st.session_state:
+    st.session_state["data_calon"] = load_data_calon() # <-- DASHBOARD BACA DARI SINI
 if "data_pusat" not in st.session_state: st.session_state["data_pusat"] = load_data_pusat()
 if "data_mp" not in st.session_state: st.session_state["data_mp"] = load_data_mp()
 if "editor_login" not in st.session_state: st.session_state["editor_login"] = False
 if "show_editor" not in st.session_state: st.session_state["show_editor"] = False
-if "pdf_jadual" not in st.session_state: st.session_state["pdf_jadual"] = None
 if "menu" not in st.session_state: st.session_state["menu"] = "Dashboard"
 
-# ========== FUNGSI LAIN ==========
 def login_editor():
     with st.form("login_form"):
         st.markdown("#### 🔒 Log Masuk")
@@ -155,9 +155,7 @@ def login_editor():
 def page_selenggara_pusat():
     st.header("⚙️ Selenggara Data")
     if not st.session_state.get("editor_login", False): st.warning("Sila login dahulu di menu Selenggara Data"); return
-
-    tab1, tab2 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran"])
-
+    tab1, tab2, tab3 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas"])
     with tab1:
         role = st.session_state["role"]
         if role == "Admin":
@@ -171,7 +169,6 @@ def page_selenggara_pusat():
                     if ok: st.success(msg); st.rerun()
                     else: st.error(msg)
         else: pilihan_ppd = st.session_state["kod_ppd"]; st.info(f"Anda login sebagai PPD: {st.session_state['daerah_ppd']} - {pilihan_ppd}")
-
         with st.form("form_pusat"):
             col1, col2 = st.columns(2)
             with col1: no_pusat = st.text_input("No Pusat *"); nama_pusat = st.text_input("Nama Pusat *")
@@ -183,11 +180,9 @@ def page_selenggara_pusat():
         st.write("---"); st.subheader(f"Senarai Pusat di {pilihan_ppd}")
         df_tunjuk = st.session_state["data_pusat"][st.session_state["data_pusat"]['Kod_PPD'] == pilihan_ppd]
         st.dataframe(df_tunjuk, use_container_width=True)
-
     with tab2:
         st.subheader("1. Muat Turun Template Mata Pelajaran")
         st.download_button("📥 Muat Turun Template MataPelajaran.xlsx", to_excel(pd.DataFrame(columns=COLUMNS_MP)), "template_matapelajaran.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-        st.caption("Isi No_Pusat mesti sama dengan dalam data Pusat")
         st.subheader("2. Muat Naik Fail Mata Pelajaran")
         uploaded_file_mp = st.file_uploader("Pilih fail mata pelajaran", type=["xlsx"], key="up_mp")
         if uploaded_file_mp:
@@ -198,11 +193,25 @@ def page_selenggara_pusat():
                 if st.button("✅ Sahkan & Simpan Data Mata Pelajaran", use_container_width=True, key="save_mp"):
                     simpan_data_mp(df_baru_mp); st.success("Data Mata Pelajaran berjaya dikemaskini!"); st.rerun()
             except Exception as e: st.error(f"Ralat: {e}")
+    with tab3:
+        st.subheader("🛠️ Selenggara Bilangan Calon & Petugas - Dashboard Auto Update")
+        st.info("Ubah nombor di sini, klik Simpan, Dashboard terus berubah. Data akan disimpan kekal dalam data_calon.json")
+
+        df_edit = pd.DataFrame.from_dict(st.session_state["data_calon"], orient='index')
+        st.write("Edit terus dalam jadual:")
+        edited_df = st.data_editor(df_edit, use_container_width=True, num_rows="dynamic")
+
+        if st.button("💾 SIMPAN & UPDATE DASHBOARD", type="primary", use_container_width=True):
+            data_baru_dict = edited_df.to_dict(orient='index')
+            simpan_data_calon(data_baru_dict)
+            st.success("Berjaya! Data calon & petugas dah update. Sila lihat Dashboard.")
+            st.balloons()
+            st.rerun()
 
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
     df_mp = st.session_state["data_mp"]
-    if df_mp.empty: st.warning("Sheet 'MataPelajaran' masih kosong. Sila isi di menu Selenggara Data > Selenggara Mata Pelajaran")
+    if df_mp.empty: st.warning("Sheet 'MataPelajaran' masih kosong.")
     else:
         col1, col2, col3 = st.columns([2,2,1])
         with col1: cari_kod = st.text_input("1. Masukkan Kod Mata Pelajaran", placeholder="Contoh: 1449")
@@ -216,33 +225,20 @@ def page_cari_mp():
             if cari_kertas!= "Semua": df_filter = df_filter[df_filter["Kertas"].astype(str) == cari_kertas]
             if not df_filter.empty:
                 st.success(f"✅ Jumpa {len(df_filter)} rekod")
-                df_output = df_filter[COLUMNS_MP].drop_duplicates()
-                st.dataframe(df_output, use_container_width=True)
-                csv = df_output.to_csv(index=False).encode('utf-8')
-                st.download_button("📥 Export Hasil Carian ke Excel", csv, f"hasil_carian_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv", use_container_width=True)
+                st.dataframe(df_filter[COLUMNS_MP].drop_duplicates(), use_container_width=True)
             else: st.error("⚠️ Tiada pusat yang menawarkan mata pelajaran tersebut")
 
 def page_senarai_pusat():
     st.header("📋 Senarai Pusat Peperiksaan")
     df_pusat = st.session_state["data_pusat"]
-    if df_pusat.empty:
-        st.warning("Tiada data pusat. Sila masukkan data di menu Selenggara Data > Selenggara Pusat")
+    if df_pusat.empty: st.warning("Tiada data pusat.")
     else:
-        if st.session_state.get("role") == "PPD":
-            df_pusat = df_pusat[df_pusat["Kod_PPD"] == st.session_state["kod_ppd"]]
-            st.info(f"Menunjukkan senarai pusat untuk: {st.session_state['daerah_ppd']}")
-
-        df_output = df_pusat[["Kod_PPD", "No_Pusat", "Nama_Pusat", "Nama_Bilik_Kebal", "Bil_Calon_Pusat"]].copy()
-        df_output = df_output.sort_values(by=["Kod_PPD", "No_Pusat"])
-
+        if st.session_state.get("role") == "PPD": df_pusat = df_pusat[df_pusat["Kod_PPD"] == st.session_state["kod_ppd"]]
+        df_output = df_pusat[["Kod_PPD", "No_Pusat", "Nama_Pusat", "Nama_Bilik_Kebal", "Bil_Calon_Pusat"]].sort_values(by=["Kod_PPD", "No_Pusat"])
         st.metric("Jumlah Pusat", len(df_output))
         st.dataframe(df_output, use_container_width=True, hide_index=True)
 
-        csv = df_output.to_csv(index=False).encode('utf-8')
-        st.download_button("📥 Export Senarai Pusat ke Excel", csv, f"senarai_pusat_{datetime.now().strftime('%Y%m%d')}.csv", "text/csv", use_container_width=True)
-
 # ========== HEADER ==========
-st.markdown("""<style>.block-container { padding-top: 2.5rem!important; }</style>""", unsafe_allow_html=True)
 col1, col2 = st.columns([1, 5])
 with col1:
     if os.path.exists("logo.png"):
@@ -255,10 +251,9 @@ with col2:
 st.markdown("<h4 style='color:#0A2A66; border-bottom:2px solid #0A2A66; padding-bottom:5px;'>SIJIL PELAJARAN MALAYSIA</h4>", unsafe_allow_html=True)
 st.write("---")
 
-# ========== BUAT 2 COLUMN - KIRI JADI SIDEBAR KEKAL ==========
+# ========== 2 COLUMN ==========
 col_sidebar, col_main = st.columns([1, 4])
 
-# ========== KIRI = SEMUA KOD SIDEBAR LAMA PINDAH SINI ==========
 with col_sidebar:
     st.markdown("### Menu")
     if st.button("📊 Dashboard", use_container_width=True): st.session_state["menu"] = "Dashboard"; st.rerun()
@@ -266,22 +261,18 @@ with col_sidebar:
     if st.button("📋 Senarai Pusat", use_container_width=True): st.session_state["menu"] = "SenaraiPusat"; st.rerun()
     if st.button("📚 Cari Mata Pelajaran", use_container_width=True): st.session_state["menu"] = "CariMP"; st.rerun()
     if st.button("🛠️ Selenggara Data", use_container_width=True): st.session_state["show_editor"] = not st.session_state["show_editor"]; st.session_state["menu"] = "Dashboard"
-
     st.write("---")
     st.markdown("### 🔗 Pautan Sistem Lain")
     st.link_button("1. SPPAT", "https://sppat.moe.gov.my", use_container_width=True)
     st.link_button("2. ELP Portal", "https://elp.moe.gov.my/eportal/login", use_container_width=True)
     if st.session_state.get("editor_login", False): st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True)
-
     if st.session_state.get("editor_login", False):
         st.write("---")
         st.markdown("### 📁 Pautan Pengurusan")
         st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
-
     st.write("---")
     if st.session_state.get("editor_login", False):
         if st.button("🛠️ Selenggara Pusat", use_container_width=True): st.session_state["menu"] = "Selenggara"; st.rerun()
-
     if st.session_state["show_editor"]:
         st.write("---")
         if not st.session_state.get("editor_login", False): login_editor()
@@ -301,7 +292,6 @@ with col_sidebar:
         else: sub_filter = "Semua"
     else: daerah, jenis_data, sub_filter = "Semua Daerah", "Semua", "Semua"
 
-# ========== KAN = SEMUA KOD PAPARAN UTAMA ==========
 with col_main:
     if st.session_state["menu"] == "Dashboard":
         data = st.session_state["data_calon"]
@@ -316,7 +306,6 @@ with col_main:
         with colA: st.metric(f"Jumlah", f"{jumlah:,}")
         with colB: st.metric("Jumlah Petugas Negeri", f"{jumlah_petugas_total:,}")
         with colC: st.metric("Jumlah Rekod Pusat", f"{jumlah_pusat_total:,}")
-
         st.write("---")
         if jenis_data == "Calon" or jenis_data == "Semua":
             st.subheader("📊 Bilangan Calon Mengikut Daerah")
@@ -332,57 +321,11 @@ with col_main:
             if sub_filter!= "Semua Jawatan" and jenis_data == "Petugas": df_petugas = df_petugas[[sub_filter]]
             st.dataframe(df_petugas, use_container_width=True)
             fig2, ax2 = plt.subplots(figsize=(10, 5)); df_petugas.plot(kind='bar', ax=ax2); ax2.set_ylabel("Bilangan Petugas"); ax2.set_xlabel("Daerah"); ax2.legend(title="Jawatan Petugas", bbox_to_anchor=(1.05, 1), loc='upper left'); plt.xticks(rotation=90); plt.tight_layout(); st.pyplot(fig2)
-
     elif st.session_state["menu"] == "Jadual":
         st.subheader("📅 Jadual Waktu SPM")
-        st.info("Untuk kemaskini Jadual: Upload file `Jadual_Waktu_SPM.pdf` ke Github dan update LINK_JADUAL_PDF dalam kod")
         LINK_JADUAL_PDF = "https://raw.githubusercontent.com/akashahismail-create/sistem-jpn-selangor/main/Jadual_Waktu_SPM.pdf"
         st.markdown(f"[📥 Klik sini untuk Muat Turun Jadual Waktu]({LINK_JADUAL_PDF})")
         st.markdown(f'<iframe src="{LINK_JADUAL_PDF}" width="100%" height="800" type="application/pdf"></iframe>', unsafe_allow_html=True)
     elif st.session_state["menu"] == "Selenggara": page_selenggara_pusat()
     elif st.session_state["menu"] == "CariMP": page_cari_mp()
     elif st.session_state["menu"] == "SenaraiPusat": page_senarai_pusat()
-
-    if st.session_state.get("show_editor", False) and st.session_state.get("editor_login", False):
-        st.write("---"); role = st.session_state["role"]; st.subheader("🛠️ Selenggara Data Calon & Petugas")
-        if role == "Admin":
-            st.info("🔒 Kawasan Admin")
-
-            with st.expander("⬇️ Download Backup Kod Sumber"):
-                pwd_backup = st.text_input("Masukkan Kata Laluan untuk Download", type="password", key="pwd_backup")
-                if pwd_backup == "aaa":
-                    with open(__file__, "r", encoding="utf-8") as f: kod_semasa = f.read()
-                    st.download_button(
-                        label="✅ Download Backup Kod Sumber V1.9",
-                        data=kod_semasa,
-                        file_name="JPN_Selangor_V1.9.py",
-                        mime="text/plain",
-                        use_container_width=True,
-                        type="primary"
-                    )
-                elif pwd_backup!= "":
-                    st.error("Kata laluan salah!")
-            st.write("---")
-
-        data_asal = st.session_state["data_calon"]
-        if role == "PPD": daerah_list_edit = [st.session_state["daerah_ppd"]]; st.warning(f"Anda hanya boleh edit data untuk: **{daerah_list_edit[0]}**")
-        else: daerah_list_edit = list(data_asal.keys())
-        with st.form("form_edit_data"):
-            data_baru = {}
-            for d in daerah_list_edit:
-                st.markdown(f"### 📍 {d}")
-                st.markdown("#### **Data Calon**")
-                cols_calon = st.columns(5); data_baru[d] = {}
-                for i, kat in enumerate(JENIS_CALON[1:]):
-                    with cols_calon[i]:
-                        with st.container(border=True): st.markdown(f"<div style='text-align:center; font-size:13px;'>{kat}</div>", unsafe_allow_html=True)
-                        data_baru[d][kat] = st.number_input(label="", value=int(data_asal[d][kat]), key=f"{d}_{kat}", step=1, label_visibility="collapsed")
-                st.markdown("#### **Data Petugas**")
-                cols_petugas = st.columns(6)
-                for i, kat in enumerate(JENIS_PETUGAS[1:]):
-                    with cols_petugas[i]:
-                        with st.container(border=True): st.markdown(f"<div style='text-align:center; font-size:13px;'>{kat}</div>", unsafe_allow_html=True)
-                        data_baru[d][kat] = st.number_input(label="", value=int(data_asal[d][kat]), key=f"{d}_{kat}_petugas", step=1, label_visibility="collapsed")
-                st.write("---")
-            submitted = st.form_submit_button("💾 Simpan Semua Perubahan", type="primary", use_container_width=True)
-            if submitted: st.session_state["data_calon"].update(data_baru); st.success("Data berjaya disimpan!"); st.rerun()
