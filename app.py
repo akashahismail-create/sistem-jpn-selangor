@@ -9,38 +9,64 @@ from io import BytesIO
 
 st.set_page_config(page_title="JPN Selangor", layout="wide")
 
-# ========== CSS MENU HIJAU KUNING - VERSI KUAT ==========
+# ========== CSS MENU HIJAU KUNING - VERSI CANTIK ==========
 hide_st_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-    
-    /* Target column pertama dengan lebih kuat */
+
+    /* Kotak Menu Hijau */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) {
-        background-color: #004D40 !important;
-        border-radius: 15px;
-        padding: 15px !important;
+        background: linear-gradient(180deg, #00695C 0%, #004D40 100%) !important;
+        border-radius: 15px !important;
+        padding: 20px 15px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        border: 2px solid #FFD700;
     }
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) * {
+    /* Tajuk Menu */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) h3 {
         color: #FFD700 !important;
+        text-align: center;
+        border-bottom: 2px solid #FFD700;
+        padding-bottom: 10px;
+        font-weight: bold;
+        letter-spacing: 1px;
     }
+    /* Semua label kuning */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) label,
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) p {
+        color: #FFD700 !important;
+        font-weight: 600 !important;
+        font-size: 14px !important;
+    }
+
+    /* Button Menu */
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) .stButton > button {
-        background-color: #00695C !important;
+        background-color: rgba(255,255,255,0.1) !important;
         color: #FFD700 !important;
         border: 1px solid #FFD700 !important;
-        font-weight: bold;
+        border-radius: 8px !important;
+        font-weight: bold !important;
+        transition: all 0.3s;
+        text-align: left !important;
+        padding-left: 15px !important;
     }
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) .stButton > button:hover {
         background-color: #FFD700 !important;
         color: #004D40 !important;
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(255,215,0,0.4);
     }
-    /* Supaya tulisan dalam selectbox tak jadi kuning (jadi hitam baru nampak) */
-    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div[data-baseweb="select"] span {
-        color: black !important;
+    
+    /* Betulkan warna dalam selectbox supaya nampak */
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div[data-baseweb="select"] {
+        background-color: white !important;
+        border-radius: 8px;
     }
+    div[data-testid="stHorizontalBlock"] > div:nth-child(1) div[data-baseweb="select"] span,
     div[data-testid="stHorizontalBlock"] > div:nth-child(1) div[data-baseweb="select"] div {
-        color: black !important;
+        color: #004D40 !important;
     }
     </style>
     """
