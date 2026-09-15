@@ -268,18 +268,26 @@ def page_senarai_pusat():
         st.metric("Jumlah Pusat", len(df_output))
         st.dataframe(df_output, use_container_width=True, hide_index=True)
 
-# ========== HEADER ==========     <-- line 271 PADAM MULA SINI
-col1, col2 = st.columns([1, 5])
-with col1:
-    if os.path.exists("logo.png"):
-        with open("logo.png", "rb") as f: logo_bytes = f.read()
-        logo_b64 = base64.b64encode(logo_bytes).decode()
-        st.markdown(f'<img src="data:image/png;base64,{logo_b64}" width="100">', unsafe_allow...
-with col2:
-    st.markdown("<h3 style='color:#0A2A66;...'>JABATAN...
-    st.markdown("<h4 style='color:#0A2A66;...'>SEKTOR...
-st.markdown("<h4 style='color:#0A2A66; border-bottom...
-st.write("---")                      <-- SAMPAI SINI PADAM
+# ========== HEADER HIJAU KUNING - VERSI SELAMAT ==========
+if os.path.exists("logo.png"):
+    with open("logo.png", "rb") as f:
+        logo_b64 = base64.b64encode(f.read()).decode()
+        logo_html = f'<img src="data:image/png;base64,{logo_b64}" width="110" style="border:2px solid #FFD700; border-radius:10px;">'
+else:
+    logo_html = '<div style="font-size:50px;">🏛️</div>'
+
+st.markdown(f"""
+<div style="background: linear-gradient(90deg, #004D40 0%, #00695C 100%); border: 2px solid #FFD700; border-radius: 15px; padding: 15px 20px; margin-bottom: 15px;">
+    <div style="display: flex; align-items: center;">
+        <div style="margin-right: 20px;">{logo_html}</div>
+        <div>
+            <div style="color: #FFD700; font-size: 26px; font-weight: bold;">JABATAN PENDIDIKAN SELANGOR</div>
+            <div style="color: white; font-size: 18px;">SEKTOR PENTAKSIRAN DAN PEPERIKSAAN</div>
+            <div style="color: #FFD700; margin-top: 8px; border-top: 1px solid #FFD700; padding-top: 5px; font-weight: bold;">SIJIL PELAJARAN MALAYSIA</div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 # ========== 2 COLUMN ==========
 col_sidebar, col_main = st.columns([1, 4])
