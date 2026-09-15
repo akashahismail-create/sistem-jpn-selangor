@@ -325,7 +325,7 @@ with col_sidebar:
     if st.button("📚 Cari Mata Pelajaran", use_container_width=True): st.session_state["menu"] = "CariMP"; st.rerun()
     if st.button("🛠️ Selenggara Data", use_container_width=True): st.session_state["show_editor"] = not st.session_state["show_editor"]; st.session_state["menu"] = "Dashboard"
     st.write("---")
-       st.markdown("### 🔗 Pautan Sistem Lain")
+    st.markdown("### 🔗 Pautan Sistem Lain")
     st.markdown("""
         <a href="https://sppat.moe.gov.my" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">1. SPPAT</a>
         """, unsafe_allow_html=True)
