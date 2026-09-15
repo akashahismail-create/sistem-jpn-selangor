@@ -335,7 +335,7 @@ with col_sidebar:
         st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
     st.write("---")
     if st.session_state.get("editor_login", False):
-        if st.button("🛠️ Selenggara Pusat", use_container_width=True): st.session_state["menu"] = "Selenggara"; st.rerun()
+        if st.button("🛠️ Selenggara Pusat", use_container_width=True, type="primary"): st.session_state["menu"] = "Selenggara"; st.rerun()
     if st.session_state["show_editor"]:
         st.write("---")
         if not st.session_state.get("editor_login", False): login_editor()
