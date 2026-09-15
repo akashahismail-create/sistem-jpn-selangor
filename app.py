@@ -325,9 +325,19 @@ with col_sidebar:
     if st.button("📚 Cari Mata Pelajaran", use_container_width=True): st.session_state["menu"] = "CariMP"; st.rerun()
     if st.button("🛠️ Selenggara Data", use_container_width=True): st.session_state["show_editor"] = not st.session_state["show_editor"]; st.session_state["menu"] = "Dashboard"
     st.write("---")
-    st.markdown("### 🔗 Pautan Sistem Lain")
-    st.link_button("1. SPPAT", "https://sppat.moe.gov.my", use_container_width=True)
-    st.link_button("2. ELP Portal", "https://elp.moe.gov.my/eportal/login", use_container_width=True)
+       st.markdown("### 🔗 Pautan Sistem Lain")
+    st.markdown("""
+        <a href="https://sppat.moe.gov.my" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">1. SPPAT</a>
+        """, unsafe_allow_html=True)
+    st.markdown("""
+        <a href="https://elp.moe.gov.my/eportal/login" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">2. ELP Portal</a>
+        """, unsafe_allow_html=True)
+    if st.session_state.get("editor_login", False):
+        st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True, type="primary")
+    if st.session_state.get("editor_login", False):
+        st.write("---")
+        st.markdown("### 📁 Pautan Pengurusan")
+        st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
     if st.session_state.get("editor_login", False): st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True, type="primary")
     if st.session_state.get("editor_login", False):
         st.write("---")
