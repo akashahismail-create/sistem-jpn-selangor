@@ -124,11 +124,9 @@ def load_data_calon():
                 return json.load(f)
         except: return DATA_ASAL
     else: return DATA_ASAL
-
 def simpan_data_calon(data):
     with open(FILE_CALON_JSON, "w") as f: json.dump(data, f, indent=2)
     st.session_state["data_calon"] = data
-
 def load_data_pusat():
     if os.path.exists(FILE_EXCEL):
         try: return pd.read_excel(FILE_EXCEL, sheet_name=SHEET_PUSAT, engine='openpyxl', dtype=str)
@@ -359,7 +357,6 @@ with col_main:
     if st.session_state["menu"] == "Dashboard":
         data = st.session_state["data_calon"]
 
-        # --- KIRAAN BARU UNTUK 3 KOTAK DINAMIK ---
         if daerah == "Semua Daerah":
             jumlah_calon_total = sum(sum(data[d][k] for k in JENIS_CALON[1:]) for d in data)
             jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
@@ -373,13 +370,11 @@ with col_main:
         elif jenis_data == "Petugas": kategori_list = JENIS_PETUGAS[1:] if sub_filter == "Semua Jawatan" else [sub_filter]
         else: kategori_list = SEMUA_KATEGORI
 
-        # --- AYAT BIRU DINAMIK ---
         if daerah == "Semua Daerah":
             st.info(f"📍 Memaparkan **keseluruhan Selangor** | Calon: **{jumlah_calon_total:,}** | Petugas: **{jumlah_petugas_total:,}** | Pusat: **{jumlah_pusat_total:,}**")
         else:
             st.info(f"📍 Daerah: **{daerah}** | Calon {daerah}: **{jumlah_calon_total:,}** | Petugas {daerah}: **{jumlah_petugas_total:,}** | Pusat {daerah}: **{jumlah_pusat_total:,}** | Filter: **{jenis_data} - {sub_filter}**")
 
-        # --- 3 KOTAK HIJAU DINAMIK ---
         colA, colB, colC = st.columns(3)
         with colA:
             if daerah == "Semua Daerah":
@@ -404,14 +399,53 @@ with col_main:
             if daerah!= "Semua Daerah": df_calon = df_calon.loc[[daerah]]
             if sub_filter!= "Semua Jenis" and jenis_data == "Calon": df_calon = df_calon[[sub_filter]]
             st.dataframe(df_calon, use_container_width=True)
-            fig1, ax1 = plt.subplots(figsize=(10, 5)); df_calon.plot(kind='bar', ax=ax1); ax1.set_ylabel("Bilangan Calon"); ax1.set_xlabel("Daerah"); ax1.legend(title="Jenis Calon", bbox_to_anchor=(1.05, 1), loc='upper left'); plt.xticks(rotation=90); plt.tight_layout(); st.pyplot(fig1)
+
+            # CARTA TERANG - FIX UNTUK KLANG 50
+            fig1, ax1 = plt.subplots(figsize=(10, 5))
+            df_calon.plot(kind='bar', ax=ax1, width=0.8)
+            ax1.set_ylabel("Bilangan Calon", fontweight='bold', fontsize=12, color='black')
+            ax1.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
+            ax1.tick_params(axis='x', labelsize=10, colors='black')
+            ax1.tick_params(axis='y', labelsize=11, colors='black')
+            for label in ax1.get_xticklabels():
+                label.set_fontweight('bold')
+                label.set_color('black')
+                label.set_rotation(45)
+                label.set_ha('right')
+            leg = ax1.legend(title="Jenis Calon", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
+            plt.setp(leg.get_texts(), color='black', fontweight='bold')
+            plt.setp(leg.get_title(), color='black', fontweight='bold')
+            for container in ax1.containers:
+                ax1.bar_label(container, label_type='edge', fontsize=9, fontweight='bold', color='black', padding=3)
+            plt.tight_layout()
+            st.pyplot(fig1)
+
         if jenis_data == "Petugas" or jenis_data == "Semua":
-            st.write("---"); st.subheader("👮 Bilangan Petugas Mengikut Daerah")
+            st.write("---")
+            st.subheader("👮 Bilangan Petugas Mengikut Daerah")
             df_petugas = pd.DataFrame([{k: v[k] for k in JENIS_PETUGAS[1:]} for v in data.values()], index=data.keys())
             if daerah!= "Semua Daerah": df_petugas = df_petugas.loc[[daerah]]
             if sub_filter!= "Semua Jawatan" and jenis_data == "Petugas": df_petugas = df_petugas[[sub_filter]]
             st.dataframe(df_petugas, use_container_width=True)
-            fig2, ax2 = plt.subplots(figsize=(10, 5)); df_petugas.plot(kind='bar', ax=ax2); ax2.set_ylabel("Bilangan Petugas"); ax2.set_xlabel("Daerah"); ax2.legend(title="Jawatan Petugas", bbox_to_anchor=(1.05, 1), loc='upper left'); plt.xticks(rotation=90); plt.tight_layout(); st.pyplot(fig2)
+
+            fig2, ax2 = plt.subplots(figsize=(10, 5))
+            df_petugas.plot(kind='bar', ax=ax2, width=0.8)
+            ax2.set_ylabel("Bilangan Petugas", fontweight='bold', fontsize=12, color='black')
+            ax2.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
+            ax2.tick_params(axis='x', labelsize=10, colors='black')
+            ax2.tick_params(axis='y', labelsize=11, colors='black')
+            for label in ax2.get_xticklabels():
+                label.set_fontweight('bold')
+                label.set_color('black')
+                label.set_rotation(45)
+                label.set_ha('right')
+            leg2 = ax2.legend(title="Jawatan Petugas", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
+            plt.setp(leg2.get_texts(), color='black', fontweight='bold')
+            plt.setp(leg2.get_title(), color='black', fontweight='bold')
+            for container in ax2.containers:
+                ax2.bar_label(container, label_type='edge', fontsize=9, fontweight='bold', color='black', padding=3)
+            plt.tight_layout()
+            st.pyplot(fig2)
 
     elif st.session_state["menu"] == "Jadual":
         st.subheader("📅 Jadual Waktu SPM")
