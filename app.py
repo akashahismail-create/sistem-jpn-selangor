@@ -364,7 +364,7 @@ def page_selenggara_pusat():
                 if st.button("❌ Buang Imej Sahaja", use_container_width=True):
                     simpan_notis(current_notis, None); st.success("Imej dibuang."); st.rerun()
 
-     if role == "Admin" and tab_db is not None:
+    if role == "Admin" and tab_db is not None:
         with tab_db:
             st.subheader("💾 Urus File Database data_v1.1.xlsx")
             st.caption("Hanya Admin. Password delete tersembunyi.")
