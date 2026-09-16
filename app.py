@@ -434,8 +434,8 @@ def page_selenggara_pusat():
             elif boleh_github:
                 st.success("✅ Password betul, boleh buka Github")
             # Link Github cikgu
-LINK_GITHUB = "https://github.com/akashahismail-create/sistem-jpn-selangor"
-st.link_button("🌐 BUKA GITHUB TAB BARU", LINK_GITHUB, use_container_width=True, disabled=not boleh_github, type="primary")
+        LINK_GITHUB = "https://github.com/akashahismail-create/sistem-jpn-selangor"
+        st.link_button("🌐 BUKA GITHUB TAB BARU", LINK_GITHUB, use_container_width=True, disabled=not boleh_github, type="primary")
 
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
