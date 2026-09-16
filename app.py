@@ -252,7 +252,6 @@ def page_selenggara_pusat():
             st.balloons()
             st.rerun()
 
-# ========== UPDATED - ADA 4 KOTAK + JUMLAH PUSAT ==========
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
     df_mp = st.session_state["data_mp"]
@@ -267,17 +266,13 @@ def page_cari_mp():
         with col3:
             cari_kertas = st.selectbox("3. Pilih Kertas", ["Semua", "1", "2", "3"])
         with col4:
-            # Kotak baru Pilih Daerah
             cari_daerah = st.selectbox("4. Pilih Daerah", ["Semua Daerah"] + list(KOD_PPD.keys()))
 
         if st.button("🔍 Cari Sekarang", type="primary", use_container_width=True):
             df_filter = df_mp.copy()
-
-            # Filter PPD login
             if st.session_state.get("role") == "PPD":
                 df_filter = df_filter[df_filter["Kod_PPD"] == st.session_state["kod_ppd"]]
             else:
-                # Admin boleh filter daerah
                 if cari_daerah!= "Semua Daerah":
                     kod_ppd_pilihan = KOD_PPD[cari_daerah]
                     df_filter = df_filter[df_filter["Kod_PPD"] == kod_ppd_pilihan]
@@ -292,19 +287,14 @@ def page_cari_mp():
 
             if not df_filter.empty:
                 jumlah_rekod = len(df_filter)
-                # Kira pusat unik
                 jumlah_pusat_unik = df_filter.drop_duplicates(subset=["Kod_PPD", "No_Pusat"]).shape[0]
-
                 st.success(f"✅ Jumpa {jumlah_rekod} rekod")
-
-                # Papar 2 kotak jumlah - hijau sama level
                 m1, m2 = st.columns(2)
                 with m1:
                     st.metric("Jumlah Rekod MP", f"{jumlah_rekod:,}")
                 with m2:
                     label_pusat = f"Jumlah Pusat Tawar {cari_kod if cari_kod else cari_nama if cari_nama else 'MP'}"
                     st.metric(label_pusat, f"{jumlah_pusat_unik:,} pusat")
-
                 st.dataframe(df_filter[COLUMNS_MP].drop_duplicates(), use_container_width=True)
             else:
                 st.error("⚠️ Tiada pusat yang menawarkan mata pelajaran tersebut")
@@ -319,7 +309,6 @@ def page_senarai_pusat():
         st.metric("Jumlah Pusat", len(df_output))
         st.dataframe(df_output, use_container_width=True, hide_index=True)
 
-# ========== HEADER HIJAU KUNING ==========
 if os.path.exists("logo.png"):
     with open("logo.png", "rb") as f:
         logo_b64 = base64.b64encode(f.read()).decode()
@@ -340,7 +329,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# ========== 2 COLUMN ==========
 col_sidebar, col_main = st.columns([1, 4])
 
 with col_sidebar:
@@ -358,7 +346,7 @@ with col_sidebar:
     st.markdown("""
         <a href="https://elp.moe.gov.my/eportal/login" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">2. ELP Portal</a>
         """, unsafe_allow_html=True)
-    
+
     if st.session_state.get("editor_login", False):
         st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True, type="primary")
         st.write("---")
@@ -392,14 +380,23 @@ with col_main:
         if jenis_data == "Calon": kategori_list = JENIS_CALON[1:] if sub_filter == "Semua Jenis" else [sub_filter]
         elif jenis_data == "Petugas": kategori_list = JENIS_PETUGAS[1:] if sub_filter == "Semua Jawatan" else [sub_filter]
         else: kategori_list = SEMUA_KATEGORI
-        jumlah = sum(sum(data[d][k] for k in kategori_list) for d in data) if daerah == "Semua Daerah" else sum(data[daerah][k] for k in kategori_list)
-        jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
-        jumlah_pusat_total = len(st.session_state["data_pusat"])
+
+        # Kiraan Jumlah (ikut filter)
+        if daerah == "Semua Daerah":
+            jumlah = sum(sum(data[d][k] for k in kategori_list) for d in data)
+            jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
+            jumlah_pusat_total = sum(data[d]["Ketua Pengawas"] for d in data) # <--- UPDATE: = KP
+        else:
+            jumlah = sum(data[daerah][k] for k in kategori_list)
+            jumlah_petugas_total = sum(data[daerah][k] for k in JENIS_PETUGAS[1:])
+            jumlah_pusat_total = data[daerah]["Ketua Pengawas"] # <--- UPDATE: = KP daerah
+
         st.info(f"Daerah: **{daerah}** | Data: **{jenis_data}** | Filter: **{sub_filter}**")
         colA, colB, colC = st.columns(3)
         with colA: st.metric(f"Jumlah", f"{jumlah:,}")
-        with colB: st.metric("Jumlah Petugas Negeri", f"{jumlah_petugas_total:,}")
-        with colC: st.metric("Jumlah Rekod Pusat", f"{jumlah_pusat_total:,}")
+        with colB: st.metric("Jumlah Petugas", f"{jumlah_petugas_total:,}")
+        with colC: st.metric("Jumlah Pusat (KP)", f"{jumlah_pusat_total:,}")
+
         st.write("---")
         if jenis_data == "Calon" or jenis_data == "Semua":
             st.subheader("📊 Bilangan Calon Mengikut Daerah")
