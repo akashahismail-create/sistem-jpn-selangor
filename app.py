@@ -86,6 +86,37 @@ hide_st_style = """
     </style>
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
+
+# === SISTEM PEMBERITAHUAN BOLEH EDIT ===
+FILE_NOTIS = "pemberitahuan.json"
+DEFAULT_NOTIS = "📢 MAKLUMAN TERKINI: Data Calon SPM 2025 sedang dikemaskini | Sila lengkapkan pengesahan pusat sebelum 30 September 2026 | Sebarang pertanyaan hubungi Sektor Pentaksiran dan Peperiksaan JPN Selangor"
+
+def load_notis():
+    if os.path.exists(FILE_NOTIS):
+        try:
+            with open(FILE_NOTIS, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                return data.get("teks", DEFAULT_NOTIS)
+        except:
+            return DEFAULT_NOTIS
+    else:
+        return DEFAULT_NOTIS
+
+def simpan_notis(teks):
+    with open(FILE_NOTIS, "w", encoding="utf-8") as f:
+        json.dump({"teks": teks, "dikemaskini": datetime.now().strftime("%Y-%m-%d %H:%M")}, f, ensure_ascii=False, indent=2)
+
+# PAPAR NOTIS ATAS SEKALI
+teks_notis = load_notis()
+if teks_notis.strip()!= "":
+    st.markdown(f"""
+    <div style="background: linear-gradient(90deg, #B71C1C 0%, #C62828 100%); border: 2px solid #FFD700; border-radius: 10px; padding: 8px 0px; margin-bottom: 12px; box-shadow: 0 3px 8px rgba(0,0,0,0.2);">
+        <marquee behavior="scroll" direction="left" scrollamount="7" style="color: #FFEB3B; font-weight: bold; font-size: 15px; font-family: sans-serif;">
+            {teks_notis} &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; {teks_notis}
+        </marquee>
+    </div>
+    """, unsafe_allow_html=True)
+
 st.markdown("<div style='text-align: right; font-size: 10px; color: grey;'>Created by: Akashah Ismail</div>", unsafe_allow_html=True)
 
 if 'menu_state' not in st.session_state:
@@ -202,7 +233,7 @@ def login_editor():
 def page_selenggara_pusat():
     st.header("⚙️ Selenggara Data")
     if not st.session_state.get("editor_login", False): st.warning("Sila login dahulu di menu Selenggara Data"); return
-    tab1, tab2, tab3 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas"])
+    tab1, tab2, tab3, tab4 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas", "📢 Pemberitahuan Atas"])
     with tab1:
         role = st.session_state["role"]
         if role == "Admin":
@@ -251,6 +282,34 @@ def page_selenggara_pusat():
             st.success("Berjaya! Dashboard dah guna data baru.")
             st.balloons()
             st.rerun()
+    with tab4:
+        st.subheader("📢 Selenggara Pemberitahuan Berjalan Atas")
+        st.info("Ayat di sini akan bergerak di ruang kosong atas sekali. Kosongkan jika tak mahu papar.")
+        current_notis = load_notis()
+        teks_baru = st.text_area("Teks Pemberitahuan:", value=current_notis, height=120, placeholder="Contoh: 📢 MAKLUMAN: Mesyuarat Penyelaras Peperiksaan pada...")
+        col_s1, col_s2 = st.columns(2)
+        with col_s1:
+            if st.button("💾 Simpan Pemberitahuan", type="primary", use_container_width=True):
+                simpan_notis(teks_baru)
+                st.success("Pemberitahuan berjaya dikemaskini! Refresh page untuk lihat.")
+                st.rerun()
+        with col_s2:
+            if st.button("🗑️ Padam / Kosongkan", use_container_width=True):
+                simpan_notis("")
+                st.success("Pemberitahuan dipadam.")
+                st.rerun()
+        st.write("---")
+        st.markdown("**Preview:**")
+        if teks_baru.strip():
+            st.markdown(f"""
+            <div style="background: linear-gradient(90deg, #B71C1C 0%, #C62828 100%); border: 2px solid #FFD700; border-radius: 10px; padding: 8px 0px;">
+                <marquee behavior="scroll" direction="left" scrollamount="7" style="color: #FFEB3B; font-weight: bold; font-size: 15px;">
+                    {teks_baru} &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; {teks_baru}
+                </marquee>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.warning("Tiada pemberitahuan akan dipaparkan (kosong)")
 
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
@@ -398,7 +457,6 @@ with col_sidebar:
 with col_main:
     if st.session_state["menu"] == "Dashboard":
         data = st.session_state["data_calon"]
-
         if daerah == "Semua Daerah":
             jumlah_calon_total = sum(sum(data[d][k] for k in JENIS_CALON[1:]) for d in data)
             jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
@@ -407,33 +465,23 @@ with col_main:
             jumlah_calon_total = sum(data[daerah][k] for k in JENIS_CALON[1:])
             jumlah_petugas_total = sum(data[daerah][k] for k in JENIS_PETUGAS[1:])
             jumlah_pusat_total = data[daerah]["Ketua Pengawas"]
-
         if jenis_data == "Calon": kategori_list = JENIS_CALON[1:] if sub_filter == "Semua Jenis" else [sub_filter]
         elif jenis_data == "Petugas": kategori_list = JENIS_PETUGAS[1:] if sub_filter == "Semua Jawatan" else [sub_filter]
         else: kategori_list = SEMUA_KATEGORI
-
         if daerah == "Semua Daerah":
             st.info(f"📍 Memaparkan **keseluruhan Selangor** | Calon: **{jumlah_calon_total:,}** | Petugas: **{jumlah_petugas_total:,}** | Pusat: **{jumlah_pusat_total:,}**")
         else:
             st.info(f"📍 Daerah: **{daerah}** | Calon {daerah}: **{jumlah_calon_total:,}** | Petugas {daerah}: **{jumlah_petugas_total:,}** | Pusat {daerah}: **{jumlah_pusat_total:,}** | Filter: **{jenis_data} - {sub_filter}**")
-
         colA, colB, colC = st.columns(3)
         with colA:
-            if daerah == "Semua Daerah":
-                st.metric("Jumlah Calon Keseluruhan", f"{jumlah_calon_total:,}")
-            else:
-                st.metric(f"Jumlah Calon {daerah}", f"{jumlah_calon_total:,}")
+            if daerah == "Semua Daerah": st.metric("Jumlah Calon Keseluruhan", f"{jumlah_calon_total:,}")
+            else: st.metric(f"Jumlah Calon {daerah}", f"{jumlah_calon_total:,}")
         with colB:
-            if daerah == "Semua Daerah":
-                st.metric("Jumlah Petugas Keseluruhan", f"{jumlah_petugas_total:,}")
-            else:
-                st.metric(f"Jumlah Petugas {daerah}", f"{jumlah_petugas_total:,}")
+            if daerah == "Semua Daerah": st.metric("Jumlah Petugas Keseluruhan", f"{jumlah_petugas_total:,}")
+            else: st.metric(f"Jumlah Petugas {daerah}", f"{jumlah_petugas_total:,}")
         with colC:
-            if daerah == "Semua Daerah":
-                st.metric("Jumlah Pusat Keseluruhan", f"{jumlah_pusat_total:,}")
-            else:
-                st.metric(f"Jumlah Pusat {daerah}", f"{jumlah_pusat_total:,}")
-
+            if daerah == "Semua Daerah": st.metric("Jumlah Pusat Keseluruhan", f"{jumlah_pusat_total:,}")
+            else: st.metric(f"Jumlah Pusat {daerah}", f"{jumlah_pusat_total:,}")
         st.write("---")
         if jenis_data == "Calon" or jenis_data == "Semua":
             st.subheader("📊 Bilangan Calon Mengikut Daerah")
@@ -441,8 +489,6 @@ with col_main:
             if daerah!= "Semua Daerah": df_calon = df_calon.loc[[daerah]]
             if sub_filter!= "Semua Jenis" and jenis_data == "Calon": df_calon = df_calon[[sub_filter]]
             st.dataframe(df_calon, use_container_width=True)
-
-            # GRAF BERSIH - TAK BERTINDIH
             fig1, ax1 = plt.subplots(figsize=(11, 5.5))
             df_calon.plot(kind='bar', ax=ax1, width=0.8)
             ax1.set_ylabel("Bilangan Calon", fontweight='bold', fontsize=12, color='black')
@@ -450,20 +496,13 @@ with col_main:
             ax1.tick_params(axis='x', labelsize=10, colors='black')
             ax1.tick_params(axis='y', labelsize=11, colors='black')
             for label in ax1.get_xticklabels():
-                label.set_fontweight('bold')
-                label.set_color('black')
-                label.set_rotation(45)
-                label.set_ha('right')
+                label.set_fontweight('bold'); label.set_color('black'); label.set_rotation(45); label.set_ha('right')
             leg = ax1.legend(title="Jenis Calon", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
-            plt.setp(leg.get_texts(), color='black', fontweight='bold')
-            plt.setp(leg.get_title(), color='black', fontweight='bold')
-            # FIX: Hanya label >300
+            plt.setp(leg.get_texts(), color='black', fontweight='bold'); plt.setp(leg.get_title(), color='black', fontweight='bold')
             for container in ax1.containers:
                 labels = [f"{int(v)}" if v > 300 else "" for v in container.datavalues]
                 ax1.bar_label(container, labels=labels, label_type='edge', fontsize=10, fontweight='bold', color='black', padding=4)
-            plt.tight_layout()
-            st.pyplot(fig1)
-
+            plt.tight_layout(); st.pyplot(fig1)
         if jenis_data == "Petugas" or jenis_data == "Semua":
             st.write("---")
             st.subheader("👮 Bilangan Petugas Mengikut Daerah")
@@ -471,7 +510,6 @@ with col_main:
             if daerah!= "Semua Daerah": df_petugas = df_petugas.loc[[daerah]]
             if sub_filter!= "Semua Jawatan" and jenis_data == "Petugas": df_petugas = df_petugas[[sub_filter]]
             st.dataframe(df_petugas, use_container_width=True)
-
             fig2, ax2 = plt.subplots(figsize=(11, 5.5))
             df_petugas.plot(kind='bar', ax=ax2, width=0.8)
             ax2.set_ylabel("Bilangan Petugas", fontweight='bold', fontsize=12, color='black')
@@ -479,20 +517,13 @@ with col_main:
             ax2.tick_params(axis='x', labelsize=10, colors='black')
             ax2.tick_params(axis='y', labelsize=11, colors='black')
             for label in ax2.get_xticklabels():
-                label.set_fontweight('bold')
-                label.set_color('black')
-                label.set_rotation(45)
-                label.set_ha('right')
+                label.set_fontweight('bold'); label.set_color('black'); label.set_rotation(45); label.set_ha('right')
             leg2 = ax2.legend(title="Jawatan Petugas", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
-            plt.setp(leg2.get_texts(), color='black', fontweight='bold')
-            plt.setp(leg2.get_title(), color='black', fontweight='bold')
-            # FIX: Hanya label >20
+            plt.setp(leg2.get_texts(), color='black', fontweight='bold'); plt.setp(leg2.get_title(), color='black', fontweight='bold')
             for container in ax2.containers:
                 labels = [f"{int(v)}" if v > 20 else "" for v in container.datavalues]
                 ax2.bar_label(container, labels=labels, label_type='edge', fontsize=10, fontweight='bold', color='black', padding=4)
-            plt.tight_layout()
-            st.pyplot(fig2)
-
+            plt.tight_layout(); st.pyplot(fig2)
     elif st.session_state["menu"] == "Jadual":
         st.subheader("📅 Jadual Waktu SPM")
         LINK_JADUAL_PDF = "https://raw.githubusercontent.com/akashahismail-create/sistem-jpn-selangor/main/Jadual_Waktu_SPM.pdf"
