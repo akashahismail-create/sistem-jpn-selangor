@@ -395,7 +395,7 @@ with col_main:
         colA, colB, colC = st.columns(3)
         with colA: st.metric(f"Jumlah", f"{jumlah:,}")
         with colB: st.metric("Jumlah Petugas", f"{jumlah_petugas_total:,}")
-        with colC: st.metric("Jumlah Pusat (KP)", f"{jumlah_pusat_total:,}")
+        with colC: st.metric("Jumlah Pusat", f"{jumlah_pusat_total:,}")
 
         st.write("---")
         if jenis_data == "Calon" or jenis_data == "Semua":
