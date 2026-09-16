@@ -9,22 +9,17 @@ from io import BytesIO
 
 st.set_page_config(page_title="JPN Selangor", layout="wide")
 
-# ========== CSS FIX FINAL - MENU HIJAU, 3 KOTAK HIJAU SEKATA ==========
 hide_st_style = """
     <style>
     #MainMenu {visibility: hidden;}
     footer {visibility: hidden;}
     header {visibility: hidden;}
-
-    /* MENU KIRI SAJA HIJAU */
     section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) > div[data-testid="stVerticalBlock"] {
         background: linear-gradient(180deg, #00695C 0%, #004D40 100%)!important;
         border-radius: 15px!important;
         padding: 15px!important;
         border: 2px solid #FFD700!important;
     }
-
-    /* PAKSA SEMUA BUTANG PUTIH (SECONDARY) JADI HIJAU KUNING */
     button[kind="secondary"] {
         background: linear-gradient(135deg, #00897B 0%, #004D40 100%)!important;
         color: #FFEB3B!important;
@@ -37,7 +32,6 @@ hide_st_style = """
         color: white!important;
         border-color: white!important;
     }
-    /* BUTANG MERAH BIAQ MERAH */
     button[kind="primary"] {
         background: linear-gradient(135deg, #C62828 0%, #B71C1C 100%)!important;
         border: 2px solid #FFD700!important;
@@ -45,8 +39,6 @@ hide_st_style = """
         border-radius: 10px!important;
         font-weight: bold!important;
     }
-
-    /* RESET METRIC */
     div[data-testid="stMetric"] {
         background: transparent!important;
         border: none!important;
@@ -83,7 +75,6 @@ hide_st_style = """
     </style>
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
-
 st.markdown("<div style='text-align: right; font-size: 10px; color: grey;'>Created by: Akashah Ismail</div>", unsafe_allow_html=True)
 
 if 'menu_state' not in st.session_state:
@@ -267,7 +258,6 @@ def page_cari_mp():
             cari_kertas = st.selectbox("3. Pilih Kertas", ["Semua", "1", "2", "3"])
         with col4:
             cari_daerah = st.selectbox("4. Pilih Daerah", ["Semua Daerah"] + list(KOD_PPD.keys()))
-
         if st.button("🔍 Cari Sekarang", type="primary", use_container_width=True):
             df_filter = df_mp.copy()
             if st.session_state.get("role") == "PPD":
@@ -276,15 +266,12 @@ def page_cari_mp():
                 if cari_daerah!= "Semua Daerah":
                     kod_ppd_pilihan = KOD_PPD[cari_daerah]
                     df_filter = df_filter[df_filter["Kod_PPD"] == kod_ppd_pilihan]
-
             if cari_kod:
                 df_filter = df_filter[df_filter["KodMP"].str.contains(cari_kod, case=False, na=False)]
             elif cari_nama:
                 df_filter = df_filter[df_filter["NamaMP"].str.contains(cari_nama, case=False, na=False)]
-
             if cari_kertas!= "Semua":
                 df_filter = df_filter[df_filter["Kertas"].astype(str) == cari_kertas]
-
             if not df_filter.empty:
                 jumlah_rekod = len(df_filter)
                 jumlah_pusat_unik = df_filter.drop_duplicates(subset=["Kod_PPD", "No_Pusat"]).shape[0]
@@ -340,13 +327,8 @@ with col_sidebar:
     if st.button("🛠️ Selenggara Data", use_container_width=True): st.session_state["show_editor"] = not st.session_state["show_editor"]; st.session_state["menu"] = "Dashboard"
     st.write("---")
     st.markdown("### 🔗 Pautan Sistem Lain")
-    st.markdown("""
-        <a href="https://sppat.moe.gov.my" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">1. SPPAT</a>
-        """, unsafe_allow_html=True)
-    st.markdown("""
-        <a href="https://elp.moe.gov.my/eportal/login" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">2. ELP Portal</a>
-        """, unsafe_allow_html=True)
-
+    st.markdown("""<a href="https://sppat.moe.gov.my" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">1. SPPAT</a>""", unsafe_allow_html=True)
+    st.markdown("""<a href="https://elp.moe.gov.my/eportal/login" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">2. ELP Portal</a>""", unsafe_allow_html=True)
     if st.session_state.get("editor_login", False):
         st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True, type="primary")
         st.write("---")
@@ -362,7 +344,6 @@ with col_sidebar:
             st.success(f"Login: **{st.session_state['username']}**")
             st.caption(f"Role: **{st.session_state['role']}**")
             if st.button("Log Keluar", use_container_width=True): st.session_state["editor_login"] = False; st.session_state["show_editor"] = False; st.session_state["menu"] = "Dashboard"; st.rerun()
-
     if st.session_state["menu"] == "Dashboard":
         st.write("---")
         data = st.session_state["data_calon"]
@@ -381,28 +362,29 @@ with col_main:
         elif jenis_data == "Petugas": kategori_list = JENIS_PETUGAS[1:] if sub_filter == "Semua Jawatan" else [sub_filter]
         else: kategori_list = SEMUA_KATEGORI
 
-        # Kiraan Jumlah (ikut filter)
         if daerah == "Semua Daerah":
             jumlah = sum(sum(data[d][k] for k in kategori_list) for d in data)
             jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
-            jumlah_pusat_total = sum(data[d]["Ketua Pengawas"] for d in data) # <--- UPDATE: = KP
+            jumlah_pusat_total = sum(data[d]["Ketua Pengawas"] for d in data)
         else:
             jumlah = sum(data[daerah][k] for k in kategori_list)
             jumlah_petugas_total = sum(data[daerah][k] for k in JENIS_PETUGAS[1:])
-            jumlah_pusat_total = data[daerah]["Ketua Pengawas"] # <--- UPDATE: = KP daerah
+            jumlah_pusat_total = data[daerah]["Ketua Pengawas"]
 
         st.info(f"Daerah: **{daerah}** | Data: **{jenis_data}** | Filter: **{sub_filter}**")
-               colA, colB, colC = st.columns(3)
-        with colA: st.metric(f"Jumlah", f"{jumlah:,}")
-        with colB: st.metric("Jumlah Petugas", f"{jumlah_petugas_total:,}")
 
-        # Kotak hijau ketiga - label bertukar ikut daerah
-        if daerah == "Semua Daerah":
-            label_pusat = "Jumlah Pusat Keseluruhan"
-        else:
-            label_pusat = f"Jumlah Pusat {daerah}"
-        
-        with colC: st.metric(label_pusat, f"{jumlah_pusat_total:,}")
+        colA, colB, colC = st.columns(3)
+        with colA:
+            st.metric("Jumlah", f"{jumlah:,}")
+        with colB:
+            st.metric("Jumlah Petugas", f"{jumlah_petugas_total:,}")
+        with colC:
+            if daerah == "Semua Daerah":
+                label_pusat = "Jumlah Pusat"
+            else:
+                label_pusat = f"Jumlah Pusat {daerah}"
+            st.metric(label_pusat, f"{jumlah_pusat_total:,}")
+
         st.write("---")
         if jenis_data == "Calon" or jenis_data == "Semua":
             st.subheader("📊 Bilangan Calon Mengikut Daerah")
@@ -418,6 +400,7 @@ with col_main:
             if sub_filter!= "Semua Jawatan" and jenis_data == "Petugas": df_petugas = df_petugas[[sub_filter]]
             st.dataframe(df_petugas, use_container_width=True)
             fig2, ax2 = plt.subplots(figsize=(10, 5)); df_petugas.plot(kind='bar', ax=ax2); ax2.set_ylabel("Bilangan Petugas"); ax2.set_xlabel("Daerah"); ax2.legend(title="Jawatan Petugas", bbox_to_anchor=(1.05, 1), loc='upper left'); plt.xticks(rotation=90); plt.tight_layout(); st.pyplot(fig2)
+
     elif st.session_state["menu"] == "Jadual":
         st.subheader("📅 Jadual Waktu SPM")
         LINK_JADUAL_PDF = "https://raw.githubusercontent.com/akashahismail-create/sistem-jpn-selangor/main/Jadual_Waktu_SPM.pdf"
