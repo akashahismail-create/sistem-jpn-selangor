@@ -392,11 +392,17 @@ with col_main:
             jumlah_pusat_total = data[daerah]["Ketua Pengawas"] # <--- UPDATE: = KP daerah
 
         st.info(f"Daerah: **{daerah}** | Data: **{jenis_data}** | Filter: **{sub_filter}**")
-        colA, colB, colC = st.columns(3)
+               colA, colB, colC = st.columns(3)
         with colA: st.metric(f"Jumlah", f"{jumlah:,}")
         with colB: st.metric("Jumlah Petugas", f"{jumlah_petugas_total:,}")
-        with colC: st.metric("Jumlah Pusat", f"{jumlah_pusat_total:,}")
 
+        # Kotak hijau ketiga - label bertukar ikut daerah
+        if daerah == "Semua Daerah":
+            label_pusat = "Jumlah Pusat Keseluruhan"
+        else:
+            label_pusat = f"Jumlah Pusat {daerah}"
+        
+        with colC: st.metric(label_pusat, f"{jumlah_pusat_total:,}")
         st.write("---")
         if jenis_data == "Calon" or jenis_data == "Semua":
             st.subheader("📊 Bilangan Calon Mengikut Daerah")
