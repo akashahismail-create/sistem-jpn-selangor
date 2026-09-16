@@ -135,8 +135,8 @@ SEMUA_KATEGORI = JENIS_CALON[1:] + JENIS_PETUGAS[1:]
 KOD_PPD = {"Petaling Perdana": "BH", "Petaling Utama": "BK", "Hulu Langat": "BD", "Gombak": "BG", "Klang": "BA", "Kuala Langat": "BB", "Kuala Selangor": "BC", "Hulu Selangor": "BE", "Sabak Bernam": "BF", "Sepang": "BJ"}
 USERS = {
     "admin": {"password": "jpn2025", "role": "Admin", "tahap": "JPN"},
-    "ppdbh": {"password": "bh", "role": "PPD", "daerah": "Petaling Perdana"},
-    "ppd_petaling_utama": {"password": "ppdpu2025", "role": "PPD", "daerah": "Petaling Utama"},
+    "ppd": {"password": "bh", "role": "PPD", "daerah": "Petaling Perdana"},
+    "ppd": {"password": "bk", "role": "PPD", "daerah": "Petaling Utama"},
     "ppd_hulu_langat": {"password": "ppdhl2025", "role": "PPD", "daerah": "Hulu Langat"},
     "ppd_gombak": {"password": "ppdgk2025", "role": "PPD", "daerah": "Gombak"},
     "ppd_klang": {"password": "ppdkl2025", "role": "PPD", "daerah": "Klang"},
