@@ -40,18 +40,6 @@ hide_st_style = """
         font-weight: bold!important;
     }
     div[data-testid="stMetric"] {
-        background: transparent!important;
-        border: none!important;
-    }
-    div[data-testid="stHorizontalBlock"] > div[data-testid="column"] {
-        background: transparent!important;
-        border: none!important;
-        box-shadow: none!important;
-    }
-    div[data-testid="stMetric"] > div {
-        background: transparent!important;
-    }
-    div[data-testid="stMetric"] {
         background: linear-gradient(135deg, #00897B 0%, #004D40 100%)!important;
         border: 2px solid #FFD700!important;
         border-radius: 15px!important;
@@ -71,6 +59,30 @@ hide_st_style = """
     }
     div[data-testid="stHorizontalBlock"] {
         align-items: stretch!important;
+    }
+    /* TERANGKAN PILIH DAERAH - FIX PUDAR */
+    div[data-testid="stSelectbox"] label p {
+        color: black!important;
+        font-weight: 800!important;
+        font-size: 17px!important;
+    }
+    div[data-baseweb="select"] > div {
+        background-color: #004D40!important;
+        border: 2px solid #FFD700!important;
+    }
+    div[data-baseweb="select"] span {
+        color: #FFEB3B!important;
+        font-weight: bold!important;
+        font-size: 16px!important;
+    }
+    input[data-baseweb="input"] {
+        color: black!important;
+        font-weight: bold!important;
+    }
+    div[data-testid="stTextInput"] label p {
+        color: black!important;
+        font-weight: 800!important;
+        font-size: 16px!important;
     }
     </style>
     """
@@ -291,38 +303,37 @@ def page_senarai_pusat():
     if df_pusat.empty:
         st.warning("Tiada data pusat. Sila upload di Selenggara Data.")
     else:
-        # Kalau PPD login - terus lock daerah dia
         if st.session_state.get("role") == "PPD":
             kod_ppd_user = st.session_state["kod_ppd"]
             daerah_user = st.session_state["daerah_ppd"]
             df_tapis = df_pusat[df_pusat["Kod_PPD"] == kod_ppd_user]
-            st.info(f"📍 Daerah anda: **{daerah_user} ({kod_ppd_user})**")
-            st.metric(f"Jumlah Pusat {daerah_user}", len(df_tapis))
+            st.markdown(f"<div style='background:linear-gradient(135deg,#00897B 0%,#004D40 100%); border:2px solid #FFD700; border-radius:12px; padding:12px 15px; color:#FFEB3B; font-weight:bold; font-size:16px;'>📍 Daerah anda: {daerah_user} ({kod_ppd_user}) | Jumlah Pusat: {len(df_tapis):,}</div>", unsafe_allow_html=True)
+            st.write("")
+            st.metric(f"Jumlah Pusat {daerah_user}", f"{len(df_tapis):,}")
             df_output = df_tapis[["Kod_PPD", "No_Pusat", "Nama_Pusat", "Nama_Bilik_Kebal", "Bil_Calon_Pusat"]].sort_values(by=["Kod_PPD", "No_Pusat"])
             st.dataframe(df_output, use_container_width=True, hide_index=True)
-        
+
         else:
-            # Kalau Admin - ada kotak pilihan daerah
             col1, col2 = st.columns([2, 3])
             with col1:
                 pilih_daerah_pusat = st.selectbox("📍 Pilih Daerah:", ["Semua Daerah"] + list(KOD_PPD.keys()), key="filter_pusat_daerah")
 
             if pilih_daerah_pusat == "Semua Daerah":
                 df_tapis = df_pusat
-                st.info(f"📍 Memaparkan **keseluruhan Selangor** | Jumlah Pusat Keseluruhan: **{len(df_tapis):,}**")
-                # metric 3 kotak style sama
-                m1, m2 = st.columns(2)
-                with m1:
+                st.markdown(f"<div style='background:linear-gradient(135deg,#00897B 0%,#004D40 100%); border:2px solid #FFD700; border-radius:12px; padding:12px 15px; color:#FFEB3B; font-weight:bold; font-size:16px;'>📍 Memaparkan keseluruhan Selangor | Jumlah Pusat Keseluruhan: {len(df_tapis):,}</div>", unsafe_allow_html=True)
+                st.write("")
+                c1, c2 = st.columns(2)
+                with c1:
                     st.metric("Jumlah Pusat Keseluruhan", f"{len(df_tapis):,}")
-                with m2:
+                with c2:
                     st.metric("Jumlah Daerah", f"{len(KOD_PPD)} daerah")
             else:
                 kod_filter = KOD_PPD[pilih_daerah_pusat]
                 df_tapis = df_pusat[df_pusat["Kod_PPD"] == kod_filter]
-                st.info(f"📍 Daerah: **{pilih_daerah_pusat} ({kod_filter})** | Jumlah Pusat {pilih_daerah_pusat}: **{len(df_tapis):,}**")
+                st.markdown(f"<div style='background:linear-gradient(135deg,#00897B 0%,#004D40 100%); border:2px solid #FFD700; border-radius:12px; padding:12px 15px; color:#FFEB3B; font-weight:bold; font-size:16px;'>📍 Daerah: {pilih_daerah_pusat} ({kod_filter}) | Jumlah Pusat {pilih_daerah_pusat}: {len(df_tapis):,}</div>", unsafe_allow_html=True)
+                st.write("")
                 st.metric(f"Jumlah Pusat {pilih_daerah_pusat}", f"{len(df_tapis):,}")
 
-            # Search tambahan
             carian = st.text_input("🔍 Cari Nama Pusat / No Pusat:", placeholder="Contoh: SMK Klang atau BA 145")
             if carian:
                 df_tapis = df_tapis[df_tapis["Nama_Pusat"].str.contains(carian, case=False, na=False) | df_tapis["No_Pusat"].str.contains(carian, case=False, na=False)]
@@ -437,7 +448,6 @@ with col_main:
             if sub_filter!= "Semua Jenis" and jenis_data == "Calon": df_calon = df_calon[[sub_filter]]
             st.dataframe(df_calon, use_container_width=True)
 
-            # CARTA TERANG - FIX UNTUK KLANG 50
             fig1, ax1 = plt.subplots(figsize=(10, 5))
             df_calon.plot(kind='bar', ax=ax1, width=0.8)
             ax1.set_ylabel("Bilangan Calon", fontweight='bold', fontsize=12, color='black')
