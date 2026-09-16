@@ -95,20 +95,32 @@ def load_notis():
         try:
             with open(FILE_NOTIS, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                return data.get("teks", DEFAULT_NOTIS)
-        except: return DEFAULT_NOTIS
-    else: return DEFAULT_NOTIS
+                if isinstance(data, dict):
+                    if "teks" in data:
+                        return {"teks": data.get("teks", DEFAULT_NOTIS), "image": data.get("image")}
+                    else:
+                        return {"teks": DEFAULT_NOTIS, "image": None}
+                else:
+                    return {"teks": str(data), "image": None}
+        except:
+            return {"teks": DEFAULT_NOTIS, "image": None}
+    else:
+        return {"teks": DEFAULT_NOTIS, "image": None}
 
-def simpan_notis(teks):
+def simpan_notis(teks, image_b64=None):
     with open(FILE_NOTIS, "w", encoding="utf-8") as f:
-        json.dump({"teks": teks, "dikemaskini": datetime.now().strftime("%Y-%m-%d %H:%M")}, f, ensure_ascii=False, indent=2)
+        json.dump({"teks": teks, "image": image_b64, "dikemaskini": datetime.now().strftime("%Y-%m-%d %H:%M")}, f, ensure_ascii=False, indent=2)
 
-teks_notis = load_notis()
-if teks_notis.strip()!= "":
+# PAPAR NOTIS ATAS SEKALI - SUPPORT PNG
+data_notis = load_notis()
+teks_notis = data_notis.get("teks","")
+img_notis = data_notis.get("image")
+if teks_notis.strip()!="" or img_notis:
+    img_tag = f'<img src="data:image/png;base64,{img_notis}" style="height:28px; vertical-align:middle; margin-right:12px; border:1px solid #FFD700; border-radius:4px; background:white;">' if img_notis else ""
     st.markdown(f"""
     <div style="background: linear-gradient(90deg, #B71C1C 0%, #C62828 100%); border: 2px solid #FFD700; border-radius: 10px; padding: 8px 0px; margin-bottom: 12px; box-shadow: 0 3px 8px rgba(0,0,0,0.2);">
         <marquee behavior="scroll" direction="left" scrollamount="7" style="color: #FFEB3B; font-weight: bold; font-size: 15px; font-family: sans-serif;">
-            {teks_notis} &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; {teks_notis}
+            {img_tag} {teks_notis} &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; {teks_notis}
         </marquee>
     </div>
     """, unsafe_allow_html=True)
@@ -239,6 +251,7 @@ def page_selenggara_pusat():
     else:
         tab1, tab2, tab3 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas"])
         tab4 = None
+
     with tab1:
         if role == "Admin":
             pilihan_ppd = st.selectbox("Pilih PPD untuk kemaskini", list(KOD_PPD.values()))
@@ -296,6 +309,7 @@ def page_selenggara_pusat():
                 st.session_state["data_pusat"] = pd.concat([df_lain, edited_df], ignore_index=True)
                 simpan_ke_excel()
                 st.success(f"Berjaya! {len(edited_df)} rekod {pilihan_ppd} dikemaskini."); st.rerun()
+
     with tab2:
         st.subheader("1. Muat Turun Template Mata Pelajaran")
         st.download_button("📥 Muat Turun Template MataPelajaran.xlsx", to_excel(pd.DataFrame(columns=COLUMNS_MP)), "template_matapelajaran.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
@@ -309,6 +323,7 @@ def page_selenggara_pusat():
                 if st.button("✅ Sahkan & Simpan Data Mata Pelajaran", use_container_width=True, key="save_mp"):
                     simpan_data_mp(df_baru_mp); st.success("Data Mata Pelajaran berjaya dikemaskini!"); st.rerun()
             except Exception as e: st.error(f"Ralat: {e}")
+
     with tab3:
         st.subheader("🛠️ Selenggara Bilangan Calon & Petugas")
         df_edit = pd.DataFrame.from_dict(st.session_state["data_calon"], orient='index')
@@ -317,26 +332,53 @@ def page_selenggara_pusat():
             data_baru_dict = edited_df2.to_dict(orient='index')
             simpan_data_calon(data_baru_dict)
             st.success("Berjaya! Dashboard dah guna data baru."); st.balloons(); st.rerun()
+
     if role == "Admin" and tab4 is not None:
         with tab4:
             st.subheader("📢 Selenggara Pemberitahuan Berjalan Atas - ADMIN SAHAJA")
             st.error("🔒 Hanya Admin boleh edit bahagian ini. PPD tidak akan nampak tab ini.")
-            current_notis = load_notis()
-            teks_baru = st.text_area("Teks Pemberitahuan:", value=current_notis, height=150)
-            col_s1, col_s2 = st.columns(2)
+
+            data_n = load_notis()
+            current_notis = data_n.get("teks","")
+            current_img = data_n.get("image")
+
+            teks_baru = st.text_area("Teks Pemberitahuan:", value=current_notis, height=120)
+
+            st.write("**Muat Naik Imej PNG/JPG (pilihan):**")
+            up_img = st.file_uploader("Pilih fail PNG/JPG untuk letak dalam box merah tu", type=["png","jpg","jpeg"], key="up_notis_img")
+
+            if up_img:
+                st.image(up_img, width=250, caption="Preview Imej Baru")
+            elif current_img:
+                st.image(base64.b64decode(current_img), width=250, caption="Imej Sedia Ada")
+
+            col_s1, col_s2, col_s3 = st.columns(3)
             with col_s1:
                 if st.button("💾 Simpan Pemberitahuan", type="primary", use_container_width=True):
-                    simpan_notis(teks_baru); st.success("Pemberitahuan berjaya dikemaskini!"); st.rerun()
+                    final_b64 = current_img
+                    if up_img:
+                        final_b64 = base64.b64encode(up_img.getvalue()).decode()
+                    simpan_notis(teks_baru, final_b64)
+                    st.success("Berjaya dikemaskini!")
+                    st.rerun()
             with col_s2:
-                if st.button("🗑️ Padam / Kosongkan", use_container_width=True):
-                    simpan_notis(""); st.success("Pemberitahuan dipadam."); st.rerun()
-            st.write("---"); st.markdown("**Preview:**")
-            if teks_baru.strip():
+                if st.button("🗑️ Padam Semua", use_container_width=True):
+                    simpan_notis("", None)
+                    st.success("Dipadam."); st.rerun()
+            with col_s3:
+                if st.button("❌ Buang Imej Sahaja", use_container_width=True):
+                    simpan_notis(current_notis, None)
+                    st.success("Imej dibuang."); st.rerun()
+
+            st.write("---")
+            st.markdown("**Preview Live:**")
+            preview_b64 = base64.b64encode(up_img.getvalue()).decode() if up_img else current_img
+            p_img_tag = f'<img src="data:image/png;base64,{preview_b64}" style="height:28px; vertical-align:middle; margin-right:10px; background:white; border-radius:4px;">' if preview_b64 else ""
+            if teks_baru.strip() or preview_b64:
                 st.markdown(f"""<div style="background: linear-gradient(90deg, #B71C1C 0%, #C62828 100%); border: 2px solid #FFD700; border-radius: 10px; padding: 8px 0px;">
                     <marquee behavior="scroll" direction="left" scrollamount="7" style="color: #FFEB3B; font-weight: bold; font-size: 15px;">
-                        {teks_baru} &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; {teks_baru}
+                        {p_img_tag} {teks_baru} &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; {teks_baru}
                     </marquee></div>""", unsafe_allow_html=True)
-            else: st.warning("Tiada pemberitahuan akan dipaparkan (kosong)")
 
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
@@ -429,20 +471,16 @@ with col_sidebar:
     if st.button("📋 Senarai Pusat", use_container_width=True): st.session_state["menu"] = "SenaraiPusat"; st.rerun()
     if st.button("📚 Cari Mata Pelajaran", use_container_width=True): st.session_state["menu"] = "CariMP"; st.rerun()
     if st.button("🛠️ Selenggara Data", use_container_width=True): st.session_state["show_editor"] = not st.session_state["show_editor"]; st.session_state["menu"] = "Dashboard"
-
     st.write("---")
     st.markdown("### 🔗 Pautan Sistem Lain")
     st.markdown("""<a href="https://sppat.moe.gov.my" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">1. SPPAT</a>""", unsafe_allow_html=True)
     st.markdown("""<a href="https://elp.moe.gov.my/eportal/login" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">2. ELP Portal</a>""", unsafe_allow_html=True)
-
-    # === INI KUNCI SOROK - HANYA LEPAS LOGIN BARU NAMPAK ===
     if st.session_state.get("editor_login", False):
         st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True, type="primary")
         st.write("---")
         st.markdown("### 📁 Pautan Pengurusan")
         st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
         st.link_button("5. Sistem IPEP Selangor", "http://ipep.my/selangor/", use_container_width=True, type="primary")
-
     st.write("---")
     if st.session_state.get("editor_login", False):
         if st.button("🛠️ Selenggara Pusat", use_container_width=True, type="primary"): st.session_state["menu"] = "Selenggara"; st.rerun()
