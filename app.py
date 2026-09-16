@@ -95,13 +95,10 @@ def load_notis():
         try:
             with open(FILE_NOTIS, "r", encoding="utf-8") as f:
                 data = json.load(f)
-                if isinstance(data, dict):
-                    if "teks" in data:
-                        return {"teks": data.get("teks", DEFAULT_NOTIS), "image": data.get("image")}
-                    else:
-                        return {"teks": DEFAULT_NOTIS, "image": None}
+                if isinstance(data, dict) and "teks" in data:
+                    return {"teks": data.get("teks", DEFAULT_NOTIS), "image": data.get("image")}
                 else:
-                    return {"teks": str(data), "image": None}
+                    return {"teks": DEFAULT_NOTIS, "image": None}
         except:
             return {"teks": DEFAULT_NOTIS, "image": None}
     else:
@@ -111,7 +108,6 @@ def simpan_notis(teks, image_b64=None):
     with open(FILE_NOTIS, "w", encoding="utf-8") as f:
         json.dump({"teks": teks, "image": image_b64, "dikemaskini": datetime.now().strftime("%Y-%m-%d %H:%M")}, f, ensure_ascii=False, indent=2)
 
-# PAPAR NOTIS ATAS SEKALI - SUPPORT PNG
 data_notis = load_notis()
 teks_notis = data_notis.get("teks","")
 img_notis = data_notis.get("image")
@@ -143,7 +139,6 @@ DATA_ASAL = {
 }
 JENIS_CALON = ["Semua Jenis"] + ["A-Sekolah Kerajaan", "B-Sekolah Agensi", "C-Sekolah Bantuan Kerajaan", "D-Sekolah Swasta", "E-Calon Persendirian"]
 JENIS_PETUGAS = ["Semua Jawatan"] + ["Penyelia Kawasan", "Ketua Pengawas", "Timbalan Ketua Pengawas", "Pengawas", "Pengemas Bilik", "Sukarelawan"]
-SEMUA_KATEGORI = JENIS_CALON[1:] + JENIS_PETUGAS[1:]
 KOD_PPD = {"Petaling Perdana": "BH", "Petaling Utama": "BK", "Hulu Langat": "BD", "Gombak": "BG", "Klang": "BA", "Kuala Langat": "BB", "Kuala Selangor": "BC", "Hulu Selangor": "BE", "Sabak Bernam": "BF", "Sepang": "BJ"}
 USERS = {
     "admin": {"password": "jpn", "role": "Admin", "tahap": "JPN"},
@@ -246,13 +241,16 @@ def page_selenggara_pusat():
     if not st.session_state.get("editor_login", False):
         st.warning("Sila login dahulu di menu Selenggara Data"); return
     role = st.session_state.get("role", "")
-    if role == "Admin":
-        tab1, tab2, tab3, tab4 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas", "📢 Pemberitahuan Atas"])
-    else:
-        tab1, tab2, tab3 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas"])
-        tab4 = None
 
-    with tab1:
+    # === PERUBAHAN DISINI: MP HANYA ADMIN ===
+    if role == "Admin":
+        tab_pusat, tab_mp, tab_calon, tab_notis = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas", "📢 Pemberitahuan Atas"])
+    else:
+        tab_pusat, tab_calon = st.tabs(["🏫 Selenggara Pusat", "👥 Selenggara Calon & Petugas"])
+        tab_mp = None
+        tab_notis = None
+
+    with tab_pusat:
         if role == "Admin":
             pilihan_ppd = st.selectbox("Pilih PPD untuk kemaskini", list(KOD_PPD.values()))
             st.write("---")
@@ -310,21 +308,25 @@ def page_selenggara_pusat():
                 simpan_ke_excel()
                 st.success(f"Berjaya! {len(edited_df)} rekod {pilihan_ppd} dikemaskini."); st.rerun()
 
-    with tab2:
-        st.subheader("1. Muat Turun Template Mata Pelajaran")
-        st.download_button("📥 Muat Turun Template MataPelajaran.xlsx", to_excel(pd.DataFrame(columns=COLUMNS_MP)), "template_matapelajaran.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-        st.subheader("2. Muat Naik Fail Mata Pelajaran")
-        uploaded_file_mp = st.file_uploader("Pilih fail mata pelajaran", type=["xlsx"], key="up_mp")
-        if uploaded_file_mp:
-            try:
-                df_baru_mp = pd.read_excel(uploaded_file_mp, dtype=str)
-                df_baru_mp.columns = df_baru_mp.columns.str.strip()
-                st.success("Fail berjaya dibaca!"); st.dataframe(df_baru_mp.head(), use_container_width=True)
-                if st.button("✅ Sahkan & Simpan Data Mata Pelajaran", use_container_width=True, key="save_mp"):
-                    simpan_data_mp(df_baru_mp); st.success("Data Mata Pelajaran berjaya dikemaskini!"); st.rerun()
-            except Exception as e: st.error(f"Ralat: {e}")
+    # === TAB MP HANYA ADMIN ===
+    if role == "Admin" and tab_mp is not None:
+        with tab_mp:
+            st.subheader("📚 Selenggara Mata Pelajaran - ADMIN SAHAJA")
+            st.error("🔒 Hanya Admin (jpn) boleh upload / update Mata Pelajaran. PPD tidak dibenarkan.")
+            st.subheader("1. Muat Turun Template Mata Pelajaran")
+            st.download_button("📥 Muat Turun Template MataPelajaran.xlsx", to_excel(pd.DataFrame(columns=COLUMNS_MP)), "template_matapelajaran.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+            st.subheader("2. Muat Naik Fail Mata Pelajaran")
+            uploaded_file_mp = st.file_uploader("Pilih fail mata pelajaran", type=["xlsx"], key="up_mp")
+            if uploaded_file_mp:
+                try:
+                    df_baru_mp = pd.read_excel(uploaded_file_mp, dtype=str)
+                    df_baru_mp.columns = df_baru_mp.columns.str.strip()
+                    st.success("Fail berjaya dibaca!"); st.dataframe(df_baru_mp.head(), use_container_width=True)
+                    if st.button("✅ Sahkan & Simpan Data Mata Pelajaran", use_container_width=True, key="save_mp"):
+                        simpan_data_mp(df_baru_mp); st.success("Data Mata Pelajaran berjaya dikemaskini!"); st.rerun()
+                except Exception as e: st.error(f"Ralat: {e}")
 
-    with tab3:
+    with tab_calon:
         st.subheader("🛠️ Selenggara Bilangan Calon & Petugas")
         df_edit = pd.DataFrame.from_dict(st.session_state["data_calon"], orient='index')
         edited_df2 = st.data_editor(df_edit, use_container_width=True, num_rows="dynamic")
@@ -333,25 +335,20 @@ def page_selenggara_pusat():
             simpan_data_calon(data_baru_dict)
             st.success("Berjaya! Dashboard dah guna data baru."); st.balloons(); st.rerun()
 
-    if role == "Admin" and tab4 is not None:
-        with tab4:
+    if role == "Admin" and tab_notis is not None:
+        with tab_notis:
             st.subheader("📢 Selenggara Pemberitahuan Berjalan Atas - ADMIN SAHAJA")
             st.error("🔒 Hanya Admin boleh edit bahagian ini. PPD tidak akan nampak tab ini.")
-
             data_n = load_notis()
             current_notis = data_n.get("teks","")
             current_img = data_n.get("image")
-
             teks_baru = st.text_area("Teks Pemberitahuan:", value=current_notis, height=120)
-
             st.write("**Muat Naik Imej PNG/JPG (pilihan):**")
             up_img = st.file_uploader("Pilih fail PNG/JPG untuk letak dalam box merah tu", type=["png","jpg","jpeg"], key="up_notis_img")
-
             if up_img:
                 st.image(up_img, width=250, caption="Preview Imej Baru")
             elif current_img:
                 st.image(base64.b64decode(current_img), width=250, caption="Imej Sedia Ada")
-
             col_s1, col_s2, col_s3 = st.columns(3)
             with col_s1:
                 if st.button("💾 Simpan Pemberitahuan", type="primary", use_container_width=True):
@@ -359,19 +356,14 @@ def page_selenggara_pusat():
                     if up_img:
                         final_b64 = base64.b64encode(up_img.getvalue()).decode()
                     simpan_notis(teks_baru, final_b64)
-                    st.success("Berjaya dikemaskini!")
-                    st.rerun()
+                    st.success("Berjaya dikemaskini!"); st.rerun()
             with col_s2:
                 if st.button("🗑️ Padam Semua", use_container_width=True):
-                    simpan_notis("", None)
-                    st.success("Dipadam."); st.rerun()
+                    simpan_notis("", None); st.success("Dipadam."); st.rerun()
             with col_s3:
                 if st.button("❌ Buang Imej Sahaja", use_container_width=True):
-                    simpan_notis(current_notis, None)
-                    st.success("Imej dibuang."); st.rerun()
-
-            st.write("---")
-            st.markdown("**Preview Live:**")
+                    simpan_notis(current_notis, None); st.success("Imej dibuang."); st.rerun()
+            st.write("---"); st.markdown("**Preview Live:**")
             preview_b64 = base64.b64encode(up_img.getvalue()).decode() if up_img else current_img
             p_img_tag = f'<img src="data:image/png;base64,{preview_b64}" style="height:28px; vertical-align:middle; margin-right:10px; background:white; border-radius:4px;">' if preview_b64 else ""
             if teks_baru.strip() or preview_b64:
