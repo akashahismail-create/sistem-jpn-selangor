@@ -364,7 +364,7 @@ def page_selenggara_pusat():
                 if st.button("❌ Buang Imej Sahaja", use_container_width=True):
                     simpan_notis(current_notis, None); st.success("Imej dibuang."); st.rerun()
 
-    if role == "Admin" and tab_db is not None:
+     if role == "Admin" and tab_db is not None:
         with tab_db:
             st.subheader("💾 Urus File Database data_v1.1.xlsx")
             st.caption("Hanya Admin. Password delete tersembunyi.")
@@ -381,13 +381,11 @@ def page_selenggara_pusat():
                     confirm = st.checkbox("Saya faham & nak delete", key="confirm_del")
                 with c2:
                     pwd_del = st.text_input("Password Delete:", type="password", placeholder="Masukkan password", key="pwd_del")
-
                 boleh_delete = confirm and (pwd_del == PASSWORD_DELETE)
                 if confirm and pwd_del!= "" and pwd_del!= PASSWORD_DELETE:
                     st.warning("❌ Password salah!")
                 elif boleh_delete:
                     st.success("✅ Password betul, boleh delete")
-
                 if st.button("🗑️ DELETE FILE LAMA SEKARANG", type="primary", use_container_width=True, disabled=not boleh_delete):
                     try:
                         os.remove(FILE_EXCEL)
@@ -425,6 +423,22 @@ def page_selenggara_pusat():
                     except Exception as e:
                         st.error(f"Gagal upload: {e}")
 
+            # === BUTTON BARU BUKA GITHUB + PASSWORD ===
+            st.write("---")
+            st.subheader("🔗 Buka Github Repository")
+            st.caption("Perlu password akashah juga untuk buka link Github")
+            pwd_github = st.text_input("Password Github:", type="password", placeholder="Masukkan password", key="pwd_github")
+            boleh_github = (pwd_github == PASSWORD_DELETE)
+            if pwd_github != "" and not boleh_github:
+                st.warning("❌ Password Github salah!")
+            elif boleh_github:
+                st.success("✅ Password betul, boleh buka Github")
+            
+            # Link Github cikgu
+            LINK_GITHUB = "https://github.com/akashahismail-create/sistem-jpn-selangor"
+            if st.button("🌐 BUKA GITHUB SEKARANG", use_container_width=True, disabled=not boleh_github):
+                st.markdown(f'<meta http-equiv="refresh" content="0; url={LINK_GITHUB}">', unsafe_allow_html=True)
+                st.link_button(f"➡️ Klik sini jika tak auto buka: {LINK_GITHUB}", LINK_GITHUB, use_container_width=True, type="primary")  
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
     df_mp = st.session_state["data_mp"]
