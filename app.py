@@ -31,7 +31,7 @@ hide_st_style = """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
 FILE_NOTIS = "pemberitahuan.json"
-DEFAULT_NOTIS = "📢 MAKLUMAN TERKINI: Data Calon SPM 2025 sedang dikemaskini | Sila lengkapkan pengesahan pusat sebelum 30 September 2026 | Hubungi Sektor Pentaksiran dan Peperiksaan JPN Selangor"
+DEFAULT_NOTIS = "📢 MAKLUMAN TERKINI: Data Calon SPM 2025 sedang dikemaskini | Sila lengkapkan pengesahan pusat sebelum 30 September 2026"
 
 def load_notis():
     if os.path.exists(FILE_NOTIS):
@@ -98,6 +98,7 @@ COLUMNS_PUSAT = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Nama_Bilik
 COLUMNS_MP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Tarikh"]
 LINK_PENGURUSAN = "https://drive.google.com/drive/folders/193ELWVyPDORTVE7ZSVe2B3rsZILkg7f6?usp=drive_link"
 FILE_CALON_JSON = "data_calon.json"
+PASSWORD_DELETE = "akashah"
 
 def load_data_calon():
     if os.path.exists(FILE_CALON_JSON):
@@ -147,7 +148,7 @@ def upload_pukal(uploaded_file, dikemaskini_oleh):
         st.session_state["data_pusat"] = df_gabung
         simpan_ke_excel()
         return True, f"Berjaya upload {len(df_upload)} rekod"
-    except Exception as e: return False, f"Ralat: {e}. Pastikan header sama: {COLUMNS_PUSAT}"
+    except Exception as e: return False, f"Ralat: {e}"
 
 if "data_calon" not in st.session_state: st.session_state["data_calon"] = load_data_calon()
 if "data_pusat" not in st.session_state: st.session_state["data_pusat"] = load_data_pusat()
@@ -177,7 +178,7 @@ def login_editor():
 def page_selenggara_pusat():
     st.header("⚙️ Selenggara Data")
     if not st.session_state.get("editor_login", False):
-        st.warning("Sila login dahulu di menu Selenggara Data"); return
+        st.warning("Sila login dahulu"); return
     role = st.session_state.get("role", "")
 
     if role == "Admin":
@@ -189,52 +190,42 @@ def page_selenggara_pusat():
     with tab_pusat:
         if role == "Admin":
             pilihan_ppd = st.selectbox("Pilih PPD untuk kemaskini", list(KOD_PPD.values()))
-            with st.expander("📤 Upload Data Pukal 1000 Pusat - Admin Sahaja"):
-                st.download_button("⬇️ Download Template Excel", to_excel(pd.DataFrame(columns=COLUMNS_PUSAT)), "template_pusat.xlsx")
-                uploaded_file = st.file_uploader("Upload File Excel", type=['xlsx'], key="up_pusat")
-                if uploaded_file:
-                    ok, msg = upload_pukal(uploaded_file, st.session_state["username"])
-                    if ok: st.success(msg); st.rerun()
-                    else: st.error(msg)
         else:
             pilihan_ppd = st.session_state["kod_ppd"]
-            st.info(f"Anda login sebagai PPD: {st.session_state['daerah_ppd']} - {pilihan_ppd}")
+            st.info(f"Anda login PPD: {st.session_state['daerah_ppd']} - {pilihan_ppd}")
         with st.form("form_pusat"):
             col1, col2 = st.columns(2)
             with col1:
                 no_pusat = st.text_input("No Pusat *")
                 nama_pusat = st.text_input("Nama Pusat *")
             with col2:
-                bil_calon = st.number_input("Bilangan Calon Ikut Pusat", min_value=0, step=1)
+                bil_calon = st.number_input("Bilangan Calon", min_value=0, step=1)
                 nama_kebal = st.text_input("Nama Bilik Kebal")
             submitted = st.form_submit_button("💾 Simpan Data", type="primary", use_container_width=True)
             if submitted:
-                if no_pusat == "" or nama_pusat == "": st.error("No Pusat dan Nama Pusat wajib diisi")
+                if no_pusat == "" or nama_pusat == "": st.error("Wajib isi")
                 else:
                     simpan_data_pusat(pilihan_ppd, no_pusat, nama_pusat, bil_calon, nama_kebal, st.session_state["username"])
-                    st.success("Data berjaya disimpan!"); st.rerun()
-        st.write("---")
+                    st.success("Berjaya disimpan!"); st.rerun()
         df_tunjuk = st.session_state["data_pusat"][st.session_state["data_pusat"]['Kod_PPD'] == pilihan_ppd]
         if not df_tunjuk.empty:
             edited_df = st.data_editor(df_tunjuk, use_container_width=True, num_rows="dynamic", key=f"editor_pusat_{pilihan_ppd}")
-            if st.button("💾 SIMPAN PERUBAHAN EJAAN", type="primary", use_container_width=True):
+            if st.button("💾 SIMPAN PERUBAHAN", type="primary", use_container_width=True):
                 edited_df['Dikemaskini_Oleh'] = st.session_state["username"]
                 edited_df['Tarikh_Kemaskini'] = datetime.now().strftime("%Y-%m-%d %H:%M")
                 df_lain = st.session_state["data_pusat"][st.session_state["data_pusat"]['Kod_PPD']!= pilihan_ppd]
                 st.session_state["data_pusat"] = pd.concat([df_lain, edited_df], ignore_index=True)
-                simpan_ke_excel(); st.success("Berjaya dikemaskini"); st.rerun()
+                simpan_ke_excel(); st.success("Berjaya"); st.rerun()
 
     if role == "Admin" and tab_mp is not None:
         with tab_mp:
             st.subheader("📚 Selenggara Mata Pelajaran - ADMIN SAHAJA")
-            st.error("🔒 Hanya Admin boleh upload")
-            st.download_button("📥 Template MataPelajaran.xlsx", to_excel(pd.DataFrame(columns=COLUMNS_MP)), "template_matapelajaran.xlsx", use_container_width=True)
-            uploaded_file_mp = st.file_uploader("Pilih fail mata pelajaran", type=["xlsx"], key="up_mp")
-            if uploaded_file_mp:
-                df_baru_mp = pd.read_excel(uploaded_file_mp, dtype=str)
-                st.dataframe(df_baru_mp.head(), use_container_width=True)
-                if st.button("✅ Sahkan & Simpan Data MP", use_container_width=True):
-                    simpan_data_mp(df_baru_mp); st.success("Berjaya!"); st.rerun()
+            st.download_button("📥 Template MataPelajaran.xlsx", to_excel(pd.DataFrame(columns=COLUMNS_MP)), "template_mp.xlsx", use_container_width=True)
+            up = st.file_uploader("Pilih fail MP", type=["xlsx"], key="up_mp")
+            if up:
+                df_b = pd.read_excel(up, dtype=str); st.dataframe(df_b.head(), use_container_width=True)
+                if st.button("✅ Sahkan & Simpan MP", use_container_width=True):
+                    simpan_data_mp(df_b); st.success("Berjaya!"); st.rerun()
 
     with tab_calon:
         st.subheader("🛠️ Selenggara Calon & Petugas")
@@ -245,133 +236,97 @@ def page_selenggara_pusat():
 
     if role == "Admin" and tab_notis is not None:
         with tab_notis:
-            st.subheader("📢 Pemberitahuan Atas")
-            data_n = load_notis(); current_notis = data_n.get("teks",""); current_img = data_n.get("image")
-            teks_baru = st.text_area("Teks:", value=current_notis, height=120)
-            up_img = st.file_uploader("PNG/JPG", type=["png","jpg","jpeg"], key="up_notis_img")
+            st.subheader("📢 Pemberitahuan")
+            d = load_notis(); teks = d.get("teks",""); img = d.get("image")
+            teks_baru = st.text_area("Teks:", value=teks, height=120)
+            up_img = st.file_uploader("PNG/JPG", type=["png","jpg","jpeg"])
             if up_img: st.image(up_img, width=250)
-            elif current_img: st.image(base64.b64decode(current_img), width=250)
+            elif img: st.image(base64.b64decode(img), width=250)
             if st.button("💾 Simpan Pemberitahuan", type="primary", use_container_width=True):
-                final_b64 = base64.b64encode(up_img.getvalue()).decode() if up_img else current_img
-                simpan_notis(teks_baru, final_b64); st.success("Berjaya"); st.rerun()
-            if st.button("🗑️ Padam Notis", use_container_width=True):
-                simpan_notis("", None); st.rerun()
+                fb = base64.b64encode(up_img.getvalue()).decode() if up_img else img
+                simpan_notis(teks_baru, fb); st.success("Berjaya"); st.rerun()
 
-    # === TAB BARU URUS FILE V1.1 ===
     if role == "Admin" and tab_db is not None:
         with tab_db:
             st.subheader("💾 Urus File Database data_v1.1.xlsx")
-            st.info("File ini simpan semua data Pusat & Mata Pelajaran. Kalau nak ganti file baru, kena delete lama dulu.")
-
-            # Check file wujud ke tidak
             if os.path.exists(FILE_EXCEL):
                 saiz = os.path.getsize(FILE_EXCEL) / 1024
                 tarikh = datetime.fromtimestamp(os.path.getmtime(FILE_EXCEL)).strftime("%Y-%m-%d %H:%M:%S")
-                st.success(f"✅ File WUJUD | Nama: {FILE_EXCEL} | Saiz: {saiz:.1f} KB | Last Modified: {tarikh}")
-
-                # Download backup
+                st.success(f"✅ File WUJUD | {FILE_EXCEL} | {saiz:.1f} KB | {tarikh}")
                 with open(FILE_EXCEL, "rb") as f:
-                    st.download_button("📥 Download Backup File Lama (Sebagai Backup)", f.read(), FILE_EXCEL, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
-
+                    st.download_button("📥 Download Backup File Lama Dulu", f.read(), FILE_EXCEL, use_container_width=True)
                 st.write("---")
-                st.error("⚠️ ZON BAHAYA - Delete File Lama")
-                st.warning("Jika anda delete, semua data pusat & MP dalam file tu akan hilang dari sistem (akan jadi kosong). Pastikan dah download backup dulu!")
-
-                col_del1, col_del2 = st.columns(2)
-                with col_del1:
-                    confirm = st.checkbox("Saya faham & nak delete file lama", key="confirm_del")
-                with col_del2:
-                    if st.button("🗑️ DELETE FILE LAMA SEKARANG", type="primary", use_container_width=True, disabled=not confirm):
-                        try:
-                            os.remove(FILE_EXCEL)
-                            st.session_state["data_pusat"] = pd.DataFrame(columns=COLUMNS_PUSAT)
-                            st.session_state["data_mp"] = pd.DataFrame(columns=COLUMNS_MP)
-                            st.success(f"File {FILE_EXCEL} berjaya dipadam! Sekarang boleh upload file baru.")
-                            st.rerun()
-                        except Exception as e:
-                            st.error(f"Gagal delete: {e}")
-            else:
-                st.warning(f"❌ File {FILE_EXCEL} TIADA dalam folder. Sila upload file baru di bawah.")
-
-            st.write("---")
-            st.subheader("📤 Upload File Baru ganti yang lama")
-
-            uploaded_new_db = st.file_uploader(f"Pilih file {FILE_EXCEL} yang baru", type=["xlsx"], key="up_new_db")
-
-            if uploaded_new_db is not None:
-                st.info(f"File dipilih: {uploaded_new_db.name} | Saiz: {uploaded_new_db.size/1024:.1f} KB")
-                # Preview sikit
-                try:
-                    xls = pd.ExcelFile(uploaded_new_db, engine='openpyxl')
-                    st.write(f"Sheet dalam file: {xls.sheet_names}")
-                    if SHEET_PUSAT in xls.sheet_names:
-                        df_prev = pd.read_excel(xls, sheet_name=SHEET_PUSAT, engine='openpyxl')
-                        st.write(f"Preview {SHEET_PUSAT} - {len(df_prev)} rekod:")
-                        st.dataframe(df_prev.head(3), use_container_width=True)
-                    if SHEET_MP in xls.sheet_names:
-                        df_prev2 = pd.read_excel(xls, sheet_name=SHEET_MP, engine='openpyxl')
-                        st.write(f"Preview {SHEET_MP} - {len(df_prev2)} rekod:")
-                        st.dataframe(df_prev2.head(3), use_container_width=True)
-                except Exception as e:
-                    st.error(f"Ralat baca file: {e}")
-
-                if st.button("✅ SAHKAN & GANTI FILE V1.1 DENGAN FILE BARU INI", type="primary", use_container_width=True):
+                st.error("⚠️ ZON BAHAYA - Delete Perlukan Password")
+                c1, c2 = st.columns(2)
+                with c1: confirm = st.checkbox("Saya faham & nak delete", key="confirm_del")
+                with c2: pwd_del = st.text_input("Password Delete:", type="password", placeholder="akashah", key="pwd_del")
+                boleh = confirm and (pwd_del == PASSWORD_DELETE)
+                if confirm and pwd_del!= "" and pwd_del!= PASSWORD_DELETE:
+                    st.warning("❌ Password salah! Sila taip: akashah")
+                elif boleh:
+                    st.success("✅ Password betul!")
+                if st.button("🗑️ DELETE FILE LAMA SEKARANG", type="primary", use_container_width=True, disabled=not boleh):
                     try:
-                        # Simpan overwrite
-                        with open(FILE_EXCEL, "wb") as f:
-                            f.write(uploaded_new_db.getbuffer())
-
-                        # Reload ke session
+                        os.remove(FILE_EXCEL)
+                        st.session_state["data_pusat"] = pd.DataFrame(columns=COLUMNS_PUSAT)
+                        st.session_state["data_mp"] = pd.DataFrame(columns=COLUMNS_MP)
+                        st.success("File berjaya dipadam! Boleh upload baru."); st.rerun()
+                    except Exception as e: st.error(f"Gagal: {e}")
+            else:
+                st.warning("❌ File TIADA. Sila upload baru.")
+            st.write("---")
+            st.subheader("📤 Upload File Baru Ganti Lama")
+            up_new = st.file_uploader(f"Pilih {FILE_EXCEL} baru", type=["xlsx"], key="up_new_db")
+            if up_new is not None:
+                st.info(f"File: {up_new.name} | {up_new.size/1024:.1f} KB")
+                try:
+                    xls = pd.ExcelFile(up_new, engine='openpyxl')
+                    st.write(f"Sheet: {xls.sheet_names}")
+                except: pass
+                if st.button("✅ SAHKAN & GANTI FILE BARU", type="primary", use_container_width=True):
+                    try:
+                        with open(FILE_EXCEL, "wb") as f: f.write(up_new.getbuffer())
                         st.session_state["data_pusat"] = load_data_pusat()
                         st.session_state["data_mp"] = load_data_mp()
-
-                        st.success(f"✅ Berjaya! File {FILE_EXCEL} dah diganti dengan file baru. Data pusat: {len(st.session_state['data_pusat'])} rekod, MP: {len(st.session_state['data_mp'])} rekod")
-                        st.balloons()
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Gagal upload: {e}")
-
-            st.write("---")
-            st.caption("Tips: Nama file mesti kekal data_v1.1.xlsx. Dalam file mesti ada 2 sheet: selenggara_pusat & MataPelajaran. Kalau nama lain, sistem tak baca.")
+                        st.success(f"Berjaya! Pusat: {len(st.session_state['data_pusat'])} | MP: {len(st.session_state['data_mp'])}")
+                        st.balloons(); st.rerun()
+                    except Exception as e: st.error(f"Gagal: {e}")
 
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran")
     df_mp = st.session_state["data_mp"]
-    if df_mp.empty: st.warning("Sheet 'MataPelajaran' masih kosong.")
+    if df_mp.empty: st.warning("Sheet MataPelajaran kosong")
     else:
         col1, col2, col3, col4 = st.columns([2,2,1,2])
-        with col1: cari_kod = st.text_input("Kod MP", placeholder="1103")
-        with col2: cari_nama = st.text_input("Nama MP", placeholder="MATEMATIK")
+        with col1: cari_kod = st.text_input("Kod MP")
+        with col2: cari_nama = st.text_input("Nama MP")
         with col3: cari_kertas = st.selectbox("Kertas", ["Semua", "1", "2", "3"])
         with col4: cari_daerah = st.selectbox("Daerah", ["Semua Daerah"] + list(KOD_PPD.keys()))
         if st.button("🔍 Cari", type="primary", use_container_width=True):
-            df_filter = df_mp.copy()
-            if st.session_state.get("role") == "PPD": df_filter = df_filter[df_filter["Kod_PPD"] == st.session_state["kod_ppd"]]
+            df_f = df_mp.copy()
+            if st.session_state.get("role") == "PPD": df_f = df_f[df_f["Kod_PPD"] == st.session_state["kod_ppd"]]
             else:
-                if cari_daerah!= "Semua Daerah": df_filter = df_filter[df_filter["Kod_PPD"] == KOD_PPD[cari_daerah]]
-            if cari_kod: df_filter = df_filter[df_filter["KodMP"].str.contains(cari_kod, case=False, na=False)]
-            elif cari_nama: df_filter = df_filter[df_filter["NamaMP"].str.contains(cari_nama, case=False, na=False)]
-            if cari_kertas!= "Semua": df_filter = df_filter[df_filter["Kertas"].astype(str) == cari_kertas]
-            if not df_filter.empty: st.success(f"Jumpa {len(df_filter)} rekod"); st.dataframe(df_filter, use_container_width=True)
-            else: st.error("Tiada rekod")
+                if cari_daerah!= "Semua Daerah": df_f = df_f[df_f["Kod_PPD"] == KOD_PPD[cari_daerah]]
+            if cari_kod: df_f = df_f[df_f["KodMP"].str.contains(cari_kod, case=False, na=False)]
+            elif cari_nama: df_f = df_f[df_f["NamaMP"].str.contains(cari_nama, case=False, na=False)]
+            if cari_kertas!= "Semua": df_f = df_f[df_f["Kertas"].astype(str) == cari_kertas]
+            st.dataframe(df_f, use_container_width=True)
 
 def page_senarai_pusat():
     st.header("📋 Senarai Pusat")
-    df_pusat = st.session_state["data_pusat"]
-    if df_pusat.empty: st.warning("Tiada data")
+    df = st.session_state["data_pusat"]
+    if df.empty: st.warning("Tiada data")
     else:
-        if st.session_state.get("role") == "PPD":
-            df_tapis = df_pusat[df_pusat["Kod_PPD"] == st.session_state["kod_ppd"]]
+        if st.session_state.get("role") == "PPD": df_t = df[df["Kod_PPD"] == st.session_state["kod_ppd"]]
         else:
-            pilih = st.selectbox("📍 Pilih Daerah:", ["Semua Daerah"] + list(KOD_PPD.keys()))
-            if pilih == "Semua Daerah": df_tapis = df_pusat
-            else: df_tapis = df_pusat[df_pusat["Kod_PPD"] == KOD_PPD[pilih]]
-        st.dataframe(df_tapis, use_container_width=True)
+            pilih = st.selectbox("Pilih Daerah:", ["Semua Daerah"] + list(KOD_PPD.keys()))
+            if pilih == "Semua Daerah": df_t = df
+            else: df_t = df[df["Kod_PPD"] == KOD_PPD[pilih]]
+        st.dataframe(df_t, use_container_width=True)
 
 if os.path.exists("logo.png"):
-    with open("logo.png", "rb") as f:
-        logo_b64 = base64.b64encode(f.read()).decode()
-        logo_html = f'<img src="data:image/png;base64,{logo_b64}" width="110" style="border:2px solid #FFD700; border-radius:10px;">'
+    with open("logo.png", "rb") as f: logo_b64 = base64.b64encode(f.read()).decode()
+    logo_html = f'<img src="data:image/png;base64,{logo_b64}" width="110" style="border:2px solid #FFD700; border-radius:10px;">'
 else: logo_html = '<div style="font-size:50px;">🏛️</div>'
 
 st.markdown(f"""
@@ -396,13 +351,8 @@ with col_sidebar:
     if st.button("📚 Cari Mata Pelajaran", use_container_width=True): st.session_state["menu"] = "CariMP"; st.rerun()
     if st.button("🛠️ Selenggara Data", use_container_width=True): st.session_state["show_editor"] = not st.session_state["show_editor"]; st.session_state["menu"] = "Dashboard"
     st.write("---")
-    st.markdown("### 🔗 Pautan Sistem Lain")
-    st.markdown("""<a href="https://sppat.moe.gov.my" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">1. SPPAT</a>""", unsafe_allow_html=True)
-    st.markdown("""<a href="https://elp.moe.gov.my/eportal/login" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">2. ELP Portal</a>""", unsafe_allow_html=True)
     if st.session_state.get("editor_login", False):
         st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True, type="primary")
-        st.write("---")
-        st.markdown("### 📁 Pautan Pengurusan")
         st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
         st.link_button("5. Sistem IPEP Selangor", "http://ipep.my/selangor/", use_container_width=True, type="primary")
     st.write("---")
@@ -412,8 +362,8 @@ with col_sidebar:
         st.write("---")
         if not st.session_state.get("editor_login", False): login_editor()
         else:
-            st.success(f"Login: **{st.session_state['username']}**")
-            st.caption(f"Role: **{st.session_state['role']}**")
+            st.success(f"Login: {st.session_state['username']}")
+            st.caption(f"Role: {st.session_state['role']}")
             if st.button("Log Keluar", use_container_width=True): st.session_state["editor_login"] = False; st.session_state["show_editor"] = False; st.session_state["menu"] = "Dashboard"; st.rerun()
     if st.session_state["menu"] == "Dashboard":
         st.write("---")
@@ -437,28 +387,25 @@ with col_main:
             jumlah_calon_total = sum(data[daerah][k] for k in JENIS_CALON[1:])
             jumlah_petugas_total = sum(data[daerah][k] for k in JENIS_PETUGAS[1:])
             jumlah_pusat_total = data[daerah]["Ketua Pengawas"]
-        if daerah == "Semua Daerah": st.info(f"📍 Selangor | Calon: {jumlah_calon_total:,} | Petugas: {jumlah_petugas_total:,} | Pusat: {jumlah_pusat_total:,}")
-        else: st.info(f"📍 {daerah} | Calon: {jumlah_calon_total:,} | Petugas: {jumlah_petugas_total:,} | Pusat: {jumlah_pusat_total:,}")
+        st.info(f"📍 {daerah} | Calon: {jumlah_calon_total:,} | Petugas: {jumlah_petugas_total:,} | Pusat: {jumlah_pusat_total:,}")
         colA, colB, colC = st.columns(3)
         with colA: st.metric("Jumlah Calon", f"{jumlah_calon_total:,}")
         with colB: st.metric("Jumlah Petugas", f"{jumlah_petugas_total:,}")
         with colC: st.metric("Jumlah Pusat", f"{jumlah_pusat_total:,}")
         st.write("---")
-        if jenis_data == "Calon" or jenis_data == "Semua":
+        if jenis_data in ["Calon", "Semua"]:
             df_calon = pd.DataFrame([{k: v[k] for k in JENIS_CALON[1:]} for v in data.values()], index=data.keys())
             if daerah!= "Semua Daerah": df_calon = df_calon.loc[[daerah]]
             if sub_filter!= "Semua Jenis" and jenis_data == "Calon": df_calon = df_calon[[sub_filter]]
             st.dataframe(df_calon, use_container_width=True)
-            fig1, ax1 = plt.subplots(figsize=(11, 5.5))
-            df_calon.plot(kind='bar', ax=ax1, width=0.8); plt.tight_layout(); st.pyplot(fig1)
-        if jenis_data == "Petugas" or jenis_data == "Semua":
+            fig1, ax1 = plt.subplots(figsize=(11, 5.5)); df_calon.plot(kind='bar', ax=ax1, width=0.8); plt.tight_layout(); st.pyplot(fig1)
+        if jenis_data in ["Petugas", "Semua"]:
             st.write("---")
             df_petugas = pd.DataFrame([{k: v[k] for k in JENIS_PETUGAS[1:]} for v in data.values()], index=data.keys())
             if daerah!= "Semua Daerah": df_petugas = df_petugas.loc[[daerah]]
             if sub_filter!= "Semua Jawatan" and jenis_data == "Petugas": df_petugas = df_petugas[[sub_filter]]
             st.dataframe(df_petugas, use_container_width=True)
-            fig2, ax2 = plt.subplots(figsize=(11, 5.5))
-            df_petugas.plot(kind='bar', ax=ax2, width=0.8); plt.tight_layout(); st.pyplot(fig2)
+            fig2, ax2 = plt.subplots(figsize=(11, 5.5)); df_petugas.plot(kind='bar', ax=ax2, width=0.8); plt.tight_layout(); st.pyplot(fig2)
     elif st.session_state["menu"] == "Jadual":
         st.subheader("📅 Jadual Waktu SPM")
         LINK_JADUAL_PDF = "https://raw.githubusercontent.com/akashahismail-create/sistem-jpn-selangor/main/Jadual_Waktu_SPM.pdf"
