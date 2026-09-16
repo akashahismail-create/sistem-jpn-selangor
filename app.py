@@ -133,19 +133,22 @@ JENIS_CALON = ["Semua Jenis"] + ["A-Sekolah Kerajaan", "B-Sekolah Agensi", "C-Se
 JENIS_PETUGAS = ["Semua Jawatan"] + ["Penyelia Kawasan", "Ketua Pengawas", "Timbalan Ketua Pengawas", "Pengawas", "Pengemas Bilik", "Sukarelawan"]
 SEMUA_KATEGORI = JENIS_CALON[1:] + JENIS_PETUGAS[1:]
 KOD_PPD = {"Petaling Perdana": "BH", "Petaling Utama": "BK", "Hulu Langat": "BD", "Gombak": "BG", "Klang": "BA", "Kuala Langat": "BB", "Kuala Selangor": "BC", "Hulu Selangor": "BE", "Sabak Bernam": "BF", "Sepang": "BJ"}
+
+# === FIX: USERNAME MESTI UNIK, JANGAN GUNA 'ppd' BERULANG KALI ===
 USERS = {
     "admin": {"password": "jpn", "role": "Admin", "tahap": "JPN"},
-    "ppd": {"password": "bh", "role": "PPD", "daerah": "Petaling Perdana"},
-    "ppd": {"password": "bk", "role": "PPD", "daerah": "Petaling Utama"},
-    "ppd": {"password": "bd", "role": "PPD", "daerah": "Hulu Langat"},
-    "ppd": {"password": "bg", "role": "PPD", "daerah": "Gombak"},
-    "ppd": {"password": "ba", "role": "PPD", "daerah": "Klang"},
-    "ppd": {"password": "bb", "role": "PPD", "daerah": "Kuala Langat"},
-    "ppd": {"password": "bc", "role": "PPD", "daerah": "Kuala Selangor"},
-    "ppd": {"password": "be", "role": "PPD", "daerah": "Hulu Selangor"},
-    "ppd": {"password": "bf", "role": "PPD", "daerah": "Sabak Bernam"},
-    "ppd": {"password": "bj", "role": "PPD", "daerah": "Sepang"},
+    "bh": {"password": "bh", "role": "PPD", "daerah": "Petaling Perdana"},
+    "bk": {"password": "bk", "role": "PPD", "daerah": "Petaling Utama"},
+    "bd": {"password": "bd", "role": "PPD", "daerah": "Hulu Langat"},
+    "bg": {"password": "bg", "role": "PPD", "daerah": "Gombak"},
+    "ba": {"password": "ba", "role": "PPD", "daerah": "Klang"},
+    "bb": {"password": "bb", "role": "PPD", "daerah": "Kuala Langat"},
+    "bc": {"password": "bc", "role": "PPD", "daerah": "Kuala Selangor"},
+    "be": {"password": "be", "role": "PPD", "daerah": "Hulu Selangor"},
+    "bf": {"password": "bf", "role": "PPD", "daerah": "Sabak Bernam"},
+    "bj": {"password": "bj", "role": "PPD", "daerah": "Sepang"},
 }
+
 FILE_EXCEL = "data_v1.1.xlsx"
 SHEET_PUSAT = "selenggara_pusat"
 SHEET_MP = "MataPelajaran"
@@ -214,27 +217,35 @@ if "menu" not in st.session_state: st.session_state["menu"] = "Dashboard"
 def login_editor():
     with st.form("login_form"):
         st.markdown("#### 🔒 Log Masuk")
-        username = st.text_input("Nama Pengguna", key="user_login")
-        password = st.text_input("Kata Laluan", type="password", key="pass_login")
+        username = st.text_input("Nama Pengguna", key="user_login", placeholder="admin / bh / bk / bd...")
+        password = st.text_input("Kata Laluan", type="password", key="pass_login", placeholder="jpn / bh / bk...")
         submitted = st.form_submit_button("Log Masuk", use_container_width=True, type="primary")
         if submitted:
-            if username in USERS and USERS[username]["password"] == password:
+            uname = username.lower().strip()
+            if uname in USERS and USERS[uname]["password"] == password:
                 st.session_state["editor_login"] = True
-                st.session_state["username"] = username
-                st.session_state["role"] = USERS[username]["role"]
-                if USERS[username]["role"] == "PPD":
-                    st.session_state["daerah_ppd"] = USERS[username]["daerah"]
-                    st.session_state["kod_ppd"] = KOD_PPD[USERS[username]["daerah"]]
-                st.success("Berjaya!"); st.rerun()
+                st.session_state["username"] = uname
+                st.session_state["role"] = USERS[uname]["role"]
+                if USERS[uname]["role"] == "PPD":
+                    st.session_state["daerah_ppd"] = USERS[uname]["daerah"]
+                    st.session_state["kod_ppd"] = KOD_PPD[USERS[uname]["daerah"]]
+                st.success(f"Berjaya login sebagai {uname}!"); st.rerun()
             else: st.error("Nama pengguna atau kata laluan salah!")
 
 def page_selenggara_pusat():
     st.header("⚙️ Selenggara Data")
     if not st.session_state.get("editor_login", False):
         st.warning("Sila login dahulu di menu Selenggara Data"); return
-    tab1, tab2, tab3, tab4 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas", "📢 Pemberitahuan Atas"])
+
+    role = st.session_state.get("role", "")
+    # ADMIN nampak 4 tab, PPD nampak 3 tab sahaja
+    if role == "Admin":
+        tab1, tab2, tab3, tab4 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas", "📢 Pemberitahuan Atas"])
+    else:
+        tab1, tab2, tab3 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas"])
+        tab4 = None
+
     with tab1:
-        role = st.session_state["role"]
         if role == "Admin":
             pilihan_ppd = st.selectbox("Pilih PPD untuk kemaskini", list(KOD_PPD.values()))
             st.write("---")
@@ -266,18 +277,14 @@ def page_selenggara_pusat():
 
         st.write("---")
         st.subheader(f"Senarai Pusat di {pilihan_ppd} - Klik Terus Untuk Edit Ejaan")
-        st.info("💡 Cara: Double-click pada petak Nama_Pusat untuk betulkan ejaan. Boleh tambah baris baru di bawah sekali. Lepas edit, tekan SIMPAN.")
-
+        st.info("💡 Double-click pada Nama_Pusat untuk betulkan ejaan. Lepas edit, tekan SIMPAN.")
         df_tunjuk = st.session_state["data_pusat"][st.session_state["data_pusat"]['Kod_PPD'] == pilihan_ppd]
-
         if df_tunjuk.empty:
-            st.warning("Tiada data lagi untuk PPD ini. Sila tambah guna form di atas atau upload excel.")
+            st.warning("Tiada data lagi untuk PPD ini.")
             edited_df = pd.DataFrame(columns=COLUMNS_PUSAT)
         else:
             edited_df = st.data_editor(
-                df_tunjuk,
-                use_container_width=True,
-                num_rows="dynamic",
+                df_tunjuk, use_container_width=True, num_rows="dynamic",
                 key=f"editor_pusat_{pilihan_ppd}",
                 column_config={
                     "Kod_PPD": st.column_config.TextColumn("Kod_PPD", disabled=True, width="small"),
@@ -289,26 +296,14 @@ def page_selenggara_pusat():
                     "Tarikh_Kemaskini": st.column_config.TextColumn("Tarikh", disabled=True),
                 }
             )
-
-        col1_btn, col2_btn = st.columns([3,1])
-        with col1_btn:
-            if st.button("💾 SIMPAN PERUBAHAN EJAAN / EDIT TERUS", type="primary", use_container_width=True):
-                if not df_tunjuk.empty or not edited_df.empty:
-                    # Kemaskini tarikh & user untuk data yang diedit
-                    edited_df['Dikemaskini_Oleh'] = st.session_state["username"]
-                    edited_df['Tarikh_Kemaskini'] = datetime.now().strftime("%Y-%m-%d %H:%M")
-                    # Gabung balik dengan PPD lain
-                    df_lain = st.session_state["data_pusat"][st.session_state["data_pusat"]['Kod_PPD']!= pilihan_ppd]
-                    df_gabungan_baru = pd.concat([df_lain, edited_df], ignore_index=True)
-                    st.session_state["data_pusat"] = df_gabungan_baru
-                    simpan_ke_excel()
-                    st.success(f"Berjaya! {len(edited_df)} rekod {pilihan_ppd} berjaya dikemaskini.")
-                    st.rerun()
-                else:
-                    st.warning("Tiada data untuk disimpan.")
-        with col2_btn:
-            if st.button("🔄 Refresh", use_container_width=True):
-                st.rerun()
+        if st.button("💾 SIMPAN PERUBAHAN EJAAN / EDIT TERUS", type="primary", use_container_width=True):
+            if not edited_df.empty:
+                edited_df['Dikemaskini_Oleh'] = st.session_state["username"]
+                edited_df['Tarikh_Kemaskini'] = datetime.now().strftime("%Y-%m-%d %H:%M")
+                df_lain = st.session_state["data_pusat"][st.session_state["data_pusat"]['Kod_PPD']!= pilihan_ppd]
+                st.session_state["data_pusat"] = pd.concat([df_lain, edited_df], ignore_index=True)
+                simpan_ke_excel()
+                st.success(f"Berjaya! {len(edited_df)} rekod {pilihan_ppd} dikemaskini."); st.rerun()
 
     with tab2:
         st.subheader("1. Muat Turun Template Mata Pelajaran")
@@ -325,35 +320,35 @@ def page_selenggara_pusat():
             except Exception as e: st.error(f"Ralat: {e}")
 
     with tab3:
-        st.subheader("🛠️ Selenggara Bilangan Calon & Petugas - Dashboard Auto Update")
-        st.info("Ubah nombor di sini, klik Simpan, Dashboard terus berubah.")
+        st.subheader("🛠️ Selenggara Bilangan Calon & Petugas")
         df_edit = pd.DataFrame.from_dict(st.session_state["data_calon"], orient='index')
         edited_df2 = st.data_editor(df_edit, use_container_width=True, num_rows="dynamic")
         if st.button("💾 SIMPAN & UPDATE DASHBOARD", type="primary", use_container_width=True):
             data_baru_dict = edited_df2.to_dict(orient='index')
             simpan_data_calon(data_baru_dict)
-            st.success("Berjaya! Dashboard dah guna data baru.")
-            st.balloons(); st.rerun()
+            st.success("Berjaya! Dashboard dah guna data baru."); st.balloons(); st.rerun()
 
-    with tab4:
-        st.subheader("📢 Selenggara Pemberitahuan Berjalan Atas")
-        st.info("Ayat di sini akan bergerak di ruang atas sekali. Kosongkan jika tak mahu papar.")
-        current_notis = load_notis()
-        teks_baru = st.text_area("Teks Pemberitahuan:", value=current_notis, height=120)
-        col_s1, col_s2 = st.columns(2)
-        with col_s1:
-            if st.button("💾 Simpan Pemberitahuan", type="primary", use_container_width=True):
-                simpan_notis(teks_baru); st.success("Pemberitahuan berjaya dikemaskini!"); st.rerun()
-        with col_s2:
-            if st.button("🗑️ Padam / Kosongkan", use_container_width=True):
-                simpan_notis(""); st.success("Pemberitahuan dipadam."); st.rerun()
-        st.write("---"); st.markdown("**Preview:**")
-        if teks_baru.strip():
-            st.markdown(f"""<div style="background: linear-gradient(90deg, #B71C1C 0%, #C62828 100%); border: 2px solid #FFD700; border-radius: 10px; padding: 8px 0px;">
-                <marquee behavior="scroll" direction="left" scrollamount="7" style="color: #FFEB3B; font-weight: bold; font-size: 15px;">
-                    {teks_baru} &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; {teks_baru}
-                </marquee></div>""", unsafe_allow_html=True)
-        else: st.warning("Tiada pemberitahuan akan dipaparkan (kosong)")
+    # TAB 4 KHAS ADMIN SAHAJA
+    if role == "Admin" and tab4 is not None:
+        with tab4:
+            st.subheader("📢 Selenggara Pemberitahuan Berjalan Atas - ADMIN SAHAJA")
+            st.error("🔒 Hanya Admin (jpn) boleh edit bahagian ini. PPD tidak akan nampak tab ini.")
+            current_notis = load_notis()
+            teks_baru = st.text_area("Teks Pemberitahuan:", value=current_notis, height=150)
+            col_s1, col_s2 = st.columns(2)
+            with col_s1:
+                if st.button("💾 Simpan Pemberitahuan", type="primary", use_container_width=True):
+                    simpan_notis(teks_baru); st.success("Pemberitahuan berjaya dikemaskini!"); st.rerun()
+            with col_s2:
+                if st.button("🗑️ Padam / Kosongkan", use_container_width=True):
+                    simpan_notis(""); st.success("Pemberitahuan dipadam."); st.rerun()
+            st.write("---"); st.markdown("**Preview:**")
+            if teks_baru.strip():
+                st.markdown(f"""<div style="background: linear-gradient(90deg, #B71C1C 0%, #C62828 100%); border: 2px solid #FFD700; border-radius: 10px; padding: 8px 0px;">
+                    <marquee behavior="scroll" direction="left" scrollamount="7" style="color: #FFEB3B; font-weight: bold; font-size: 15px;">
+                        {teks_baru} &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; {teks_baru}
+                    </marquee></div>""", unsafe_allow_html=True)
+            else: st.warning("Tiada pemberitahuan akan dipaparkan (kosong)")
 
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
@@ -381,9 +376,7 @@ def page_cari_mp():
                 st.success(f"✅ Jumpa {jumlah_rekod} rekod")
                 m1, m2 = st.columns(2)
                 with m1: st.metric("Jumlah Rekod MP", f"{jumlah_rekod:,}")
-                with m2:
-                    label_pusat = f"Jumlah Pusat Tawar {cari_kod if cari_kod else cari_nama if cari_nama else 'MP'}"
-                    st.metric(label_pusat, f"{jumlah_pusat_unik:,} pusat")
+                with m2: st.metric(f"Jumlah Pusat Tawar {cari_kod if cari_kod else cari_nama if cari_nama else 'MP'}", f"{jumlah_pusat_unik:,} pusat")
                 st.dataframe(df_filter[COLUMNS_MP].drop_duplicates(), use_container_width=True)
             else: st.error("⚠️ Tiada pusat yang menawarkan mata pelajaran tersebut")
 
