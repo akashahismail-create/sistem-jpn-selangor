@@ -133,8 +133,6 @@ JENIS_CALON = ["Semua Jenis"] + ["A-Sekolah Kerajaan", "B-Sekolah Agensi", "C-Se
 JENIS_PETUGAS = ["Semua Jawatan"] + ["Penyelia Kawasan", "Ketua Pengawas", "Timbalan Ketua Pengawas", "Pengawas", "Pengemas Bilik", "Sukarelawan"]
 SEMUA_KATEGORI = JENIS_CALON[1:] + JENIS_PETUGAS[1:]
 KOD_PPD = {"Petaling Perdana": "BH", "Petaling Utama": "BK", "Hulu Langat": "BD", "Gombak": "BG", "Klang": "BA", "Kuala Langat": "BB", "Kuala Selangor": "BC", "Hulu Selangor": "BE", "Sabak Bernam": "BF", "Sepang": "BJ"}
-
-# === FIX: USERNAME MESTI UNIK, JANGAN GUNA 'ppd' BERULANG KALI ===
 USERS = {
     "admin": {"password": "jpn", "role": "Admin", "tahap": "JPN"},
     "bh": {"password": "bh", "role": "PPD", "daerah": "Petaling Perdana"},
@@ -148,7 +146,6 @@ USERS = {
     "bf": {"password": "bf", "role": "PPD", "daerah": "Sabak Bernam"},
     "bj": {"password": "bj", "role": "PPD", "daerah": "Sepang"},
 }
-
 FILE_EXCEL = "data_v1.1.xlsx"
 SHEET_PUSAT = "selenggara_pusat"
 SHEET_MP = "MataPelajaran"
@@ -231,19 +228,17 @@ def login_editor():
                     st.session_state["kod_ppd"] = KOD_PPD[USERS[uname]["daerah"]]
                 st.success(f"Berjaya login sebagai {uname}!"); st.rerun()
             else: st.error("Nama pengguna atau kata laluan salah!")
+
 def page_selenggara_pusat():
     st.header("⚙️ Selenggara Data")
     if not st.session_state.get("editor_login", False):
         st.warning("Sila login dahulu di menu Selenggara Data"); return
-
     role = st.session_state.get("role", "")
-    # ADMIN nampak 4 tab, PPD nampak 3 tab sahaja
     if role == "Admin":
         tab1, tab2, tab3, tab4 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas", "📢 Pemberitahuan Atas"])
     else:
         tab1, tab2, tab3 = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas"])
         tab4 = None
-
     with tab1:
         if role == "Admin":
             pilihan_ppd = st.selectbox("Pilih PPD untuk kemaskini", list(KOD_PPD.values()))
@@ -258,7 +253,6 @@ def page_selenggara_pusat():
         else:
             pilihan_ppd = st.session_state["kod_ppd"]
             st.info(f"Anda login sebagai PPD: {st.session_state['daerah_ppd']} - {pilihan_ppd}")
-
         with st.form("form_pusat"):
             col1, col2 = st.columns(2)
             with col1:
@@ -273,7 +267,6 @@ def page_selenggara_pusat():
                 else:
                     simpan_data_pusat(pilihan_ppd, no_pusat, nama_pusat, bil_calon, nama_kebal, st.session_state["username"])
                     st.success("Data berjaya disimpan!"); st.rerun()
-
         st.write("---")
         st.subheader(f"Senarai Pusat di {pilihan_ppd} - Klik Terus Untuk Edit Ejaan")
         st.info("💡 Double-click pada Nama_Pusat untuk betulkan ejaan. Lepas edit, tekan SIMPAN.")
@@ -303,7 +296,6 @@ def page_selenggara_pusat():
                 st.session_state["data_pusat"] = pd.concat([df_lain, edited_df], ignore_index=True)
                 simpan_ke_excel()
                 st.success(f"Berjaya! {len(edited_df)} rekod {pilihan_ppd} dikemaskini."); st.rerun()
-
     with tab2:
         st.subheader("1. Muat Turun Template Mata Pelajaran")
         st.download_button("📥 Muat Turun Template MataPelajaran.xlsx", to_excel(pd.DataFrame(columns=COLUMNS_MP)), "template_matapelajaran.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
@@ -317,7 +309,6 @@ def page_selenggara_pusat():
                 if st.button("✅ Sahkan & Simpan Data Mata Pelajaran", use_container_width=True, key="save_mp"):
                     simpan_data_mp(df_baru_mp); st.success("Data Mata Pelajaran berjaya dikemaskini!"); st.rerun()
             except Exception as e: st.error(f"Ralat: {e}")
-
     with tab3:
         st.subheader("🛠️ Selenggara Bilangan Calon & Petugas")
         df_edit = pd.DataFrame.from_dict(st.session_state["data_calon"], orient='index')
@@ -326,12 +317,10 @@ def page_selenggara_pusat():
             data_baru_dict = edited_df2.to_dict(orient='index')
             simpan_data_calon(data_baru_dict)
             st.success("Berjaya! Dashboard dah guna data baru."); st.balloons(); st.rerun()
-
-    # TAB 4 KHAS ADMIN SAHAJA
     if role == "Admin" and tab4 is not None:
         with tab4:
             st.subheader("📢 Selenggara Pemberitahuan Berjalan Atas - ADMIN SAHAJA")
-            st.error("🔒 Hanya Admin (jpn) boleh edit bahagian ini. PPD tidak akan nampak tab ini.")
+            st.error("🔒 Hanya Admin boleh edit bahagian ini. PPD tidak akan nampak tab ini.")
             current_notis = load_notis()
             teks_baru = st.text_area("Teks Pemberitahuan:", value=current_notis, height=150)
             col_s1, col_s2 = st.columns(2)
@@ -440,16 +429,20 @@ with col_sidebar:
     if st.button("📋 Senarai Pusat", use_container_width=True): st.session_state["menu"] = "SenaraiPusat"; st.rerun()
     if st.button("📚 Cari Mata Pelajaran", use_container_width=True): st.session_state["menu"] = "CariMP"; st.rerun()
     if st.button("🛠️ Selenggara Data", use_container_width=True): st.session_state["show_editor"] = not st.session_state["show_editor"]; st.session_state["menu"] = "Dashboard"
+
     st.write("---")
     st.markdown("### 🔗 Pautan Sistem Lain")
     st.markdown("""<a href="https://sppat.moe.gov.my" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">1. SPPAT</a>""", unsafe_allow_html=True)
     st.markdown("""<a href="https://elp.moe.gov.my/eportal/login" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">2. ELP Portal</a>""", unsafe_allow_html=True)
+
+    # === INI KUNCI SOROK - HANYA LEPAS LOGIN BARU NAMPAK ===
     if st.session_state.get("editor_login", False):
         st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True, type="primary")
         st.write("---")
-    st.markdown("### 📁 Pautan Pengurusan")
-    st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
-    st.link_button("5. Sistem IPEP Selangor", "http://ipep.my/selangor/", use_container_width=True, type="primary")
+        st.markdown("### 📁 Pautan Pengurusan")
+        st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
+        st.link_button("5. Sistem IPEP Selangor", "http://ipep.my/selangor/", use_container_width=True, type="primary")
+
     st.write("---")
     if st.session_state.get("editor_login", False):
         if st.button("🛠️ Selenggara Pusat", use_container_width=True, type="primary"): st.session_state["menu"] = "Selenggara"; st.rerun()
