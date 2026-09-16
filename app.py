@@ -287,12 +287,49 @@ def page_cari_mp():
 def page_senarai_pusat():
     st.header("📋 Senarai Pusat Peperiksaan")
     df_pusat = st.session_state["data_pusat"]
-    if df_pusat.empty: st.warning("Tiada data pusat.")
+
+    if df_pusat.empty:
+        st.warning("Tiada data pusat. Sila upload di Selenggara Data.")
     else:
-        if st.session_state.get("role") == "PPD": df_pusat = df_pusat[df_pusat["Kod_PPD"] == st.session_state["kod_ppd"]]
-        df_output = df_pusat[["Kod_PPD", "No_Pusat", "Nama_Pusat", "Nama_Bilik_Kebal", "Bil_Calon_Pusat"]].sort_values(by=["Kod_PPD", "No_Pusat"])
-        st.metric("Jumlah Pusat", len(df_output))
-        st.dataframe(df_output, use_container_width=True, hide_index=True)
+        # Kalau PPD login - terus lock daerah dia
+        if st.session_state.get("role") == "PPD":
+            kod_ppd_user = st.session_state["kod_ppd"]
+            daerah_user = st.session_state["daerah_ppd"]
+            df_tapis = df_pusat[df_pusat["Kod_PPD"] == kod_ppd_user]
+            st.info(f"📍 Daerah anda: **{daerah_user} ({kod_ppd_user})**")
+            st.metric(f"Jumlah Pusat {daerah_user}", len(df_tapis))
+            df_output = df_tapis[["Kod_PPD", "No_Pusat", "Nama_Pusat", "Nama_Bilik_Kebal", "Bil_Calon_Pusat"]].sort_values(by=["Kod_PPD", "No_Pusat"])
+            st.dataframe(df_output, use_container_width=True, hide_index=True)
+        
+        else:
+            # Kalau Admin - ada kotak pilihan daerah
+            col1, col2 = st.columns([2, 3])
+            with col1:
+                pilih_daerah_pusat = st.selectbox("📍 Pilih Daerah:", ["Semua Daerah"] + list(KOD_PPD.keys()), key="filter_pusat_daerah")
+
+            if pilih_daerah_pusat == "Semua Daerah":
+                df_tapis = df_pusat
+                st.info(f"📍 Memaparkan **keseluruhan Selangor** | Jumlah Pusat Keseluruhan: **{len(df_tapis):,}**")
+                # metric 3 kotak style sama
+                m1, m2 = st.columns(2)
+                with m1:
+                    st.metric("Jumlah Pusat Keseluruhan", f"{len(df_tapis):,}")
+                with m2:
+                    st.metric("Jumlah Daerah", f"{len(KOD_PPD)} daerah")
+            else:
+                kod_filter = KOD_PPD[pilih_daerah_pusat]
+                df_tapis = df_pusat[df_pusat["Kod_PPD"] == kod_filter]
+                st.info(f"📍 Daerah: **{pilih_daerah_pusat} ({kod_filter})** | Jumlah Pusat {pilih_daerah_pusat}: **{len(df_tapis):,}**")
+                st.metric(f"Jumlah Pusat {pilih_daerah_pusat}", f"{len(df_tapis):,}")
+
+            # Search tambahan
+            carian = st.text_input("🔍 Cari Nama Pusat / No Pusat:", placeholder="Contoh: SMK Klang atau BA 145")
+            if carian:
+                df_tapis = df_tapis[df_tapis["Nama_Pusat"].str.contains(carian, case=False, na=False) | df_tapis["No_Pusat"].str.contains(carian, case=False, na=False)]
+
+            df_output = df_tapis[["Kod_PPD", "No_Pusat", "Nama_Pusat", "Nama_Bilik_Kebal", "Bil_Calon_Pusat"]].sort_values(by=["Kod_PPD", "No_Pusat"])
+            st.dataframe(df_output, use_container_width=True, hide_index=True)
+            st.download_button("📥 Download Senarai Pusat (Excel)", to_excel(df_output), f"senarai_pusat_{pilih_daerah_pusat}.xlsx", use_container_width=True)
 
 if os.path.exists("logo.png"):
     with open("logo.png", "rb") as f:
