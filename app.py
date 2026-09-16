@@ -217,8 +217,8 @@ if "menu" not in st.session_state: st.session_state["menu"] = "Dashboard"
 def login_editor():
     with st.form("login_form"):
         st.markdown("#### 🔒 Log Masuk")
-        username = st.text_input("Nama Pengguna", key="user_login", placeholder="admin / bh / bk / bd...")
-        password = st.text_input("Kata Laluan", type="password", key="pass_login", placeholder="jpn / bh / bk...")
+        username = st.text_input("Nama Pengguna", key="user_login", placeholder="Masukkan nama pengguna")
+        password = st.text_input("Kata Laluan", type="password", key="pass_login", placeholder="Masukkan kata laluan")
         submitted = st.form_submit_button("Log Masuk", use_container_width=True, type="primary")
         if submitted:
             uname = username.lower().strip()
@@ -231,7 +231,6 @@ def login_editor():
                     st.session_state["kod_ppd"] = KOD_PPD[USERS[uname]["daerah"]]
                 st.success(f"Berjaya login sebagai {uname}!"); st.rerun()
             else: st.error("Nama pengguna atau kata laluan salah!")
-
 def page_selenggara_pusat():
     st.header("⚙️ Selenggara Data")
     if not st.session_state.get("editor_login", False):
