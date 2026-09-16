@@ -436,9 +436,10 @@ def page_selenggara_pusat():
             
             # Link Github cikgu
             LINK_GITHUB = "https://github.com/akashahismail-create/sistem-jpn-selangor"
-            if st.button("🌐 BUKA GITHUB SEKARANG", use_container_width=True, disabled=not boleh_github):
-                st.markdown(f'<meta http-equiv="refresh" content="0; url={LINK_GITHUB}">', unsafe_allow_html=True)
-                st.link_button(f"➡️ Klik sini jika tak auto buka: {LINK_GITHUB}", LINK_GITHUB, use_container_width=True, type="primary")  
+            st.link_button("🌐 BUKA GITHUB TAB BARU", LINK_GITHUB, use_container_width=True, disabled=not boleh_github, type="primary")
+
+def page_cari_mp():
+              
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
     df_mp = st.session_state["data_mp"]
