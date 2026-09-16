@@ -60,7 +60,6 @@ hide_st_style = """
     div[data-testid="stHorizontalBlock"] {
         align-items: stretch!important;
     }
-    /* TERANGKAN PILIH DAERAH - FIX PUDAR */
     div[data-testid="stSelectbox"] label p {
         color: black!important;
         font-weight: 800!important;
@@ -299,7 +298,6 @@ def page_cari_mp():
 def page_senarai_pusat():
     st.header("📋 Senarai Pusat Peperiksaan")
     df_pusat = st.session_state["data_pusat"]
-
     if df_pusat.empty:
         st.warning("Tiada data pusat. Sila upload di Selenggara Data.")
     else:
@@ -312,12 +310,10 @@ def page_senarai_pusat():
             st.metric(f"Jumlah Pusat {daerah_user}", f"{len(df_tapis):,}")
             df_output = df_tapis[["Kod_PPD", "No_Pusat", "Nama_Pusat", "Nama_Bilik_Kebal", "Bil_Calon_Pusat"]].sort_values(by=["Kod_PPD", "No_Pusat"])
             st.dataframe(df_output, use_container_width=True, hide_index=True)
-
         else:
             col1, col2 = st.columns([2, 3])
             with col1:
                 pilih_daerah_pusat = st.selectbox("📍 Pilih Daerah:", ["Semua Daerah"] + list(KOD_PPD.keys()), key="filter_pusat_daerah")
-
             if pilih_daerah_pusat == "Semua Daerah":
                 df_tapis = df_pusat
                 st.markdown(f"<div style='background:linear-gradient(135deg,#00897B 0%,#004D40 100%); border:2px solid #FFD700; border-radius:12px; padding:12px 15px; color:#FFEB3B; font-weight:bold; font-size:16px;'>📍 Memaparkan keseluruhan Selangor | Jumlah Pusat Keseluruhan: {len(df_tapis):,}</div>", unsafe_allow_html=True)
@@ -333,11 +329,9 @@ def page_senarai_pusat():
                 st.markdown(f"<div style='background:linear-gradient(135deg,#00897B 0%,#004D40 100%); border:2px solid #FFD700; border-radius:12px; padding:12px 15px; color:#FFEB3B; font-weight:bold; font-size:16px;'>📍 Daerah: {pilih_daerah_pusat} ({kod_filter}) | Jumlah Pusat {pilih_daerah_pusat}: {len(df_tapis):,}</div>", unsafe_allow_html=True)
                 st.write("")
                 st.metric(f"Jumlah Pusat {pilih_daerah_pusat}", f"{len(df_tapis):,}")
-
             carian = st.text_input("🔍 Cari Nama Pusat / No Pusat:", placeholder="Contoh: SMK Klang atau BA 145")
             if carian:
                 df_tapis = df_tapis[df_tapis["Nama_Pusat"].str.contains(carian, case=False, na=False) | df_tapis["No_Pusat"].str.contains(carian, case=False, na=False)]
-
             df_output = df_tapis[["Kod_PPD", "No_Pusat", "Nama_Pusat", "Nama_Bilik_Kebal", "Bil_Calon_Pusat"]].sort_values(by=["Kod_PPD", "No_Pusat"])
             st.dataframe(df_output, use_container_width=True, hide_index=True)
             st.download_button("📥 Download Senarai Pusat (Excel)", to_excel(df_output), f"senarai_pusat_{pilih_daerah_pusat}.xlsx", use_container_width=True)
@@ -448,7 +442,8 @@ with col_main:
             if sub_filter!= "Semua Jenis" and jenis_data == "Calon": df_calon = df_calon[[sub_filter]]
             st.dataframe(df_calon, use_container_width=True)
 
-            fig1, ax1 = plt.subplots(figsize=(10, 5))
+            # GRAF BERSIH - TAK BERTINDIH
+            fig1, ax1 = plt.subplots(figsize=(11, 5.5))
             df_calon.plot(kind='bar', ax=ax1, width=0.8)
             ax1.set_ylabel("Bilangan Calon", fontweight='bold', fontsize=12, color='black')
             ax1.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
@@ -462,8 +457,10 @@ with col_main:
             leg = ax1.legend(title="Jenis Calon", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
             plt.setp(leg.get_texts(), color='black', fontweight='bold')
             plt.setp(leg.get_title(), color='black', fontweight='bold')
+            # FIX: Hanya label >300
             for container in ax1.containers:
-                ax1.bar_label(container, label_type='edge', fontsize=9, fontweight='bold', color='black', padding=3)
+                labels = [f"{int(v)}" if v > 300 else "" for v in container.datavalues]
+                ax1.bar_label(container, labels=labels, label_type='edge', fontsize=10, fontweight='bold', color='black', padding=4)
             plt.tight_layout()
             st.pyplot(fig1)
 
@@ -475,7 +472,7 @@ with col_main:
             if sub_filter!= "Semua Jawatan" and jenis_data == "Petugas": df_petugas = df_petugas[[sub_filter]]
             st.dataframe(df_petugas, use_container_width=True)
 
-            fig2, ax2 = plt.subplots(figsize=(10, 5))
+            fig2, ax2 = plt.subplots(figsize=(11, 5.5))
             df_petugas.plot(kind='bar', ax=ax2, width=0.8)
             ax2.set_ylabel("Bilangan Petugas", fontweight='bold', fontsize=12, color='black')
             ax2.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
@@ -489,8 +486,10 @@ with col_main:
             leg2 = ax2.legend(title="Jawatan Petugas", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
             plt.setp(leg2.get_texts(), color='black', fontweight='bold')
             plt.setp(leg2.get_title(), color='black', fontweight='bold')
+            # FIX: Hanya label >20
             for container in ax2.containers:
-                ax2.bar_label(container, label_type='edge', fontsize=9, fontweight='bold', color='black', padding=3)
+                labels = [f"{int(v)}" if v > 20 else "" for v in container.datavalues]
+                ax2.bar_label(container, labels=labels, label_type='edge', fontsize=10, fontweight='bold', color='black', padding=4)
             plt.tight_layout()
             st.pyplot(fig2)
 
