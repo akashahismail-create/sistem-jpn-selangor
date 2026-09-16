@@ -134,17 +134,17 @@ JENIS_PETUGAS = ["Semua Jawatan"] + ["Penyelia Kawasan", "Ketua Pengawas", "Timb
 SEMUA_KATEGORI = JENIS_CALON[1:] + JENIS_PETUGAS[1:]
 KOD_PPD = {"Petaling Perdana": "BH", "Petaling Utama": "BK", "Hulu Langat": "BD", "Gombak": "BG", "Klang": "BA", "Kuala Langat": "BB", "Kuala Selangor": "BC", "Hulu Selangor": "BE", "Sabak Bernam": "BF", "Sepang": "BJ"}
 USERS = {
-    "admin": {"password": "jpn2025", "role": "Admin", "tahap": "JPN"},
+    "admin": {"password": "jpn", "role": "Admin", "tahap": "JPN"},
     "ppd": {"password": "bh", "role": "PPD", "daerah": "Petaling Perdana"},
     "ppd": {"password": "bk", "role": "PPD", "daerah": "Petaling Utama"},
-    "ppd_hulu_langat": {"password": "ppdhl2025", "role": "PPD", "daerah": "Hulu Langat"},
-    "ppd_gombak": {"password": "ppdgk2025", "role": "PPD", "daerah": "Gombak"},
-    "ppd_klang": {"password": "ppdkl2025", "role": "PPD", "daerah": "Klang"},
-    "ppd_kuala_langat": {"password": "ppdklg2025", "role": "PPD", "daerah": "Kuala Langat"},
-    "ppd_kuala_selangor": {"password": "ppdks2025", "role": "PPD", "daerah": "Kuala Selangor"},
-    "ppd_hulu_selangor": {"password": "ppdhs2025", "role": "PPD", "daerah": "Hulu Selangor"},
-    "ppd_sabak_bernam": {"password": "ppdsb2025", "role": "PPD", "daerah": "Sabak Bernam"},
-    "ppd_sepang": {"password": "ppdsp2025", "role": "PPD", "daerah": "Sepang"},
+    "ppd": {"password": "bd", "role": "PPD", "daerah": "Hulu Langat"},
+    "ppd": {"password": "bg", "role": "PPD", "daerah": "Gombak"},
+    "ppd": {"password": "ba", "role": "PPD", "daerah": "Klang"},
+    "ppd": {"password": "bb", "role": "PPD", "daerah": "Kuala Langat"},
+    "ppd": {"password": "bc", "role": "PPD", "daerah": "Kuala Selangor"},
+    "ppd": {"password": "be", "role": "PPD", "daerah": "Hulu Selangor"},
+    "ppd": {"password": "bf", "role": "PPD", "daerah": "Sabak Bernam"},
+    "ppd": {"password": "bj", "role": "PPD", "daerah": "Sepang"},
 }
 FILE_EXCEL = "data_v1.1.xlsx"
 SHEET_PUSAT = "selenggara_pusat"
