@@ -1,3 +1,10 @@
+# ==============================================================================
+# SISTEM JPN SELANGOR - app_9_v10 - Versi Runnable + Berkomen Penuh
+# Created by: Akashah Ismail (Kashah) | Dibantu oleh: Aira
+# Tarikh: SPM 2026 | File ini BOLEH RUN terus: streamlit run app_9_v10_commented_runnable.py
+# Setiap bahagian ada komen # [KATEGORI] untuk rujukan
+# ==============================================================================
+
 import streamlit as st
 import base64
 import os
@@ -7,7 +14,21 @@ import matplotlib.pyplot as plt
 from datetime import datetime
 from io import BytesIO
 
+# [CONFIG] Set tajuk tab & layout wide supaya full width
 st.set_page_config(page_title="JPN Selangor", layout="wide")
+
+# [KEEP ALIVE - PART 2] Elak Streamlit sleep + bantu UptimeRobot
+# Kod ini tidak ganggu user, cuma tambah 'heartbeat' senyap di background
+try:
+    from streamlit_autorefresh import st_autorefresh
+    # Refresh senyap setiap 25 minit (1500000 ms) untuk elak idle timeout
+    st_autorefresh(interval=1500000, key="keepalive_jpn")
+except:
+    # Kalau library tak ada, guna meta refresh 30 minit sebagai backup
+    # User tak perasan pun, page cuma refresh bila dah 30 min idle
+    st.markdown('<meta http-equiv="refresh" content="1800">', unsafe_allow_html=True)
+
+
 
 hide_st_style = """
     <style>
@@ -87,6 +108,7 @@ hide_st_style = """
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
 
+# --- SISTEM NOTIS MARQUEE ---
 FILE_NOTIS = "pemberitahuan.json"
 DEFAULT_NOTIS = "📢 MAKLUMAN TERKINI: Data Calon SPM 2025 sedang dikemaskini | Sila lengkapkan pengesahan pusat sebelum 30 September 2026 | Sebarang pertanyaan hubungi Sektor Pentaksiran dan Peperiksaan JPN Selangor"
 PASSWORD_DELETE = "akashah"
@@ -124,6 +146,7 @@ if teks_notis.strip()!="" or img_notis:
 
 st.markdown("<div style='text-align: right; font-size: 10px; color: grey;'>Created by: Akashah Ismail</div>", unsafe_allow_html=True)
 
+# --- SESSION STATE - OTAK SISTEM (ingat data bila reload) ---
 if 'menu_state' not in st.session_state: st.session_state.menu_state = True
 
 DATA_ASAL = {
@@ -433,10 +456,12 @@ def page_selenggara_pusat():
                 st.warning("❌ Password Github salah!")
             elif boleh_github:
                 st.success("✅ Password betul, boleh buka Github")
+            
             # Link Github cikgu
-        LINK_GITHUB = "https://github.com/akashahismail-create/sistem-jpn-selangor"
-        st.link_button("🌐 BUKA GITHUB TAB BARU", LINK_GITHUB, use_container_width=True, disabled=not boleh_github, type="primary")
-
+            LINK_GITHUB = "https://github.com/akashahismail-create/sistem-jpn-selangor"
+            if st.button("🌐 BUKA GITHUB SEKARANG", use_container_width=True, disabled=not boleh_github):
+                st.markdown(f'<meta http-equiv="refresh" content="0; url={LINK_GITHUB}">', unsafe_allow_html=True)
+                st.link_button(f"➡️ Klik sini jika tak auto buka: {LINK_GITHUB}", LINK_GITHUB, use_container_width=True, type="primary")  
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
     df_mp = st.session_state["data_mp"]
