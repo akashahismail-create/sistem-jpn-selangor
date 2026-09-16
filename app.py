@@ -11,9 +11,24 @@ st.set_page_config(page_title="JPN Selangor", layout="wide")
 
 hide_st_style = """
     <style>
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    #MainMenu {visibility: hidden; height: 0px;}
+    footer {visibility: hidden; height: 0px;}
+    header {visibility: hidden; height: 0px;}
+    
+    /* INI KUNCI NAIKKAN KE ATAS - BUANG RUANG KOSONG */
+    div.block-container {
+        padding-top: 0rem !important;
+        padding-bottom: 0rem !important;
+        margin-top: 0rem !important;
+    }
+    section[data-testid="stMain"] > div:first-child {
+        padding-top: 0rem !important;
+        margin-top: 0rem !important;
+    }
+    div[data-testid="stAppViewContainer"] {
+        padding-top: 0rem !important;
+    }
+    
     section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) > div[data-testid="stVerticalBlock"] {
         background: linear-gradient(180deg, #00695C 0%, #004D40 100%)!important;
         border-radius: 15px!important;
