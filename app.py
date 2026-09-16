@@ -62,12 +62,12 @@ hide_st_style = """
     div[data-testid="stMetric"] label {
         color: #FFEB3B!important;
         font-weight: bold!important;
-        font-size: 14px!important;
+        font-size: 13px!important;
     }
     div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
         color: #FFEB3B!important;
         font-weight: bold!important;
-        font-size: 34px!important;
+        font-size: 32px!important;
     }
     div[data-testid="stHorizontalBlock"] {
         align-items: stretch!important;
@@ -358,32 +358,44 @@ with col_sidebar:
 with col_main:
     if st.session_state["menu"] == "Dashboard":
         data = st.session_state["data_calon"]
+
+        # --- KIRAAN BARU UNTUK 3 KOTAK DINAMIK ---
+        if daerah == "Semua Daerah":
+            jumlah_calon_total = sum(sum(data[d][k] for k in JENIS_CALON[1:]) for d in data)
+            jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
+            jumlah_pusat_total = sum(data[d]["Ketua Pengawas"] for d in data)
+        else:
+            jumlah_calon_total = sum(data[daerah][k] for k in JENIS_CALON[1:])
+            jumlah_petugas_total = sum(data[daerah][k] for k in JENIS_PETUGAS[1:])
+            jumlah_pusat_total = data[daerah]["Ketua Pengawas"]
+
         if jenis_data == "Calon": kategori_list = JENIS_CALON[1:] if sub_filter == "Semua Jenis" else [sub_filter]
         elif jenis_data == "Petugas": kategori_list = JENIS_PETUGAS[1:] if sub_filter == "Semua Jawatan" else [sub_filter]
         else: kategori_list = SEMUA_KATEGORI
 
+        # --- AYAT BIRU DINAMIK ---
         if daerah == "Semua Daerah":
-            jumlah = sum(sum(data[d][k] for k in kategori_list) for d in data)
-            jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
-            jumlah_pusat_total = sum(data[d]["Ketua Pengawas"] for d in data)
+            st.info(f"📍 Memaparkan **keseluruhan Selangor** | Calon: **{jumlah_calon_total:,}** | Petugas: **{jumlah_petugas_total:,}** | Pusat: **{jumlah_pusat_total:,}**")
         else:
-            jumlah = sum(data[daerah][k] for k in kategori_list)
-            jumlah_petugas_total = sum(data[daerah][k] for k in JENIS_PETUGAS[1:])
-            jumlah_pusat_total = data[daerah]["Ketua Pengawas"]
+            st.info(f"📍 Daerah: **{daerah}** | Calon {daerah}: **{jumlah_calon_total:,}** | Petugas {daerah}: **{jumlah_petugas_total:,}** | Pusat {daerah}: **{jumlah_pusat_total:,}** | Filter: **{jenis_data} - {sub_filter}**")
 
-        st.info(f"Daerah: **{daerah}** | Data: **{jenis_data}** | Filter: **{sub_filter}**")
-
+        # --- 3 KOTAK HIJAU DINAMIK ---
         colA, colB, colC = st.columns(3)
         with colA:
-            st.metric("Jumlah", f"{jumlah:,}")
+            if daerah == "Semua Daerah":
+                st.metric("Jumlah Calon Keseluruhan", f"{jumlah_calon_total:,}")
+            else:
+                st.metric(f"Jumlah Calon {daerah}", f"{jumlah_calon_total:,}")
         with colB:
-            st.metric("Jumlah Petugas", f"{jumlah_petugas_total:,}")
+            if daerah == "Semua Daerah":
+                st.metric("Jumlah Petugas Keseluruhan", f"{jumlah_petugas_total:,}")
+            else:
+                st.metric(f"Jumlah Petugas {daerah}", f"{jumlah_petugas_total:,}")
         with colC:
             if daerah == "Semua Daerah":
-                label_pusat = "Jumlah Pusat"
+                st.metric("Jumlah Pusat Keseluruhan", f"{jumlah_pusat_total:,}")
             else:
-                label_pusat = f"Jumlah Pusat {daerah}"
-            st.metric(label_pusat, f"{jumlah_pusat_total:,}")
+                st.metric(f"Jumlah Pusat {daerah}", f"{jumlah_pusat_total:,}")
 
         st.write("---")
         if jenis_data == "Calon" or jenis_data == "Semua":
