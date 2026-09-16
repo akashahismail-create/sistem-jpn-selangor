@@ -447,8 +447,9 @@ with col_sidebar:
     if st.session_state.get("editor_login", False):
         st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True, type="primary")
         st.write("---")
-        st.markdown("### 📁 Pautan Pengurusan")
-        st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
+    st.markdown("### 📁 Pautan Pengurusan")
+    st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
+    st.link_button("5. Sistem IPEP Selangor", "http://ipep.my/selangor/", use_container_width=True, type="primary")
     st.write("---")
     if st.session_state.get("editor_login", False):
         if st.button("🛠️ Selenggara Pusat", use_container_width=True, type="primary"): st.session_state["menu"] = "Selenggara"; st.rerun()
