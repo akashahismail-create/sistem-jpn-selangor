@@ -89,6 +89,7 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 
 FILE_NOTIS = "pemberitahuan.json"
 DEFAULT_NOTIS = "📢 MAKLUMAN TERKINI: Data Calon SPM 2025 sedang dikemaskini | Sila lengkapkan pengesahan pusat sebelum 30 September 2026 | Sebarang pertanyaan hubungi Sektor Pentaksiran dan Peperiksaan JPN Selangor"
+PASSWORD_DELETE = "akashah"
 
 def load_notis():
     if os.path.exists(FILE_NOTIS):
@@ -242,13 +243,13 @@ def page_selenggara_pusat():
         st.warning("Sila login dahulu di menu Selenggara Data"); return
     role = st.session_state.get("role", "")
 
-    # === PERUBAHAN DISINI: MP HANYA ADMIN ===
     if role == "Admin":
-        tab_pusat, tab_mp, tab_calon, tab_notis = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas", "📢 Pemberitahuan Atas"])
+        tab_pusat, tab_mp, tab_calon, tab_notis, tab_db = st.tabs(["🏫 Selenggara Pusat", "📚 Selenggara Mata Pelajaran", "👥 Selenggara Calon & Petugas", "📢 Pemberitahuan Atas", "💾 Urus File v1.1"])
     else:
         tab_pusat, tab_calon = st.tabs(["🏫 Selenggara Pusat", "👥 Selenggara Calon & Petugas"])
         tab_mp = None
         tab_notis = None
+        tab_db = None
 
     with tab_pusat:
         if role == "Admin":
@@ -308,7 +309,6 @@ def page_selenggara_pusat():
                 simpan_ke_excel()
                 st.success(f"Berjaya! {len(edited_df)} rekod {pilihan_ppd} dikemaskini."); st.rerun()
 
-    # === TAB MP HANYA ADMIN ===
     if role == "Admin" and tab_mp is not None:
         with tab_mp:
             st.subheader("📚 Selenggara Mata Pelajaran - ADMIN SAHAJA")
@@ -338,13 +338,13 @@ def page_selenggara_pusat():
     if role == "Admin" and tab_notis is not None:
         with tab_notis:
             st.subheader("📢 Selenggara Pemberitahuan Berjalan Atas - ADMIN SAHAJA")
-            st.error("🔒 Hanya Admin boleh edit bahagian ini. PPD tidak akan nampak tab ini.")
+            st.error("🔒 Hanya Admin boleh edit bahagian ini.")
             data_n = load_notis()
             current_notis = data_n.get("teks","")
             current_img = data_n.get("image")
             teks_baru = st.text_area("Teks Pemberitahuan:", value=current_notis, height=120)
             st.write("**Muat Naik Imej PNG/JPG (pilihan):**")
-            up_img = st.file_uploader("Pilih fail PNG/JPG untuk letak dalam box merah tu", type=["png","jpg","jpeg"], key="up_notis_img")
+            up_img = st.file_uploader("Pilih fail PNG/JPG", type=["png","jpg","jpeg"], key="up_notis_img")
             if up_img:
                 st.image(up_img, width=250, caption="Preview Imej Baru")
             elif current_img:
@@ -363,14 +363,67 @@ def page_selenggara_pusat():
             with col_s3:
                 if st.button("❌ Buang Imej Sahaja", use_container_width=True):
                     simpan_notis(current_notis, None); st.success("Imej dibuang."); st.rerun()
-            st.write("---"); st.markdown("**Preview Live:**")
-            preview_b64 = base64.b64encode(up_img.getvalue()).decode() if up_img else current_img
-            p_img_tag = f'<img src="data:image/png;base64,{preview_b64}" style="height:28px; vertical-align:middle; margin-right:10px; background:white; border-radius:4px;">' if preview_b64 else ""
-            if teks_baru.strip() or preview_b64:
-                st.markdown(f"""<div style="background: linear-gradient(90deg, #B71C1C 0%, #C62828 100%); border: 2px solid #FFD700; border-radius: 10px; padding: 8px 0px;">
-                    <marquee behavior="scroll" direction="left" scrollamount="7" style="color: #FFEB3B; font-weight: bold; font-size: 15px;">
-                        {p_img_tag} {teks_baru} &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; {teks_baru}
-                    </marquee></div>""", unsafe_allow_html=True)
+
+    if role == "Admin" and tab_db is not None:
+        with tab_db:
+            st.subheader("💾 Urus File Database data_v1.1.xlsx")
+            st.caption("Hanya Admin. Password delete tersembunyi.")
+            if os.path.exists(FILE_EXCEL):
+                saiz = os.path.getsize(FILE_EXCEL) / 1024
+                tarikh = datetime.fromtimestamp(os.path.getmtime(FILE_EXCEL)).strftime("%Y-%m-%d %H:%M:%S")
+                st.success(f"✅ File WUJUD | {FILE_EXCEL} | {saiz:.1f} KB | {tarikh}")
+                with open(FILE_EXCEL, "rb") as f:
+                    st.download_button("📥 Download Backup File Lama Dulu (Wajib)", f.read(), FILE_EXCEL, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", use_container_width=True)
+                st.write("---")
+                st.error("⚠️ ZON BAHAYA - Delete Perlukan Password")
+                c1, c2 = st.columns(2)
+                with c1:
+                    confirm = st.checkbox("Saya faham & nak delete", key="confirm_del")
+                with c2:
+                    pwd_del = st.text_input("Password Delete:", type="password", placeholder="Masukkan password", key="pwd_del")
+
+                boleh_delete = confirm and (pwd_del == PASSWORD_DELETE)
+                if confirm and pwd_del!= "" and pwd_del!= PASSWORD_DELETE:
+                    st.warning("❌ Password salah!")
+                elif boleh_delete:
+                    st.success("✅ Password betul, boleh delete")
+
+                if st.button("🗑️ DELETE FILE LAMA SEKARANG", type="primary", use_container_width=True, disabled=not boleh_delete):
+                    try:
+                        os.remove(FILE_EXCEL)
+                        st.session_state["data_pusat"] = pd.DataFrame(columns=COLUMNS_PUSAT)
+                        st.session_state["data_mp"] = pd.DataFrame(columns=COLUMNS_MP)
+                        st.success(f"File {FILE_EXCEL} berjaya dipadam! Sekarang upload file baru di bawah.")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Gagal delete: {e}")
+            else:
+                st.warning(f"❌ File {FILE_EXCEL} TIADA dalam folder. Sila upload file baru di bawah.")
+
+            st.write("---")
+            st.subheader("📤 Upload File Baru Ganti Yang Lama")
+            up_new = st.file_uploader(f"Pilih file {FILE_EXCEL} yang baru", type=["xlsx"], key="up_new_db")
+            if up_new is not None:
+                st.info(f"File dipilih: {up_new.name} | {up_new.size/1024:.1f} KB")
+                try:
+                    xls = pd.ExcelFile(up_new, engine='openpyxl')
+                    st.write(f"Sheet dalam file: {xls.sheet_names}")
+                    if SHEET_PUSAT in xls.sheet_names:
+                        df_prev = pd.read_excel(xls, sheet_name=SHEET_PUSAT, engine='openpyxl')
+                        st.write(f"Preview {SHEET_PUSAT}: {len(df_prev)} rekod")
+                        st.dataframe(df_prev.head(3), use_container_width=True)
+                except Exception as e:
+                    st.error(f"Ralat baca: {e}")
+                if st.button("✅ SAHKAN & GANTI FILE V1.1 DENGAN FILE BARU", type="primary", use_container_width=True):
+                    try:
+                        with open(FILE_EXCEL, "wb") as f:
+                            f.write(up_new.getbuffer())
+                        st.session_state["data_pusat"] = load_data_pusat()
+                        st.session_state["data_mp"] = load_data_mp()
+                        st.success(f"✅ Berjaya ganti! Pusat: {len(st.session_state['data_pusat'])} | MP: {len(st.session_state['data_mp'])}")
+                        st.balloons(); st.rerun()
+                    except Exception as e:
+                        st.error(f"Gagal upload: {e}")
 
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
