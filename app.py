@@ -433,13 +433,10 @@ def page_selenggara_pusat():
                 st.warning("❌ Password Github salah!")
             elif boleh_github:
                 st.success("✅ Password betul, boleh buka Github")
-            
-# Link Github cikgu
+            # Link Github cikgu
 LINK_GITHUB = "https://github.com/akashahismail-create/sistem-jpn-selangor"
 st.link_button("🌐 BUKA GITHUB TAB BARU", LINK_GITHUB, use_container_width=True, disabled=not boleh_github, type="primary")
 
-def page_cari_mp():
-              
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
     df_mp = st.session_state["data_mp"]
