@@ -798,18 +798,21 @@ def page_senarai_pusat():
             st.dataframe(df_output, use_container_width=True, hide_index=True)
             st.download_button("📥 Download Senarai Pusat (Excel)", to_excel(df_output), f"senarai_pusat_{pilih_daerah_pusat}.xlsx", use_container_width=True)
 
-# HERO BANNER V41 SPM 2026 + COUNTDOWN 23 NOV 2026
-from datetime import date
+# HERO BANNER V43 SPM 2026 + COUNTDOWN LIVE AUTO-UPDATE
+from datetime import date, datetime
 TARIKH_SPM = date(2026, 11, 23)
 HARI_INI = date.today()
-# Untuk testing jika hari ni 17 Sept 2026 (seperti request Kashah)
-# Jika system date bukan 2026, guna 17 Sept 2026 sebagai fallback untuk paparan
-if HARI_INI.year != 2026:
-    HARI_INI_DISPLAY = date(2026, 9, 17)
-else:
-    HARI_INI_DISPLAY = HARI_INI
+# LIVE: Sentiasa guna tarikh sebenar hari ni - tutup malam ni, buka esok auto update!
+HARI_INI_DISPLAY = HARI_INI
 
 delta = (TARIKH_SPM - HARI_INI_DISPLAY).days
+
+# Auto-refresh countdown setiap jam supaya kalau biar page terbuka semalaman, tengah malam auto jadi 66, 65 etc
+try:
+    from streamlit_autorefresh import st_autorefresh
+    st_autorefresh(interval=3600000, key="countdown_live_refresh")  # refresh setiap 1 jam = 3600000 ms
+except:
+    pass
 if delta < 0:
     countdown_text = "SPM SEDANG BERLANGSUNG!"
     countdown_num = "0"
