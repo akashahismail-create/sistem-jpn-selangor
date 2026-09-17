@@ -629,16 +629,8 @@ with col_main:
             jumlah_pusat_total = data[daerah]["Ketua Pengawas"]
             label_pusat = f"Jumlah Pusat {daerah}"
 
-        # Info text disimpan tapi tidak dipaparkan (biru muda dibuang)
-        if daerah == "Semua Daerah":
-            if jenis_data == "Calon" and sub_filter != "Semua Jenis":
-                info_text = f"Selangor - {sub_filter}"
-            elif jenis_data == "Petugas" and sub_filter != "Semua Jawatan":
-                info_text = f"Selangor - {sub_filter}"
-            else:
-                info_text = "Selangor"
-        else:
-            info_text = f"{daerah} - {sub_filter}"
+        # Biru muda dibuang terus - tiada info box
+        pass
 
         colA, colB, colC = st.columns(3)
         with colA:
@@ -648,9 +640,22 @@ with col_main:
         with colC:
             st.metric(label_pusat, f"{jumlah_pusat_total:,}")
 
-        # ===== FILTER SEKARANG DIBAWAH ANGKA - PILIH BAWAH NAMPAK ATAS =====
+        # ===== V16 - FILTER CANTIK TANPA TIPS - ANGKA ATAS FILTER BAWAH =====
         st.write("")
-        st.markdown("### 🔍 Tapis Data (Pilih di bawah, angka di atas akan bertukar)")
+        st.markdown('''
+        <style>
+        div[data-testid="stSelectbox"] > div > div {
+            background: white !important;
+            border: 2px solid #0D7377 !important;
+            border-radius: 12px !important;
+            box-shadow: 0 2px 8px rgba(13,115,119,0.15) !important;
+        }
+        div[data-testid="stSelectbox"] label {
+            font-weight: 700 !important;
+            color: #0D7377 !important;
+        }
+        </style>
+        ''', unsafe_allow_html=True)
         f1, f2, f3 = st.columns([1.2, 1, 1.2], gap="medium")
         with f1:
             daerah_list = ["Semua Daerah"] + list(data.keys())
