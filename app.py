@@ -629,11 +629,16 @@ with col_main:
             jumlah_pusat_total = data[daerah]["Ketua Pengawas"]
             label_pusat = f"Jumlah Pusat {daerah}"
 
+        # Info text disimpan tapi tidak dipaparkan (biru muda dibuang)
         if daerah == "Semua Daerah":
             if jenis_data == "Calon" and sub_filter != "Semua Jenis":
+                info_text = f"Selangor - {sub_filter}"
             elif jenis_data == "Petugas" and sub_filter != "Semua Jawatan":
+                info_text = f"Selangor - {sub_filter}"
             else:
+                info_text = "Selangor"
         else:
+            info_text = f"{daerah} - {sub_filter}"
 
         colA, colB, colC = st.columns(3)
         with colA:
