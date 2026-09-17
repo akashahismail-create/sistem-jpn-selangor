@@ -90,7 +90,25 @@ hide_st_style = """
         font-weight: bold!important;
         font-size: 32px!important;
     }
-    div[data-testid="stHorizontalBlock"] { align-items: stretch!important; }
+    div[data-testid="stHorizontalBlock"] { align-items: flex-start!important; }
+
+    /* Buat popover keluar sebelah kanan button, bukan bawah */
+    div[data-testid="stPopover"] {
+        position: relative;
+    }
+    div[data-testid="stPopover"] > div:last-child {
+        position: absolute !important;
+        left: 100% !important;
+        top: 0 !important;
+        margin-left: 15px !important;
+        z-index: 9999 !important;
+        background: white !important;
+        border: 3px solid #0D7377 !important;
+        border-radius: 15px !important;
+        box-shadow: 0 8px 30px rgba(0,0,0,0.4) !important;
+        min-width: 320px !important;
+    }
+    
     div[data-testid="stSelectbox"] label p {
         color: black!important; font-weight: 800!important; font-size: 17px!important;
     }
@@ -243,12 +261,28 @@ if "show_editor" not in st.session_state: st.session_state["show_editor"] = Fals
 if "menu" not in st.session_state: st.session_state["menu"] = "Dashboard"
 
 def login_editor():
-    with st.form("login_form"):
-        st.markdown("#### 🔒 Log Masuk")
-        username = st.text_input("Nama Pengguna", key="user_login", placeholder="Masukkan nama pengguna")
-        password = st.text_input("Kata Laluan", type="password", key="pass_login", placeholder="Masukkan kata laluan")
-        submitted = st.form_submit_button("Log Masuk", use_container_width=True, type="primary")
-        if submitted:
+    # Form login putih bersih untuk popup sebelah button
+    st.markdown("""
+    <style>
+    .login-popup {
+        background: white;
+        padding: 20px;
+        border-radius: 15px;
+        border: 3px solid #0D7377;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+    }
+    </style>
+    """, unsafe_allow_html=True)
+    with st.container(border=True):
+        st.markdown("### 🔒 Log Masuk")
+        username = st.text_input("Nama Pengguna", key="user_login_side", placeholder="Masukkan nama pengguna")
+        password = st.text_input("Kata Laluan", type="password", key="pass_login_side", placeholder="Masukkan kata laluan")
+        c1, c2 = st.columns(2)
+        with c1:
+            login_btn = st.button("Log Masuk", use_container_width=True, type="primary", key="btn_login_side")
+        with c2:
+            cancel_btn = st.button("Batal", use_container_width=True, key="btn_cancel_side")
+        if login_btn:
             uname = username.lower().strip()
             if uname in USERS and USERS[uname]["password"] == password:
                 st.session_state["editor_login"] = True
@@ -257,8 +291,10 @@ def login_editor():
                 if USERS[uname]["role"] == "PPD":
                     st.session_state["daerah_ppd"] = USERS[uname]["daerah"]
                     st.session_state["kod_ppd"] = KOD_PPD[USERS[uname]["daerah"]]
-                st.success(f"Berjaya login sebagai {uname}!"); st.rerun()
-            else: st.error("Nama pengguna atau kata laluan salah!")
+                st.success(f"Berjaya login {uname}!")
+                st.rerun()
+            else:
+                st.error("Salah!")
 
 def page_selenggara_pusat():
     st.header("⚙️ Selenggara Data")
@@ -552,6 +588,21 @@ with col_sidebar:
     if st.button("📅 Jadual Waktu", use_container_width=True): st.session_state["menu"] = "Jadual"; st.rerun()
     if st.button("📋 Senarai Pusat", use_container_width=True): st.session_state["menu"] = "SenaraiPusat"; st.rerun()
     if st.button("📚 Cari Mata Pelajaran", use_container_width=True): st.session_state["menu"] = "CariMP"; st.rerun()
+    
+    # POPUP SEBELAH BUTANG SELENGGARA - V21
+    if not st.session_state.get("editor_login", False):
+        with st.popover("🛠️ Selenggara Data", use_container_width=True):
+            login_editor()
+    else:
+        if st.button("🛠️ Selenggara Data", use_container_width=True, type="primary"):
+            st.session_state["menu"] = "Selenggara"; st.rerun()
+        st.success(f"✅ {st.session_state['username']}")
+        if st.button("Log Keluar", use_container_width=True):
+            st.session_state["editor_login"] = False
+            st.session_state["menu"] = "Dashboard"
+            st.rerun()
+        if st.button("🛠️ Selenggara Pusat", use_container_width=True, type="primary"): 
+            st.session_state["menu"] = "Selenggara"; st.rerun()
     if st.button("🛠️ Selenggara Data", use_container_width=True): st.session_state["show_editor"] = not st.session_state["show_editor"]; st.session_state["menu"] = "Dashboard"
     st.write("---")
     st.markdown("### 🔗 Pautan Sistem Lain")
@@ -564,9 +615,8 @@ with col_sidebar:
         st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
         st.link_button("5. Sistem IPEP Selangor", "http://ipep.my/selangor/", use_container_width=True, type="primary")
     st.write("---")
-    if st.session_state.get("editor_login", False):
-        if st.button("🛠️ Selenggara Pusat", use_container_width=True, type="primary"): st.session_state["menu"] = "Selenggara"; st.rerun()
-    if st.session_state["show_editor"]:
+    # OLD BLOCK REMOVED - POPUP NOW
+    if False:
         st.write("---")
         if not st.session_state.get("editor_login", False): login_editor()
         else:
