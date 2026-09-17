@@ -11,6 +11,14 @@ import os
 import json
 import pandas as pd
 import matplotlib.pyplot as plt
+try:
+    import plotly.express as px
+    import plotly.graph_objects as go
+    PLOTLY_AVAILABLE = True
+except ImportError:
+    PLOTLY_AVAILABLE = False
+    px = None
+    go = None
 from datetime import datetime
 from io import BytesIO
 
@@ -714,25 +722,55 @@ with col_main:
             st.rerun()
 
         st.write("---")
+        # ===== V26 POWER DASHBOARD - AUTO WARNING + PIE + RATIO =====
+        total_calon_check = sum(sum(data[d][k] for k in JENIS_CALON[1:]) for d in data)
+        total_pusat_check = sum(data[d]["Ketua Pengawas"] for d in data)
+        if total_calon_check > 0 and total_pusat_check > 0:
+            ratio = total_calon_check / total_pusat_check if total_pusat_check > 0 else 0
+            st.markdown(f'''
+            <div style="background: linear-gradient(135deg, #E0F2F1 0%, #B2DFDB 100%); border: 2px solid #00897B; border-radius: 12px; padding: 12px 18px; margin-bottom: 15px;">
+                <b style="color: #004D40;">📈 Analisis Pantas:</b> 
+                <span style="color: #00695C;">Nisbah Calon : Pusat = <b>{ratio:.1f} calon/pusat</b> | Jumlah Calon: <b>{total_calon_check:,}</b> | Pusat: <b>{total_pusat_check:,}</b></span>
+            </div>
+            ''', unsafe_allow_html=True)
+
         if jenis_data == "Calon" or jenis_data == "Semua":
             st.subheader("📊 Bilangan Calon Mengikut Daerah")
             df_calon = pd.DataFrame([{k: v[k] for k in JENIS_CALON[1:]} for v in data.values()], index=data.keys())
             if daerah!= "Semua Daerah": df_calon = df_calon.loc[[daerah]]
             if sub_filter!= "Semua Jenis" and jenis_data == "Calon": df_calon = df_calon[[sub_filter]]
             st.dataframe(df_calon, use_container_width=True)
-            fig1, ax1 = plt.subplots(figsize=(13, 6.5))
-            df_calon.plot(kind='bar', ax=ax1, width=0.75)
-            ax1.set_ylabel("Bilangan Calon", fontweight='bold', fontsize=12, color='black')
-            ax1.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
-            ax1.tick_params(axis='x', labelsize=10, colors='black')
-            ax1.tick_params(axis='y', labelsize=11, colors='black')
-            for label in ax1.get_xticklabels(): label.set_fontweight('bold'); label.set_color('black'); label.set_rotation(35); label.set_ha('right')
-            leg = ax1.legend(title="Jenis Calon", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
-            plt.setp(leg.get_texts(), color='black', fontweight='bold'); plt.setp(leg.get_title(), color='black', fontweight='bold')
-            for container in ax1.containers:
-                labels = [f"{int(v)}" if v > 400 else "" for v in container.datavalues]
-                ax1.bar_label(container, labels=labels, label_type='edge', fontsize=9, fontweight='bold', color='black', padding=3)
-            plt.tight_layout(); st.pyplot(fig1)
+            if PLOTLY_AVAILABLE:
+                df_calon_plot = df_calon.reset_index().melt(id_vars='index', var_name='Jenis Calon', value_name='Bilangan')
+                df_calon_plot.rename(columns={'index':'Daerah'}, inplace=True)
+                fig1 = px.bar(df_calon_plot, x='Daerah', y='Bilangan', color='Jenis Calon', 
+                              barmode='group', height=550,
+                              color_discrete_sequence=px.colors.qualitative.Safe)
+                fig1.update_layout(xaxis_tickangle=-35, legend_title="Jenis Calon", 
+                                   yaxis_title="Bilangan Calon", xaxis_title="Daerah",
+                                   font=dict(color="black"), plot_bgcolor="white")
+                fig1.update_traces(hovertemplate='<b>%{x}</b><br>%{fullData.name}: %{y:,}<extra></extra>')
+                st.plotly_chart(fig1, use_container_width=True)
+                
+                st.markdown("#### 🥧 Pecahan Jenis Calon Keseluruhan")
+                pie_data = df_calon.sum().reset_index()
+                pie_data.columns = ['Jenis', 'Bilangan']
+                fig_pie = px.pie(pie_data, values='Bilangan', names='Jenis', hole=0.4,
+                                 color_discrete_sequence=px.colors.sequential.Teal_r)
+                fig_pie.update_traces(textinfo='percent+label', textfont_size=12)
+                st.plotly_chart(fig_pie, use_container_width=True)
+            else:
+                fig1, ax1 = plt.subplots(figsize=(13, 6.5))
+                df_calon.plot(kind='bar', ax=ax1, width=0.75)
+                ax1.set_ylabel("Bilangan Calon", fontweight='bold', fontsize=12, color='black')
+                ax1.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
+                for label in ax1.get_xticklabels(): label.set_fontweight('bold'); label.set_rotation(35); label.set_ha('right')
+                ax1.legend(title="Jenis Calon", bbox_to_anchor=(1.05, 1), loc='upper left')
+                for container in ax1.containers:
+                    labels = [f"{int(v)}" if v > 400 else "" for v in container.datavalues]
+                    ax1.bar_label(container, labels=labels, label_type='edge', fontsize=9, fontweight='bold', padding=3)
+                plt.tight_layout(); st.pyplot(fig1)
+
         if jenis_data == "Petugas" or jenis_data == "Semua":
             st.write("---")
             st.subheader("👮 Bilangan Petugas Mengikut Daerah")
@@ -740,27 +778,43 @@ with col_main:
             if daerah!= "Semua Daerah": df_petugas = df_petugas.loc[[daerah]]
             if sub_filter!= "Semua Jawatan" and jenis_data == "Petugas": df_petugas = df_petugas[[sub_filter]]
             st.dataframe(df_petugas, use_container_width=True)
-            fig2, ax2 = plt.subplots(figsize=(13, 6.5))
-            df_petugas.plot(kind='bar', ax=ax2, width=0.75)
-            ax2.set_ylabel("Bilangan Petugas", fontweight='bold', fontsize=12, color='black')
-            ax2.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
-            ax2.tick_params(axis='x', labelsize=10, colors='black')
-            ax2.tick_params(axis='y', labelsize=11, colors='black')
-            for label in ax2.get_xticklabels(): label.set_fontweight('bold'); label.set_color('black'); label.set_rotation(35); label.set_ha('right')
-            leg2 = ax2.legend(title="Jawatan Petugas", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
-            plt.setp(leg2.get_texts(), color='black', fontweight='bold'); plt.setp(leg2.get_title(), color='black', fontweight='bold')
-            # FIX: Hanya tunjuk label untuk Pengawas sahaja (nilai besar) - elak bertindih
-            for container in ax2.containers:
-                # Dapatkan nama jawatan dari label
-                jawatan = container.get_label()
-                # Hanya label untuk Pengawas atau nilai >300 sahaja
-                if "Pengawas" == jawatan or "Pengawas" in jawatan:
-                    labels = [f"{int(v)}" if v > 150 else "" for v in container.datavalues]
-                    ax2.bar_label(container, labels=labels, label_type='edge', fontsize=9, fontweight='bold', color='black', padding=3)
-                else:
-                    # Jawatan kecil jangan label - elak tindih
-                    pass
-            plt.tight_layout(); st.pyplot(fig2)
+            if PLOTLY_AVAILABLE:
+                df_petugas_plot = df_petugas.reset_index().melt(id_vars='index', var_name='Jawatan', value_name='Bilangan')
+                df_petugas_plot.rename(columns={'index':'Daerah'}, inplace=True)
+                fig2 = px.bar(df_petugas_plot, x='Daerah', y='Bilangan', color='Jawatan',
+                              barmode='group', height=600,
+                              color_discrete_sequence=px.colors.qualitative.Set2)
+                fig2.update_layout(xaxis_tickangle=-35, legend_title="Jawatan Petugas",
+                                   yaxis_title="Bilangan Petugas", xaxis_title="Daerah",
+                                   font=dict(color="black"), plot_bgcolor="white")
+                fig2.update_traces(hovertemplate='<b>%{x}</b><br>%{fullData.name}: %{y:,}<extra></extra>')
+                st.plotly_chart(fig2, use_container_width=True)
+                
+                st.markdown("#### ⚖️ Nisbah Petugas vs Calon Mengikut Daerah")
+                df_ratio = pd.DataFrame({
+                    'Daerah': list(data.keys()),
+                    'Calon': [sum(data[d][k] for k in JENIS_CALON[1:]) for d in data.keys()],
+                    'Pengawas': [data[d].get('Pengawas', 0) for d in data.keys()]
+                })
+                fig_ratio = go.Figure()
+                fig_ratio.add_trace(go.Bar(name='Calon', x=df_ratio['Daerah'], y=df_ratio['Calon'], marker_color='#00897B'))
+                fig_ratio.add_trace(go.Bar(name='Pengawas', x=df_ratio['Daerah'], y=df_ratio['Pengawas'], marker_color='#FF6F00'))
+                fig_ratio.update_layout(barmode='group', height=500, xaxis_tickangle=-35,
+                                        yaxis_title="Bilangan", xaxis_title="Daerah")
+                st.plotly_chart(fig_ratio, use_container_width=True)
+            else:
+                fig2, ax2 = plt.subplots(figsize=(13, 6.5))
+                df_petugas.plot(kind='bar', ax=ax2, width=0.75)
+                ax2.set_ylabel("Bilangan Petugas", fontweight='bold', fontsize=12, color='black')
+                ax2.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
+                for label in ax2.get_xticklabels(): label.set_fontweight('bold'); label.set_rotation(35); label.set_ha('right')
+                ax2.legend(title="Jawatan Petugas", bbox_to_anchor=(1.05, 1), loc='upper left')
+                for container in ax2.containers:
+                    jawatan = container.get_label()
+                    if "Pengawas" in jawatan:
+                        labels = [f"{int(v)}" if v > 150 else "" for v in container.datavalues]
+                        ax2.bar_label(container, labels=labels, label_type='edge', fontsize=9, fontweight='bold', padding=3)
+                plt.tight_layout(); st.pyplot(fig2)
     elif st.session_state["menu"] == "Jadual":
         st.subheader("📅 Jadual Waktu SPM")
         LINK_JADUAL_PDF = "https://raw.githubusercontent.com/akashahismail-create/sistem-jpn-selangor/main/Jadual_Waktu_SPM.pdf"
