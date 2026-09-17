@@ -1,4 +1,6 @@
-    streamlit
-    pandas
-    openpyxl
-    matplotlib
+streamlit
+pandas
+openpyxl
+matplotlib
+plotly
+streamlit-autorefresh   
