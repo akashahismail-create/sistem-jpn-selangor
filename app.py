@@ -59,7 +59,11 @@ except:
 
 
 # SUPER UI V28 - SPM 2026 - HERO + GLASS + GLOW
-dark_bg = "#0D1B1A" if st.session_state.get("dark_mode", False) else "#FAFAFA"
+dark_bg = "#121212" if st.session_state.get("dark_mode", False) else "#FAFAFA"
+filter_bg = "#1E3A3A" if st.session_state.get("dark_mode", False) else "#FFFFFF"
+filter_text = "#FFEB3B" if st.session_state.get("dark_mode", False) else "#004D40"
+filter_border = "#FFD700"
+is_dark = st.session_state.get("dark_mode", False)
 hide_st_style = f"""
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap');
@@ -230,9 +234,54 @@ hide_st_style = f"""
         box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 18px rgba(255,215,0,0.5)!important;
         transform: translateY(-2px)!important;
     }}
-    div[data-testid="stSelectbox"] label p {{ color: #004D40!important; font-weight: 800!important; font-size: 16px!important; }}
-    div[data-baseweb="select"] > div {{ background-color: #004D40!important; border: 2px solid #FFD700!important; }}
-    div[data-baseweb="select"] span {{ color: #FFEB3B!important; font-weight: bold!important; }}
+    /* FILTER & MENU HIGH CONTRAST - FIX TENGELAM GELAP */
+    div[data-testid="stSelectbox"] label p {{ 
+        color: {filter_text}!important; 
+        font-weight: 800!important; 
+        font-size: 16px!important;
+        text-shadow: 0 1px 3px rgba(0,0,0,0.5)!important;
+    }}
+    div[data-baseweb="select"] > div {{ 
+        background-color: {filter_bg}!important; 
+        border: 2.5px solid {filter_border}!important;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3), 0 0 10px rgba(255,215,0,0.2)!important;
+    }}
+    div[data-baseweb="select"] span {{ 
+        color: {filter_text}!important; 
+        font-weight: bold!important;
+        font-size: 15px!important;
+    }}
+    div[data-baseweb="select"] div {{ color: {filter_text}!important; }}
+    /* SIDEBAR MENU BUTTONS - HIGH CONTRAST DARK MODE */
+    section[data-testid="stSidebar"] button[kind="secondary"] {{
+        background: linear-gradient(135deg, #00695C 0%, #004D40 100%)!important;
+        color: #FFEB3B!important;
+        border: 2.5px solid #FFD700!important;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.4), 0 0 12px rgba(255,215,0,0.25)!important;
+    }}
+    section[data-testid="stSidebar"] button[kind="secondary"]:hover {{
+        background: linear-gradient(135deg, #00897B 0%, #00695C 100%)!important;
+        color: white!important;
+        border-color: #FFEB3B!important;
+        box-shadow: 0 0 20px rgba(255,215,0,0.8)!important;
+    }}
+    /* MAIN CONTENT - PASTIKAN TEXT NAMPAK DALAM DARK MODE */
+    div[data-testid="stAppViewContainer"] {{
+        background: {dark_bg}!important;
+    }}
+    /* ANALISIS PANTAS BOX - DARK MODE FIX */
+    div[data-testid="stMain"] {{
+        color: #E0E0E0!important;
+    }}
+
+    /* EXTRA FIX - FILTER LABEL & PLACEHOLDER VISIBILITY */
+    .stSelectbox label {
+        color: #FFEB3B!important;
+    }
+    [data-baseweb="select"] input {
+        color: #FFEB3B!important;
+    }
+
     </style>
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -382,6 +431,15 @@ def login_editor():
         border: 3px solid #0D7377;
         box-shadow: 0 8px 25px rgba(0,0,0,0.3);
     }
+
+    /* EXTRA FIX - FILTER LABEL & PLACEHOLDER VISIBILITY */
+    .stSelectbox label {
+        color: #FFEB3B!important;
+    }
+    [data-baseweb="select"] input {
+        color: #FFEB3B!important;
+    }
+
     </style>
     """, unsafe_allow_html=True)
     with st.container(border=True):
