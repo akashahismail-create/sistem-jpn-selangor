@@ -110,7 +110,7 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # --- SISTEM NOTIS MARQUEE ---
 FILE_NOTIS = "pemberitahuan.json"
-DEFAULT_NOTIS = "📢 MAKLUMAN TERKINI: Data Calon SPM 2025 sedang dikemaskini | Sila lengkapkan pengesahan pusat sebelum 30 September 2026 | Sebarang pertanyaan hubungi Sektor Pentaksiran dan Peperiksaan JPN Selangor"
+DEFAULT_NOTIS = "📢 MAKLUMAN TERKINI:TAKLIMAT KESELAMATAN DAN PENGURUSAN SPM AKAN BERMULA PADA 21 HINGGA 30 SEPTEMBER MELIBATKAN 5 ZON. SEBARANG PERTANYAAN  SILA HUBUNGI SEKTOR PENTAKSIRAN DAN PEPERIKSAAN JPN SELANGOR"
 PASSWORD_DELETE = "akashah"
 
 def load_notis():
