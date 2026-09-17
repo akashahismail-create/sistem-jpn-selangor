@@ -30,6 +30,27 @@ except:
 
 
 
+# CSS ALIGN TOP - V18 FIX - MENU DASHBOARD SAMA GARIS DENGAN INDICATOR
+align_fix_css = '''
+<style>
+/* Paksa dua column mula sama tinggi */
+div[data-testid="stHorizontalBlock"]:has(> div > div > div > button) {
+    align-items: flex-start !important;
+}
+/* Angkat column Menu ke atas sama dengan kotak indicator */
+div[data-testid="column"]:first-child > div[data-testid="stVerticalBlock"] {
+    margin-top: -18px !important;
+    padding-top: 0px !important;
+    transform: translateY(-8px);
+}
+/* Pastikan kotak indicator pun start dari atas */
+div[data-testid="column"]:last-child > div[data-testid="stVerticalBlock"] {
+    margin-top: -18px !important;
+    padding-top: 0px !important;
+}
+</style>
+'''
+
 hide_st_style = """
     <style>
     #MainMenu {visibility: hidden; height: 0px;}
@@ -562,6 +583,7 @@ st.markdown(f"""
     </div>
 </div>
 """, unsafe_allow_html=True)
+st.markdown(align_fix_css, unsafe_allow_html=True)
 
 col_sidebar, col_main = st.columns([1, 4])
 with col_sidebar:
