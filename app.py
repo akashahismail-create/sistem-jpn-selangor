@@ -90,7 +90,25 @@ hide_st_style = """
         font-weight: bold!important;
         font-size: 32px!important;
     }
-    div[data-testid="stHorizontalBlock"] { align-items: stretch!important; }
+    div[data-testid="stHorizontalBlock"] { align-items: flex-start!important; }
+    /* ALIGN TOP MENU DASHBOARD DENGAN 3 KOTAK INDICATOR - REQUEST KASHAH */
+    div[data-testid="column"]:nth-child(1) > div {
+        padding-top: 0px !important;
+        margin-top: 0px !important;
+    }
+    div[data-testid="column"]:nth-child(2) > div {
+        padding-top: 0px !important;
+        margin-top: 0px !important;
+    }
+    div[data-testid="stVerticalBlock"] > div:has(> div > div > div > div[data-testid="stMetric"]) {
+        padding-top: 0px !important;
+    }
+    /* Buang gap antara columns */
+    section.main div[data-testid="stHorizontalBlock"] {
+        gap: 1rem !important;
+        align-items: flex-start !important;
+    }
+    
     div[data-testid="stSelectbox"] label p {
         color: black!important; font-weight: 800!important; font-size: 17px!important;
     }
@@ -547,7 +565,7 @@ st.markdown(f"""
 
 col_sidebar, col_main = st.columns([1, 4])
 with col_sidebar:
-    st.markdown("### Menu")
+    st.markdown("<h3 style='margin-top:0px; padding-top:0px; margin-bottom:10px;'>Menu</h3>", unsafe_allow_html=True)
     if st.button("📊 Dashboard", use_container_width=True): st.session_state["menu"] = "Dashboard"; st.rerun()
     if st.button("📅 Jadual Waktu", use_container_width=True): st.session_state["menu"] = "Jadual"; st.rerun()
     if st.button("📋 Senarai Pusat", use_container_width=True): st.session_state["menu"] = "SenaraiPusat"; st.rerun()
@@ -632,7 +650,8 @@ with col_main:
         # Biru muda dibuang terus - tiada info box
         pass
 
-        colA, colB, colC = st.columns(3)
+        # Kotak indicator rapat atas - sama garisan dengan Dashboard
+        colA, colB, colC = st.columns(3, gap="small")
         with colA:
             st.metric(label_calon, f"{jumlah_calon_total:,}")
         with colB:
