@@ -81,6 +81,31 @@ hide_st_style = f"""
         border: 2px solid #FFD700!important;
         box-shadow: 0 4px 15px rgba(0,0,0,0.3)!important;
     }}
+    /* HERO BANNER SHIMMER + COUNTDOWN BERKELIP KELIP V42 */
+    @keyframes blinkGold {{
+        0% {{ box-shadow: 0 0 15px rgba(255,215,0,0.6), 0 0 30px rgba(255,215,0,0.3); border-color: #FFD700; transform: scale(1); }}
+        50% {{ box-shadow: 0 0 25px rgba(255,215,0,1), 0 0 45px rgba(255,215,0,0.6); border-color: #FFEB3B; transform: scale(1.05); }}
+        100% {{ box-shadow: 0 0 15px rgba(255,215,0,0.6), 0 0 30px rgba(255,215,0,0.3); border-color: #FFD700; transform: scale(1); }}
+    }}
+    @keyframes numberPulse {{
+        0% {{ color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.5); transform: scale(1); }}
+        50% {{ color: #FFEB3B; text-shadow: 0 0 15px rgba(255,235,59,0.9), 0 0 25px rgba(255,215,0,0.7); transform: scale(1.15); }}
+        100% {{ color: white; text-shadow: 0 2px 8px rgba(0,0,0,0.5); transform: scale(1); }}
+    }}
+    @keyframes textBlink {{
+        0%, 100% {{ opacity: 1; }}
+        50% {{ opacity: 0.6; }}
+    }}
+    .countdown-box {{
+        animation: blinkGold 1.5s infinite ease-in-out;
+    }}
+    .countdown-number {{
+        animation: numberPulse 1.5s infinite ease-in-out;
+    }}
+    .countdown-label {{
+        animation: textBlink 1s infinite ease-in-out;
+    }}
+
     /* HERO BANNER SHIMMER */
     .hero-banner {{
         background: linear-gradient(135deg, #004D40 0%, #00695C 25%, #00897B 50%, #00695C 75%, #004D40 100%);
@@ -823,11 +848,11 @@ st.markdown(f"""
             <div style="margin-top:6px; font-size:11px; color:#FFEB3B; opacity:0.9;">📅 SPM Bertulis: 23 November 2026 | Hari ini: {HARI_INI_DISPLAY.strftime('%d %B %Y')}</div>
         </div>
         <div style="margin-left: auto; text-align: right;">
-            <div style="background: {bg_countdown}; border: 3px solid #FFD700; border-radius: 14px; padding: 10px 16px; box-shadow: {glow}; min-width: 130px; text-align:center;">
-                <div style="color: #FFEB3B; font-size: 11px; font-weight: 900; letter-spacing:1px;">⏳ COUNTDOWN SPM</div>
-                <div style="color: white; font-size: 32px; font-weight: 900; line-height:1; margin:4px 0; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">{countdown_num}</div>
-                <div style="color: #FFD700; font-size: 11px; font-weight: 800;">{countdown_unit}</div>
-                <div style="color: white; font-size: 10px; margin-top:3px; opacity:0.9;">23 NOV 2026</div>
+            <div class="countdown-box" style="background: {bg_countdown}; border: 3px solid #FFD700; border-radius: 14px; padding: 10px 16px; box-shadow: {glow}; min-width: 135px; text-align:center; animation: blinkGold 1.2s infinite;">
+                <div class="countdown-label" style="color: #FFEB3B; font-size: 11px; font-weight: 900; letter-spacing:1px; animation: textBlink 0.8s infinite;">⏳ COUNTDOWN SPM</div>
+                <div class="countdown-number" style="color: white; font-size: 38px; font-weight: 900; line-height:1; margin:5px 0; text-shadow: 0 2px 8px rgba(0,0,0,0.5); animation: numberPulse 1s infinite;">{countdown_num}</div>
+                <div style="color: #FFD700; font-size: 11px; font-weight: 800; animation: textBlink 1s infinite;">{countdown_unit}</div>
+                <div style="color: white; font-size: 10px; margin-top:3px; opacity:0.9; font-weight:bold;">📅 23 NOV 2026</div>
             </div>
         </div>
     </div>
