@@ -30,27 +30,6 @@ except:
 
 
 
-# CSS ALIGN TOP - V18 FIX - MENU DASHBOARD SAMA GARIS DENGAN INDICATOR
-align_fix_css = '''
-<style>
-/* Paksa dua column mula sama tinggi */
-div[data-testid="stHorizontalBlock"]:has(> div > div > div > button) {
-    align-items: flex-start !important;
-}
-/* Angkat column Menu ke atas sama dengan kotak indicator */
-div[data-testid="column"]:first-child > div[data-testid="stVerticalBlock"] {
-    margin-top: -18px !important;
-    padding-top: 0px !important;
-    transform: translateY(-8px);
-}
-/* Pastikan kotak indicator pun start dari atas */
-div[data-testid="column"]:last-child > div[data-testid="stVerticalBlock"] {
-    margin-top: -18px !important;
-    padding-top: 0px !important;
-}
-</style>
-'''
-
 hide_st_style = """
     <style>
     #MainMenu {visibility: hidden; height: 0px;}
@@ -111,25 +90,7 @@ hide_st_style = """
         font-weight: bold!important;
         font-size: 32px!important;
     }
-    div[data-testid="stHorizontalBlock"] { align-items: flex-start!important; }
-    /* ALIGN TOP MENU DASHBOARD DENGAN 3 KOTAK INDICATOR - REQUEST KASHAH */
-    div[data-testid="column"]:nth-child(1) > div {
-        padding-top: 0px !important;
-        margin-top: 0px !important;
-    }
-    div[data-testid="column"]:nth-child(2) > div {
-        padding-top: 0px !important;
-        margin-top: 0px !important;
-    }
-    div[data-testid="stVerticalBlock"] > div:has(> div > div > div > div[data-testid="stMetric"]) {
-        padding-top: 0px !important;
-    }
-    /* Buang gap antara columns */
-    section.main div[data-testid="stHorizontalBlock"] {
-        gap: 1rem !important;
-        align-items: flex-start !important;
-    }
-    
+    div[data-testid="stHorizontalBlock"] { align-items: stretch!important; }
     div[data-testid="stSelectbox"] label p {
         color: black!important; font-weight: 800!important; font-size: 17px!important;
     }
@@ -583,11 +544,10 @@ st.markdown(f"""
     </div>
 </div>
 """, unsafe_allow_html=True)
-st.markdown(align_fix_css, unsafe_allow_html=True)
 
 col_sidebar, col_main = st.columns([1, 4])
 with col_sidebar:
-    st.markdown("<h3 style='margin-top:0px; padding-top:0px; margin-bottom:10px;'>Menu</h3>", unsafe_allow_html=True)
+    st.markdown("### Menu")
     if st.button("📊 Dashboard", use_container_width=True): st.session_state["menu"] = "Dashboard"; st.rerun()
     if st.button("📅 Jadual Waktu", use_container_width=True): st.session_state["menu"] = "Jadual"; st.rerun()
     if st.button("📋 Senarai Pusat", use_container_width=True): st.session_state["menu"] = "SenaraiPusat"; st.rerun()
@@ -672,8 +632,7 @@ with col_main:
         # Biru muda dibuang terus - tiada info box
         pass
 
-        # Kotak indicator rapat atas - sama garisan dengan Dashboard
-        colA, colB, colC = st.columns(3, gap="small")
+        colA, colB, colC = st.columns(3)
         with colA:
             st.metric(label_calon, f"{jumlah_calon_total:,}")
         with colB:
