@@ -587,26 +587,57 @@ with col_sidebar:
 with col_main:
     if st.session_state["menu"] == "Dashboard":
         data = st.session_state["data_calon"]
+        # ===== FIX DINAMIK OLEH AIRA - ikut filter =====
+        # Calon
         if daerah == "Semua Daerah":
-            jumlah_calon_total = sum(sum(data[d][k] for k in JENIS_CALON[1:]) for d in data)
-            jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
+            if jenis_data == "Calon" and sub_filter != "Semua Jenis":
+                jumlah_calon_total = sum(data[d].get(sub_filter, 0) for d in data)
+                label_calon = f"Jumlah Calon {sub_filter}"
+            else:
+                jumlah_calon_total = sum(sum(data[d][k] for k in JENIS_CALON[1:]) for d in data)
+                label_calon = "Jumlah Calon Keseluruhan"
+            # Petugas
+            if jenis_data == "Petugas" and sub_filter != "Semua Jawatan":
+                jumlah_petugas_total = sum(data[d].get(sub_filter, 0) for d in data)
+                label_petugas = f"Jumlah {sub_filter} Keseluruhan"
+            else:
+                jumlah_petugas_total = sum(sum(data[d][k] for k in JENIS_PETUGAS[1:]) for d in data)
+                label_petugas = "Jumlah Petugas Keseluruhan"
             jumlah_pusat_total = sum(data[d]["Ketua Pengawas"] for d in data)
+            label_pusat = "Jumlah Pusat Keseluruhan"
         else:
-            jumlah_calon_total = sum(data[daerah][k] for k in JENIS_CALON[1:])
-            jumlah_petugas_total = sum(data[daerah][k] for k in JENIS_PETUGAS[1:])
+            if jenis_data == "Calon" and sub_filter != "Semua Jenis":
+                jumlah_calon_total = data[daerah].get(sub_filter, 0)
+                label_calon = f"Jumlah Calon {sub_filter} - {daerah}"
+            else:
+                jumlah_calon_total = sum(data[daerah][k] for k in JENIS_CALON[1:])
+                label_calon = f"Jumlah Calon {daerah}"
+            if jenis_data == "Petugas" and sub_filter != "Semua Jawatan":
+                jumlah_petugas_total = data[daerah].get(sub_filter, 0)
+                label_petugas = f"Jumlah {sub_filter} - {daerah}"
+            else:
+                jumlah_petugas_total = sum(data[daerah][k] for k in JENIS_PETUGAS[1:])
+                label_petugas = f"Jumlah Petugas {daerah}"
             jumlah_pusat_total = data[daerah]["Ketua Pengawas"]
-        if daerah == "Semua Daerah": st.info(f"📍 Memaparkan **keseluruhan Selangor** | Calon: **{jumlah_calon_total:,}** | Petugas: **{jumlah_petugas_total:,}** | Pusat: **{jumlah_pusat_total:,}**")
-        else: st.info(f"📍 Daerah: **{daerah}** | Calon {daerah}: **{jumlah_calon_total:,}** | Petugas {daerah}: **{jumlah_petugas_total:,}** | Pusat {daerah}: **{jumlah_pusat_total:,}** | Filter: **{jenis_data} - {sub_filter}**")
+            label_pusat = f"Jumlah Pusat {daerah}"
+
+        if daerah == "Semua Daerah":
+            if jenis_data == "Calon" and sub_filter != "Semua Jenis":
+                st.info(f"📍 Memaparkan **keseluruhan Selangor** | {label_calon}: **{jumlah_calon_total:,}** | Petugas: **{jumlah_petugas_total:,}** | Pusat: **{jumlah_pusat_total:,}** | Filter: **{sub_filter}**")
+            elif jenis_data == "Petugas" and sub_filter != "Semua Jawatan":
+                st.info(f"📍 Memaparkan **keseluruhan Selangor** | Calon: **{jumlah_calon_total:,}** | {label_petugas}: **{jumlah_petugas_total:,}** | Pusat: **{jumlah_pusat_total:,}** | Filter: **{sub_filter}**")
+            else:
+                st.info(f"📍 Memaparkan **keseluruhan Selangor** | Calon: **{jumlah_calon_total:,}** | Petugas: **{jumlah_petugas_total:,}** | Pusat: **{jumlah_pusat_total:,}**")
+        else:
+            st.info(f"📍 Daerah: **{daerah}** | {label_calon}: **{jumlah_calon_total:,}** | {label_petugas}: **{jumlah_petugas_total:,}** | {label_pusat}: **{jumlah_pusat_total:,}** | Filter: **{jenis_data} - {sub_filter}**")
+
         colA, colB, colC = st.columns(3)
         with colA:
-            if daerah == "Semua Daerah": st.metric("Jumlah Calon Keseluruhan", f"{jumlah_calon_total:,}")
-            else: st.metric(f"Jumlah Calon {daerah}", f"{jumlah_calon_total:,}")
+            st.metric(label_calon, f"{jumlah_calon_total:,}")
         with colB:
-            if daerah == "Semua Daerah": st.metric("Jumlah Petugas Keseluruhan", f"{jumlah_petugas_total:,}")
-            else: st.metric(f"Jumlah Petugas {daerah}", f"{jumlah_petugas_total:,}")
+            st.metric(label_petugas, f"{jumlah_petugas_total:,}")
         with colC:
-            if daerah == "Semua Daerah": st.metric("Jumlah Pusat Keseluruhan", f"{jumlah_pusat_total:,}")
-            else: st.metric(f"Jumlah Pusat {daerah}", f"{jumlah_pusat_total:,}")
+            st.metric(label_pusat, f"{jumlah_pusat_total:,}")
         st.write("---")
         if jenis_data == "Calon" or jenis_data == "Semua":
             st.subheader("📊 Bilangan Calon Mengikut Daerah")
