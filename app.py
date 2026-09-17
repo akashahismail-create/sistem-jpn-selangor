@@ -738,6 +738,59 @@ def page_cari_mp():
                         st.info("✅ Tiada data bercampur dikesan, semua Kertas column dah betul.")
             else: 
                 st.error("⚠️ Tiada pusat yang menawarkan mata pelajaran tersebut - Cuba pilih 'Semua' untuk Kertas atau semak KodMP")
+    
+    # === DIAGNOSTIK KHAS: CARI 2 PUSAT HILANG BM 1103 ===
+    st.write("---")
+    st.subheader("🔍 Diagnostik: Cari Pusat Hilang Bahasa Melayu 1103")
+    st.caption("Total pusat 504 tapi BM 1103 ada 502 je - mana hilang 2 lagi?")
+    
+    if st.button("🕵️ KESAN 2 PUSAT HILANG BM 1103", type="secondary", use_container_width=True):
+        df_pusat_all = st.session_state["data_pusat"]
+        df_mp_all = st.session_state["data_mp"]
+        
+        if df_pusat_all.empty or df_mp_all.empty:
+            st.warning("Data pusat atau MP kosong!")
+        else:
+            # Semua pusat
+            semua_pusat = set(df_pusat_all["No_Pusat"].astype(str).str.strip())
+            # Pusat yang ada BM 1103
+            pusat_bm = set(df_mp_all[df_mp_all["KodMP"].astype(str).str.contains("1103", na=False)]["No_Pusat"].astype(str).str.strip())
+            
+            hilang = semua_pusat - pusat_bm
+            
+            st.metric("Jumlah Pusat Keseluruhan", f"{len(semua_pusat)}")
+            st.metric("Pusat Ada BM 1103", f"{len(pusat_bm)}")
+            st.metric("Pusat Hilang BM", f"{len(hilang)}", delta=f"-{len(hilang)}", delta_color="inverse")
+            
+            if hilang:
+                st.error(f"⚠️ Dikesan {len(hilang)} pusat tak tawar BM 1103!")
+                df_hilang = df_pusat_all[df_pusat_all["No_Pusat"].astype(str).str.strip().isin(hilang)][["Kod_PPD", "No_Pusat", "Nama_Pusat", "Bil_Calon_Pusat"]]
+                st.dataframe(df_hilang, use_container_width=True)
+                st.download_button("📥 Download Senarai 2 Pusat Hilang BM", df_hilang.to_csv(index=False).encode('utf-8'), "pusat_hilang_BM1103.csv", use_container_width=True)
+                
+                # Sebab kenapa hilang
+                st.info("💡 Kemungkinan sebab 2 pusat ni hilang BM: \n1. Pusat tu memang pusat khas (Juvana, Henry Gurney, etc) tak ambil BM \n2. Data MP tak key-in lagi untuk 2 pusat tu \n3. KodMP BM salah taip (1103 jadi 1104?) \nSila semak sheet MataPelajaran untuk No_Pusat di atas")
+            else:
+                st.success("✅ Semua 504 pusat ada BM 1103! Tiada yang hilang.")
+    
+    # Auto list semua MP yang tak cukup 504
+    st.write("---")
+    st.subheader("📊 Audit Semua Mata Pelajaran Wajib")
+    if st.button("📊 Audit MP Wajib (BM, BI, Sejarah, Math) - Berapa Pusat Tak Tawar?"):
+        df_pusat_all = st.session_state["data_pusat"]
+        df_mp_all = st.session_state["data_mp"]
+        semua_pusat = set(df_pusat_all["No_Pusat"].astype(str).str.strip())
+        
+        kod_wajib = {"1103": "Bahasa Melayu", "1119": "Bahasa Inggeris", "1249": "Sejarah", "1449": "Matematik"}
+        audit_data = []
+        for kod, nama in kod_wajib.items():
+            pusat_ada = set(df_mp_all[df_mp_all["KodMP"].astype(str).str.contains(kod, na=False)]["No_Pusat"].astype(str).str.strip())
+            hilang = len(semua_pusat) - len(pusat_ada)
+            audit_data.append({"KodMP": kod, "NamaMP": nama, "Pusat Ada": len(pusat_ada), "Pusat Hilang": hilang, "Total Pusat": len(semua_pusat)})
+        
+        df_audit = __import__('pandas').DataFrame(audit_data)
+        st.dataframe(df_audit, use_container_width=True)
+        st.bar_chart(df_audit.set_index("KodMP")[["Pusat Ada", "Pusat Hilang"]])
 
 def page_senarai_pusat():
     st.header("📋 Senarai Pusat Peperiksaan")
