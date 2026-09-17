@@ -125,27 +125,46 @@ hide_st_style = f"""
         padding-top: 8px;
         letter-spacing: 1.5px;
     }}
-    /* GLASSMORPHISM KPI */
+    /* GLASSMORPHISM KPI - FIX TULISAN KEBAWAH TENGELAM ON PHONE */
     .kpi-card {{
         background: linear-gradient(135deg, rgba(0,105,92,0.95) 0%, rgba(0,77,64,0.98) 100%);
         backdrop-filter: blur(12px);
         border: 2.5px solid #FFD700;
         border-radius: 18px;
-        padding: 18px 16px;
-        height: 135px;
+        padding: 14px 14px 10px 14px;
+        min-height: 125px;
+        height: auto;
         box-shadow: 0 8px 22px rgba(0,0,0,0.28), 0 0 18px rgba(255,215,0,0.18);
         transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         position: relative;
-        overflow: hidden;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-start;
     }}
     .kpi-card:hover {{
-        transform: translateY(-7px) scale(1.03);
+        transform: translateY(-5px) scale(1.02);
         box-shadow: 0 16px 32px rgba(0,0,0,0.38), 0 0 28px rgba(255,215,0,0.65);
         border-color: #FFEB3B;
     }}
-    .kpi-icon {{font-size: 30px; margin-bottom: 5px; filter: drop-shadow(0 0 8px rgba(255,215,0,0.7));}}
-    .kpi-label {{color: #FFEB3B; font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; line-height: 1.2;}}
-    .kpi-value {{color: #FFD700; font-size: 33px; font-weight: 800; margin-top: 6px; text-shadow: 0 2px 10px rgba(255,215,0,0.5); font-family: 'Poppins', sans-serif;}}
+    .kpi-icon {{font-size: 26px; margin-bottom: 2px; filter: drop-shadow(0 0 8px rgba(255,215,0,0.7)); line-height: 1;}}
+    .kpi-label {{color: #FFEB3B; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.6px; line-height: 1.2; margin-bottom: 4px; min-height: 26px;}}
+    .kpi-value {{color: #FFD700; font-size: 30px; font-weight: 800; margin-top: 2px; margin-bottom: 0px; text-shadow: 0 2px 10px rgba(255,215,0,0.5); font-family: 'Poppins', sans-serif; line-height: 1.1; word-break: break-all;}}
+    /* RESPONSIVE PHONE FIX - elak tenggelam */
+    @media (max-width: 768px) {{
+        .kpi-card {{
+            min-height: 110px;
+            padding: 12px 10px 8px 10px;
+            height: auto;
+            overflow: visible;
+        }}
+        .kpi-icon {{font-size: 22px; margin-bottom: 1px;}}
+        .kpi-label {{font-size: 9.5px; min-height: 22px; margin-bottom: 2px;}}
+        .kpi-value {{font-size: 26px; margin-top: 1px;}}
+        .hero-title {{font-size: 18px!important;}}
+        .hero-subtitle {{font-size: 14px!important;}}
+        .hero-spm {{font-size: 11px!important;}}
+    }}
     /* BUTTON GLOW GOLD */
     button[kind="secondary"] {{
         background: linear-gradient(135deg, #00897B 0%, #004D40 100%)!important;
@@ -802,12 +821,12 @@ with col_main:
             <div class="kpi-card">
                 <div class="kpi-icon">🎓</div>
                 <div class="kpi-label">{label_calon}</div>
-                <div class="kpi-value" style="animation: countUp 1s ease-out;">{jumlah_calon_total:,}</div>
+                <div class="kpi-value">{jumlah_calon_total:,}</div>
             </div>
             """, unsafe_allow_html=True)
         with colB:
             st.markdown(f"""
-            <div class="kpi-card" style="background: linear-gradient(135deg, rgba(121,85,72,0.9) 0%, rgba(62,39,35,0.95) 100%);">
+            <div class="kpi-card" style="background: linear-gradient(135deg, rgba(121,85,72,0.9) 0%, rgba(62,39,35,0.95) 100%); min-height: 125px;">
                 <div class="kpi-icon">👮</div>
                 <div class="kpi-label">{label_petugas}</div>
                 <div class="kpi-value">{jumlah_petugas_total:,}</div>
@@ -815,7 +834,7 @@ with col_main:
             """, unsafe_allow_html=True)
         with colC:
             st.markdown(f"""
-            <div class="kpi-card" style="background: linear-gradient(135deg, rgba(2,119,189,0.9) 0%, rgba(1,87,155,0.95) 100%);">
+            <div class="kpi-card" style="background: linear-gradient(135deg, rgba(2,119,189,0.9) 0%, rgba(1,87,155,0.95) 100%); min-height: 125px;">
                 <div class="kpi-icon">🏫</div>
                 <div class="kpi-label">{label_pusat}</div>
                 <div class="kpi-value">{jumlah_pusat_total:,}</div>
