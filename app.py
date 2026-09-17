@@ -397,14 +397,39 @@ def load_data_calon():
 def simpan_data_calon(data):
     with open(FILE_CALON_JSON, "w") as f: json.dump(data, f, indent=2)
     st.session_state["data_calon"] = data
+def format_no_pusat(no):
+    """Format No Pusat jadi 3 angka: 1->001, 78->078, 550->550"""
+    try:
+        s = str(no).strip()
+        # Remove decimal .0 if any
+        if '.' in s:
+            s = s.split('.')[0]
+        # Extract digits only
+        digits = ''.join(filter(str.isdigit, s))
+        if digits == "":
+            return s
+        return digits.zfill(3)
+    except:
+        return str(no)
+
 def load_data_pusat():
     if os.path.exists(FILE_EXCEL):
-        try: return pd.read_excel(FILE_EXCEL, sheet_name=SHEET_PUSAT, engine='openpyxl', dtype=str)
+        try: 
+            df = pd.read_excel(FILE_EXCEL, sheet_name=SHEET_PUSAT, engine='openpyxl', dtype=str)
+            # Auto-format No_Pusat jadi 001, 078 etc
+            if not df.empty and "No_Pusat" in df.columns:
+                df["No_Pusat"] = df["No_Pusat"].apply(format_no_pusat)
+            return df
         except: return pd.DataFrame(columns=COLUMNS_PUSAT)
     else: return pd.DataFrame(columns=COLUMNS_PUSAT)
+
 def load_data_mp():
     if os.path.exists(FILE_EXCEL):
-        try: return pd.read_excel(FILE_EXCEL, sheet_name=SHEET_MP, engine='openpyxl', dtype=str)
+        try: 
+            df = pd.read_excel(FILE_EXCEL, sheet_name=SHEET_MP, engine='openpyxl', dtype=str)
+            if not df.empty and "No_Pusat" in df.columns:
+                df["No_Pusat"] = df["No_Pusat"].apply(format_no_pusat)
+            return df
         except: return pd.DataFrame(columns=COLUMNS_MP)
     else: return pd.DataFrame(columns=COLUMNS_MP)
 def to_excel(df):
@@ -416,6 +441,7 @@ def simpan_ke_excel():
         st.session_state["data_pusat"].to_excel(writer, sheet_name=SHEET_PUSAT, index=False)
         st.session_state["data_mp"].to_excel(writer, sheet_name=SHEET_MP, index=False)
 def simpan_data_pusat(kod_ppd, no_pusat, nama_pusat, bil_calon, nama_kebal, dikemaskini_oleh):
+    no_pusat = format_no_pusat(no_pusat)
     df = st.session_state["data_pusat"]
     df = df[df['No_Pusat']!= no_pusat]
     data_baru = pd.DataFrame([{'Kod_PPD': kod_ppd, 'No_Pusat': no_pusat, 'Nama_Pusat': nama_pusat, 'Bil_Calon_Pusat': bil_calon, 'Nama_Bilik_Kebal': nama_kebal, 'Dikemaskini_Oleh': dikemaskini_oleh, 'Tarikh_Kemaskini': datetime.now().strftime("%Y-%m-%d %H:%M")}])
