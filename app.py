@@ -581,23 +581,25 @@ with col_sidebar:
 with col_main:
     if st.session_state["menu"] == "Dashboard":
         data = st.session_state["data_calon"]
-        # ===== FILTER PINDAH KE ATAS - BY AIRA =====
-        st.markdown("### 🔍 Tapis Data")
-        f1, f2, f3 = st.columns(3)
-        with f1:
-            daerah_list = ["Semua Daerah"] + list(data.keys())
-            daerah = st.selectbox("📍 Pilih Daerah:", daerah_list, key="filter_daerah_top")
-        with f2:
-            jenis_data = st.selectbox("📊 Pilih Data:", ["Calon", "Petugas", "Semua"], key="filter_jenis_top")
-        with f3:
-            if jenis_data == "Calon":
-                sub_filter = st.selectbox("🎓 Pilih Jenis Calon:", JENIS_CALON, key="filter_sub1_top")
-            elif jenis_data == "Petugas":
-                sub_filter = st.selectbox("👮 Pilih Jawatan Petugas:", JENIS_PETUGAS, key="filter_sub2_top")
-            else:
-                sub_filter = "Semua"
-                st.selectbox("📋 Paparan:", ["Semua Data"], disabled=True, key="filter_all_top")
-        st.write("")
+        # ===== V13 - FILTER SUPER ATAS + INDIKATOR COMPACT BY AIRA =====
+        # Container filter rapat ke atas
+        with st.container():
+            st.markdown("<div style='margin-top:-20px;'></div>", unsafe_allow_html=True)
+            f1, f2, f3 = st.columns([1.2, 1, 1.2], gap="small")
+            with f1:
+                daerah_list = ["Semua Daerah"] + list(data.keys())
+                daerah = st.selectbox("📍 Daerah:", daerah_list, key="filter_daerah_top_v13")
+            with f2:
+                jenis_data = st.selectbox("📊 Data:", ["Calon", "Petugas", "Semua"], key="filter_jenis_top_v13")
+            with f3:
+                if jenis_data == "Calon":
+                    sub_filter = st.selectbox("🎓 Jenis Calon:", JENIS_CALON, key="filter_sub1_top_v13")
+                elif jenis_data == "Petugas":
+                    sub_filter = st.selectbox("👮 Jawatan Petugas:", JENIS_PETUGAS, key="filter_sub2_top_v13")
+                else:
+                    sub_filter = "Semua"
+                    st.selectbox("📋 Paparan:", ["Semua Data"], disabled=True, key="filter_all_top_v13")
+
 
         # ===== FIX DINAMIK OLEH AIRA - ikut filter =====
         # Calon
