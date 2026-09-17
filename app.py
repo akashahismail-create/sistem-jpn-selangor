@@ -188,6 +188,30 @@ hide_st_style = f"""
         background: linear-gradient(135deg, #004D40 0%, #00695C 100%);
     }}
     div[data-testid="stHorizontalBlock"] {{ align-items: flex-start!important; }}
+    /* KOTAK METRIC HIJAU BALIK - UNTUK 504 & 10 DAERAH & LAIN-LAIN */
+    div[data-testid="stMetric"] {
+        background: linear-gradient(135deg, #00897B 0%, #004D40 100%)!important;
+        border: 2.5px solid #FFD700!important;
+        border-radius: 15px!important;
+        padding: 18px!important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25), 0 0 10px rgba(255,215,0,0.2)!important;
+    }
+    div[data-testid="stMetric"] label {
+        color: #FFEB3B!important;
+        font-weight: bold!important;
+        font-size: 13px!important;
+    }
+    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
+        color: #FFEB3B!important;
+        font-weight: 800!important;
+        font-size: 30px!important;
+        text-shadow: 0 2px 6px rgba(0,0,0,0.3)!important;
+    }
+    div[data-testid="stMetric"]:hover {
+        box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 18px rgba(255,215,0,0.5)!important;
+        transform: translateY(-2px)!important;
+    }
+    
     div[data-testid="stSelectbox"] label p {{ color: #004D40!important; font-weight: 800!important; font-size: 16px!important; }}
     div[data-baseweb="select"] > div {{ background-color: #004D40!important; border: 2px solid #FFD700!important; }}
     div[data-baseweb="select"] span {{ color: #FFEB3B!important; font-weight: bold!important; }}
