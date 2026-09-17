@@ -773,7 +773,38 @@ def page_senarai_pusat():
             st.dataframe(df_output, use_container_width=True, hide_index=True)
             st.download_button("📥 Download Senarai Pusat (Excel)", to_excel(df_output), f"senarai_pusat_{pilih_daerah_pusat}.xlsx", use_container_width=True)
 
-# HERO BANNER V28 SPM 2026
+# HERO BANNER V41 SPM 2026 + COUNTDOWN 23 NOV 2026
+from datetime import date
+TARIKH_SPM = date(2026, 11, 23)
+HARI_INI = date.today()
+# Untuk testing jika hari ni 17 Sept 2026 (seperti request Kashah)
+# Jika system date bukan 2026, guna 17 Sept 2026 sebagai fallback untuk paparan
+if HARI_INI.year != 2026:
+    HARI_INI_DISPLAY = date(2026, 9, 17)
+else:
+    HARI_INI_DISPLAY = HARI_INI
+
+delta = (TARIKH_SPM - HARI_INI_DISPLAY).days
+if delta < 0:
+    countdown_text = "SPM SEDANG BERLANGSUNG!"
+    countdown_num = "0"
+    countdown_unit = "HARI LAGI"
+else:
+    countdown_text = f"{delta} HARI LAGI"
+    countdown_num = str(delta)
+    countdown_unit = "HARI LAGI MENUJU SPM BERTULIS"
+
+# Warna ikut urgency
+if delta <= 7:
+    bg_countdown = "linear-gradient(135deg, #B71C1C 0%, #D32F2F 100%)"
+    glow = "0 0 20px rgba(255,0,0,0.8)"
+elif delta <= 30:
+    bg_countdown = "linear-gradient(135deg, #E65100 0%, #FF6F00 100%)"
+    glow = "0 0 18px rgba(255,111,0,0.7)"
+else:
+    bg_countdown = "linear-gradient(135deg, #004D40 0%, #00695C 100%)"
+    glow = "0 0 15px rgba(255,215,0,0.6)"
+
 if os.path.exists("logo.png"):
     with open("logo.png", "rb") as f:
         logo_b64 = base64.b64encode(f.read()).decode()
@@ -789,11 +820,14 @@ st.markdown(f"""
             <div class="hero-title">JABATAN PENDIDIKAN SELANGOR</div>
             <div class="hero-subtitle">SEKTOR PENTAKSIRAN DAN PEPERIKSAAN</div>
             <div class="hero-spm">✨ SIJIL PELAJARAN MALAYSIA 2026 ✨ | SISTEM PENGURUSAN PEPERIKSAAN BERSEPADU</div>
+            <div style="margin-top:6px; font-size:11px; color:#FFEB3B; opacity:0.9;">📅 SPM Bertulis: 23 November 2026 | Hari ini: {HARI_INI_DISPLAY.strftime('%d %B %Y')}</div>
         </div>
         <div style="margin-left: auto; text-align: right;">
-            <div style="background: rgba(255,215,0,0.15); border: 2px solid #FFD700; border-radius: 10px; padding: 8px 14px;">
-                <div style="color: #FFD700; font-size: 13px; font-weight: bold;">📅 TAHUN</div>
-                <div style="color: white; font-size: 22px; font-weight: 800;">2026</div>
+            <div style="background: {bg_countdown}; border: 3px solid #FFD700; border-radius: 14px; padding: 10px 16px; box-shadow: {glow}; min-width: 130px; text-align:center;">
+                <div style="color: #FFEB3B; font-size: 11px; font-weight: 900; letter-spacing:1px;">⏳ COUNTDOWN SPM</div>
+                <div style="color: white; font-size: 32px; font-weight: 900; line-height:1; margin:4px 0; text-shadow: 0 2px 8px rgba(0,0,0,0.5);">{countdown_num}</div>
+                <div style="color: #FFD700; font-size: 11px; font-weight: 800;">{countdown_unit}</div>
+                <div style="color: white; font-size: 10px; margin-top:3px; opacity:0.9;">23 NOV 2026</div>
             </div>
         </div>
     </div>
