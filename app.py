@@ -870,7 +870,7 @@ st.markdown(f"""
         <div>
             <div class="hero-title">JABATAN PENDIDIKAN SELANGOR</div>
             <div class="hero-subtitle">SEKTOR PENTAKSIRAN DAN PEPERIKSAAN</div>
-            <div class="hero-spm">✨ SIJIL PELAJARAN MALAYSIA 2026 ✨ | SISTEM PENGURUSAN PEPERIKSAAN BERSEPADU</div>
+            <div class="hero-spm">✨ SIJIL PELAJARAN MALAYSIA 2026 ✨ | SISTEM PENGURUSAN PEPERIKSAAN SPM SELANGOR</div>
             <div style="margin-top:6px; font-size:11px; color:#FFEB3B; opacity:0.9;">📅 SPM Bertulis: 23 November 2026 | Hari ini: {HARI_INI_DISPLAY.strftime('%d %B %Y')} | 🕐 {JAM_MALAYSIA} MY</div>
         </div>
         <div style="margin-left: auto; text-align: right;">
