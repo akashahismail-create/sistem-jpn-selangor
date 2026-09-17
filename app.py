@@ -948,7 +948,7 @@ with col_main:
     st.markdown(f"""
     <div style="background: linear-gradient(135deg, #004D40 0%, #00695C 100%); border: 2px solid #FFD700; border-radius: 15px; padding: 14px 20px; text-align: center; margin-top: 25px;">
         <div style="color: #FFD700; font-weight: 800; font-size: 14px; letter-spacing: 1px;">© 2026 JABATAN PENDIDIKAN SELANGOR | SEKTOR PENTAKSIRAN DAN PEPERIKSAAN</div>
-        <div style="color: white; font-size: 12px; margin-top: 4px;">Sistem Pengurusan Peperiksaan SPM 2026 | Dibangunkan oleh Akashah Ismail (Kashah) & Aira | Versi V28 Super Cantik</div>
+        <div style="color: white; font-size: 13px; margin-top: 5px; font-weight: 600;">Sistem Pengurusan Peperiksaan SPM 2026</div>
         <div style="color: #B2DFDB; font-size: 11px; margin-top: 6px;">✨ SPM 2026 - Cemerlang Bersama ✨</div>
     </div>
     """, unsafe_allow_html=True)
