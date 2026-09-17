@@ -670,32 +670,74 @@ def page_selenggara_pusat():
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
     df_mp = st.session_state["data_mp"]
-    if df_mp.empty: st.warning("Sheet 'MataPelajaran' masih kosong.")
+    if df_mp.empty: 
+        st.warning("Sheet 'MataPelajaran' masih kosong.")
     else:
         col1, col2, col3, col4 = st.columns([2,2,1,2])
         with col1: cari_kod = st.text_input("1. Masukkan Kod Mata Pelajaran", placeholder="Contoh: 1103")
         with col2: cari_nama = st.text_input("2. ATAU Nama Mata Pelajaran", placeholder="Contoh: MATEMATIK")
-        with col3: cari_kertas = st.selectbox("3. Pilih Kertas", ["Semua", "1", "2", "3"])
+        with col3: cari_kertas = st.selectbox("3. Pilih Kertas", ["Semua", "1", "2", "3", "4"])
         with col4: cari_daerah = st.selectbox("4. Pilih Daerah", ["Semua Daerah"] + list(KOD_PPD.keys()))
+        
         if st.button("🔍 Cari Sekarang", type="primary", use_container_width=True):
             df_filter = df_mp.copy()
-            if st.session_state.get("role") == "PPD": df_filter = df_filter[df_filter["Kod_PPD"] == st.session_state["kod_ppd"]]
+            if st.session_state.get("role") == "PPD": 
+                df_filter = df_filter[df_filter["Kod_PPD"] == st.session_state["kod_ppd"]]
             else:
                 if cari_daerah!= "Semua Daerah":
                     kod_ppd_pilihan = KOD_PPD[cari_daerah]
                     df_filter = df_filter[df_filter["Kod_PPD"] == kod_ppd_pilihan]
-            if cari_kod: df_filter = df_filter[df_filter["KodMP"].str.contains(cari_kod, case=False, na=False)]
-            elif cari_nama: df_filter = df_filter[df_filter["NamaMP"].str.contains(cari_nama, case=False, na=False)]
-            if cari_kertas!= "Semua": df_filter = df_filter[df_filter["Kertas"].astype(str) == cari_kertas]
+            
+            # Filter kod / nama
+            if cari_kod: 
+                df_filter = df_filter[df_filter["KodMP"].str.contains(cari_kod, case=False, na=False)]
+            elif cari_nama: 
+                df_filter = df_filter[df_filter["NamaMP"].str.contains(cari_nama, case=False, na=False)]
+            
+            # FIX BERCAMPUR: Filter kertas dengan 2 syarat - Kertas column DAN NamaMP
+            if cari_kertas != "Semua":
+                # Cari yang Kertas column == pilihan DAN NamaMP mengandungi "Kertas X" (exact)
+                import re
+                pattern_kertas = rf"Kertas\s*{cari_kertas}\b"
+                mask_kertas_col = df_filter["Kertas"].astype(str).str.strip() == str(cari_kertas)
+                mask_nama = df_filter["NamaMP"].str.contains(pattern_kertas, case=False, na=False, regex=True)
+                # Jika user pilih Kertas 1, kita nak yang betul2 Kertas 1 sahaja
+                # Kalau data Excel bercampur, kita utamakan NamaMP yang ada Kertas X
+                df_filter = df_filter[mask_kertas_col & mask_nama] if (mask_kertas_col & mask_nama).any() else df_filter[mask_kertas_col | mask_nama]
+                
+                # Detect data bercampur
+                bercampur = df_filter[df_filter["Kertas"].astype(str).str.strip() != df_filter["NamaMP"].str.extract(rf"Kertas\s*(\d)", expand=False).fillna(df_filter["Kertas"].astype(str))]
+                if not bercampur.empty:
+                    st.warning(f"⚠️ Dikesan {len(bercampur)} rekod data bercampur! KodMP {cari_kod} - Kertas column tak sama dengan NamaMP. Sila betulkan di Excel.")
+            
             if not df_filter.empty:
                 jumlah_rekod = len(df_filter)
                 jumlah_pusat_unik = df_filter.drop_duplicates(subset=["Kod_PPD", "No_Pusat"]).shape[0]
-                st.success(f"✅ Jumpa {jumlah_rekod} rekod")
+                st.success(f"✅ Jumpa {jumlah_rekod} rekod | {jumlah_pusat_unik} pusat")
                 m1, m2 = st.columns(2)
                 with m1: st.metric("Jumlah Rekod MP", f"{jumlah_rekod:,}")
-                with m2: st.metric(f"Jumlah Pusat Tawar {cari_kod if cari_kod else cari_nama if cari_nama else 'MP'}", f"{jumlah_pusat_unik:,} pusat")
+                with m2: st.metric(f"Jumlah Pusat Tawar {cari_kod if cari_kod else cari_nama if cari_nama else 'MP'} Kertas {cari_kertas if cari_kertas!='Semua' else ''}", f"{jumlah_pusat_unik:,} pusat")
+                
+                # Show data
                 st.dataframe(df_filter[COLUMNS_MP].drop_duplicates(), use_container_width=True)
-            else: st.error("⚠️ Tiada pusat yang menawarkan mata pelajaran tersebut")
+                
+                # Button auto-betulkan
+                if st.button("🛠️ Auto-Betulkan Kertas dari NamaMP (Jika Bercampur)"):
+                    df_mp_full = st.session_state["data_mp"].copy()
+                    # Extract Kertas dari NamaMP
+                    df_mp_full["Kertas_Betul"] = df_mp_full["NamaMP"].str.extract(r"Kertas\s*(\d)", expand=False)
+                    mask_fix = df_mp_full["Kertas_Betul"].notna() & (df_mp_full["Kertas"].astype(str).str.strip() != df_mp_full["Kertas_Betul"].str.strip())
+                    if mask_fix.any():
+                        df_mp_full.loc[mask_fix, "Kertas"] = df_mp_full.loc[mask_fix, "Kertas_Betul"]
+                        df_mp_full.drop(columns=["Kertas_Betul"], inplace=True)
+                        st.session_state["data_mp"] = df_mp_full
+                        simpan_ke_excel()
+                        st.success(f"✅ Berjaya betulkan {mask_fix.sum()} rekod! Kertas column kini ikut NamaMP.")
+                        st.rerun()
+                    else:
+                        st.info("✅ Tiada data bercampur dikesan, semua Kertas column dah betul.")
+            else: 
+                st.error("⚠️ Tiada pusat yang menawarkan mata pelajaran tersebut - Cuba pilih 'Semua' untuk Kertas atau semak KodMP")
 
 def page_senarai_pusat():
     st.header("📋 Senarai Pusat Peperiksaan")
