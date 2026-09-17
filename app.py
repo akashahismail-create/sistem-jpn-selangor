@@ -801,58 +801,7 @@ with col_main:
         
         st.markdown("<style>@keyframes countUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }</style>", unsafe_allow_html=True)
 
-        # ===== V28 PETA SELANGOR INTERAKTIF - SPM 2026 =====
-        st.write("")
-        st.markdown("#### 🗺️ Peta Interaktif Daerah Selangor - Klik Untuk Filter")
-        # Hitung jumlah calon per daerah untuk heatmap
-        daerah_totals = {d: sum(data[d][k] for k in JENIS_CALON[1:]) for d in data.keys()}
-        max_total = max(daerah_totals.values()) if daerah_totals else 1
-        
-        cols = st.columns(5)
-        for idx, (d_name, total) in enumerate(daerah_totals.items()):
-            col = cols[idx % 5]
-            # intensity 0-1 untuk warna
-            intensity = total / max_total
-            # Warna dari light teal ke dark teal + gold border kalau aktif
-            is_active = (st.session_state["filter_daerah_v14"] == d_name)
-            bg = f"linear-gradient(135deg, #004D40 0%, #00695C 100%)" if is_active else f"linear-gradient(135deg, rgba(0,105,92,{0.4+intensity*0.6}) 0%, rgba(0,77,64,{0.5+intensity*0.5}) 100%)"
-            border = "3px solid #FFD700" if is_active else "2px solid #80CBC4"
-            txt_color = "#FFD700" if is_active else "white"
-            with col:
-                if st.button(f"📍 {d_name}\n{total:,}", key=f"map_{d_name}", use_container_width=True):
-                    st.session_state["filter_daerah_v14"] = d_name
-                    st.rerun()
-                # Custom card visual via markdown after button
-                st.markdown(f"""
-                <div style="background: {bg}; border: {border}; border-radius: 10px; padding: 6px; text-align: center; margin-top: -10px; margin-bottom: 12px;">
-                    <div style="color: {txt_color}; font-size: 11px; font-weight: bold;">{total:,} calon</div>
-                    <div style="background: rgba(255,255,255,0.25); height: 4px; border-radius: 2px; margin-top: 4px;">
-                        <div style="background: #FFD700; height: 100%; width: {intensity*100:.0f}%; border-radius: 2px;"></div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
-        
-        # Plotly Map Scatter - jika PLOTLY_AVAILABLE
-        if PLOTLY_AVAILABLE and daerah_totals:
-            try:
-                import pandas as pd
-                map_df = pd.DataFrame([
-                    {"Daerah": d, "lat": DAERAH_COORDS.get(d, {"lat":3.0, "lon":101.5})["lat"], 
-                     "lon": DAERAH_COORDS.get(d, {"lat":3.0, "lon":101.5})["lon"],
-                     "Jumlah": daerah_totals[d]}
-                    for d in daerah_totals
-                ])
-                fig_map = px.scatter_mapbox(map_df, lat="lat", lon="lon", size="Jumlah", color="Jumlah",
-                                            hover_name="Daerah", hover_data={"Jumlah": True, "lat": False, "lon": False},
-                                            color_continuous_scale="Teal", size_max=35, zoom=8.5,
-                                            mapbox_style="open-street-map", height=420,
-                                            title="📍 Taburan Pusat Peperiksaan SPM 2026 Selangor")
-                fig_map.update_layout(margin={"r":0,"t":40,"l":0,"b":0}, paper_bgcolor="rgba(0,0,0,0)")
-                st.plotly_chart(fig_map, use_container_width=True)
-            except Exception as e:
-                st.caption(f"Peta interaktif: {e}")
-
-        # ===== V16 - FILTER CANTIK TANPA TIPS - ANGKA ATAS FILTER BAWAH =====
+# ===== V16 - FILTER CANTIK TANPA TIPS - ANGKA ATAS FILTER BAWAH =====
         st.write("")
         st.markdown('''
         <style>
