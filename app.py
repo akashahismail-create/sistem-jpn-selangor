@@ -798,19 +798,42 @@ def page_senarai_pusat():
             st.dataframe(df_output, use_container_width=True, hide_index=True)
             st.download_button("📥 Download Senarai Pusat (Excel)", to_excel(df_output), f"senarai_pusat_{pilih_daerah_pusat}.xlsx", use_container_width=True)
 
-# HERO BANNER V43 SPM 2026 + COUNTDOWN LIVE AUTO-UPDATE
+# HERO BANNER V47 SPM 2026 + COUNTDOWN LIVE WAKTU MALAYSIA FIX
 from datetime import date, datetime
-TARIKH_SPM = date(2026, 11, 23)
-HARI_INI = date.today()
-# LIVE: Sentiasa guna tarikh sebenar hari ni - tutup malam ni, buka esok auto update!
-HARI_INI_DISPLAY = HARI_INI
+try:
+    from zoneinfo import ZoneInfo
+    MALAYSIA_TZ = ZoneInfo("Asia/Kuala_Lumpur")
+except:
+    MALAYSIA_TZ = None
+
+# FIX: Guna waktu Malaysia, bukan UTC! Server Streamlit UTC, Malaysia UTC+8
+try:
+    if MALAYSIA_TZ:
+        now_my = datetime.now(MALAYSIA_TZ)
+    else:
+        # fallback pytz
+        import pytz
+        now_my = datetime.now(pytz.timezone("Asia/Kuala_Lumpur"))
+    HARI_INI_DISPLAY = now_my.date()
+    JAM_MALAYSIA = now_my.strftime("%I:%M %p")
+except:
+    # Last fallback kalau zoneinfo/pytz takde
+    from datetime import timedelta
+    now_utc = datetime.utcnow()
+    now_my = now_utc + timedelta(hours=8)  # Malaysia UTC+8 manual
+    HARI_INI_DISPLAY = now_my.date()
+    JAM_MALAYSIA = now_my.strftime("%I:%M %p")
+
+from datetime import date as date_only
+TARIKH_SPM = date_only(2026, 11, 23)
+HARI_INI = HARI_INI_DISPLAY
 
 delta = (TARIKH_SPM - HARI_INI_DISPLAY).days
 
-# Auto-refresh countdown setiap jam supaya kalau biar page terbuka semalaman, tengah malam auto jadi 66, 65 etc
+# Auto-refresh countdown setiap 1 minit supaya tengah malam Malaysia auto tukar tarikh!
 try:
     from streamlit_autorefresh import st_autorefresh
-    st_autorefresh(interval=3600000, key="countdown_live_refresh")  # refresh setiap 1 jam = 3600000 ms
+    st_autorefresh(interval=60000, key="countdown_live_my_refresh")  # refresh setiap 1 minit = 60000 ms - pastikan 12 malam terus update
 except:
     pass
 if delta < 0:
@@ -847,8 +870,8 @@ st.markdown(f"""
         <div>
             <div class="hero-title">JABATAN PENDIDIKAN SELANGOR</div>
             <div class="hero-subtitle">SEKTOR PENTAKSIRAN DAN PEPERIKSAAN</div>
-            <div class="hero-spm">✨ SIJIL PELAJARAN MALAYSIA 2026 ✨ | SISTEM PENGURUSAN PEPERIKSAAN SPM SELANGOR</div>
-            <div style="margin-top:6px; font-size:11px; color:#FFEB3B; opacity:0.9;">📅 SPM Bertulis: 23 November 2026 | Hari ini: {HARI_INI_DISPLAY.strftime('%d %B %Y')}</div>
+            <div class="hero-spm">✨ SIJIL PELAJARAN MALAYSIA 2026 ✨ | SISTEM PENGURUSAN PEPERIKSAAN BERSEPADU</div>
+            <div style="margin-top:6px; font-size:11px; color:#FFEB3B; opacity:0.9;">📅 SPM Bertulis: 23 November 2026 | Hari ini: {HARI_INI_DISPLAY.strftime('%d %B %Y')} | 🕐 {JAM_MALAYSIA} MY</div>
         </div>
         <div style="margin-left: auto; text-align: right;">
             <div class="countdown-box" style="background: {bg_countdown}; border: 3px solid #FFD700; border-radius: 14px; padding: 10px 16px; box-shadow: {glow}; min-width: 135px; text-align:center; animation: blinkGold 1.2s infinite;">
