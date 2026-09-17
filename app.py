@@ -23,7 +23,27 @@ from datetime import datetime
 from io import BytesIO
 
 # [CONFIG] Set tajuk tab & layout wide supaya full width
-st.set_page_config(page_title="JPN Selangor", layout="wide")
+st.set_page_config(page_title="JPN Selangor SPM 2026", layout="wide", page_icon="🏛️")
+
+# ===== V28 SUPER CANTIK SPM 2026 - DARK MODE STATE =====
+if "dark_mode" not in st.session_state:
+    st.session_state["dark_mode"] = False
+if "filter_daerah_v14" not in st.session_state:
+    st.session_state["filter_daerah_v14"] = "Semua Daerah"
+
+# Koordinat pusat daerah Selangor untuk peta interaktif
+DAERAH_COORDS = {
+    "Petaling Perdana": {"lat": 3.0733, "lon": 101.5185},
+    "Petaling Utama": {"lat": 3.1123, "lon": 101.6051},
+    "Klang": {"lat": 3.0333, "lon": 101.45},
+    "Gombak": {"lat": 3.2361, "lon": 101.6482},
+    "Hulu Langat": {"lat": 3.0738, "lon": 101.7833},
+    "Sepang": {"lat": 2.8091, "lon": 101.7167},
+    "Kuala Langat": {"lat": 2.8167, "lon": 101.5},
+    "Kuala Selangor": {"lat": 3.35, "lon": 101.25},
+    "Hulu Selangor": {"lat": 3.5667, "lon": 101.65},
+    "Sabak Bernam": {"lat": 3.7667, "lon": 101.0},
+}
 
 # [KEEP ALIVE - PART 2] Elak Streamlit sleep + bantu UptimeRobot
 # Kod ini tidak ganggu user, cuma tambah 'heartbeat' senyap di background
@@ -38,81 +58,139 @@ except:
 
 
 
-hide_st_style = """
+# SUPER UI V28 - SPM 2026 - HERO + GLASS + GLOW
+dark_bg = "#0D1B1A" if st.session_state.get("dark_mode", False) else "#FAFAFA"
+hide_st_style = f"""
     <style>
-    #MainMenu {visibility: hidden; height: 0px;}
-    footer {visibility: hidden; height: 0px;}
-    header {visibility: hidden; height: 0px;}
-    div.block-container {
-        padding-top: 0rem!important;
-        padding-bottom: 0rem!important;
-        margin-top: 0rem!important;
-    }
-    section[data-testid="stMain"] > div:first-child {
-        padding-top: 0rem!important;
-        margin-top: 0rem!important;
-    }
-    div[data-testid="stAppViewContainer"] {
-        padding-top: 0rem!important;
-    }
-    section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) > div[data-testid="stVerticalBlock"] {
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap');
+    #MainMenu {{visibility: hidden; height: 0px;}}
+    footer {{visibility: hidden; height: 0px;}}
+    header {{visibility: hidden; height: 0px;}}
+    div.block-container {{
+        padding-top: 0.5rem!important;
+        background: {dark_bg}!important;
+    }}
+    section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) > div[data-testid="stVerticalBlock"] {{
         background: linear-gradient(180deg, #00695C 0%, #004D40 100%)!important;
-        border-radius: 15px!important;
-        padding: 15px!important;
+        border-radius: 16px!important;
+        padding: 16px!important;
         border: 2px solid #FFD700!important;
-    }
-    button[kind="secondary"] {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3)!important;
+    }}
+    /* HERO BANNER SHIMMER */
+    .hero-banner {{
+        background: linear-gradient(135deg, #004D40 0%, #00695C 25%, #00897B 50%, #00695C 75%, #004D40 100%);
+        border: 3px solid #FFD700;
+        border-radius: 20px;
+        padding: 20px 28px;
+        margin-bottom: 20px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.35), 0 0 25px rgba(255,215,0,0.25);
+    }}
+    .hero-banner::before {{
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255,215,0,0.35), transparent);
+        animation: shimmer 3.2s infinite;
+    }}
+    @keyframes shimmer {{
+        0% {{left: -100%;}}
+        100% {{left: 100%;}}
+    }}
+    .hero-title {{
+        color: #FFD700;
+        font-size: 28px;
+        font-weight: 800;
+        font-family: 'Poppins', sans-serif;
+        letter-spacing: 1px;
+        text-shadow: 0 2px 12px rgba(255,215,0,0.6);
+    }}
+    .hero-subtitle {{
+        color: white;
+        font-size: 18px;
+        font-weight: 600;
+        margin-top: 3px;
+    }}
+    .hero-spm {{
+        color: #FFD700;
+        font-size: 15px;
+        font-weight: bold;
+        margin-top: 10px;
+        border-top: 2px solid rgba(255,215,0,0.5);
+        padding-top: 8px;
+        letter-spacing: 1.5px;
+    }}
+    /* GLASSMORPHISM KPI */
+    .kpi-card {{
+        background: linear-gradient(135deg, rgba(0,105,92,0.95) 0%, rgba(0,77,64,0.98) 100%);
+        backdrop-filter: blur(12px);
+        border: 2.5px solid #FFD700;
+        border-radius: 18px;
+        padding: 18px 16px;
+        height: 135px;
+        box-shadow: 0 8px 22px rgba(0,0,0,0.28), 0 0 18px rgba(255,215,0,0.18);
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        position: relative;
+        overflow: hidden;
+    }}
+    .kpi-card:hover {{
+        transform: translateY(-7px) scale(1.03);
+        box-shadow: 0 16px 32px rgba(0,0,0,0.38), 0 0 28px rgba(255,215,0,0.65);
+        border-color: #FFEB3B;
+    }}
+    .kpi-icon {{font-size: 30px; margin-bottom: 5px; filter: drop-shadow(0 0 8px rgba(255,215,0,0.7));}}
+    .kpi-label {{color: #FFEB3B; font-size: 11.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.7px; line-height: 1.2;}}
+    .kpi-value {{color: #FFD700; font-size: 33px; font-weight: 800; margin-top: 6px; text-shadow: 0 2px 10px rgba(255,215,0,0.5); font-family: 'Poppins', sans-serif;}}
+    /* BUTTON GLOW GOLD */
+    button[kind="secondary"] {{
         background: linear-gradient(135deg, #00897B 0%, #004D40 100%)!important;
         color: #FFEB3B!important;
-        border: 2px solid #FFD700!important;
-        border-radius: 10px!important;
+        border: 2.5px solid #FFD700!important;
+        border-radius: 12px!important;
         font-weight: bold!important;
-    }
-    button[kind="secondary"]:hover {
-        background: linear-gradient(135deg, #00695C 0%, #004D40 100%)!important;
+        transition: all 0.3s ease!important;
+    }}
+    button[kind="secondary"]:hover {{
         color: white!important;
-        border-color: white!important;
-    }
-    button[kind="primary"] {
+        border-color: #FFEB3B!important;
+        box-shadow: 0 0 20px rgba(255,215,0,0.85), 0 6px 18px rgba(0,0,0,0.35)!important;
+        transform: translateY(-2.5px)!important;
+    }}
+    button[kind="primary"] {{
         background: linear-gradient(135deg, #C62828 0%, #B71C1C 100%)!important;
-        border: 2px solid #FFD700!important;
-        color: white!important;
-        border-radius: 10px!important;
+        border: 2.5px solid #FFD700!important;
+        border-radius: 12px!important;
         font-weight: bold!important;
-    }
-    div[data-testid="stMetric"] {
-        background: linear-gradient(135deg, #00897B 0%, #004D40 100%)!important;
-        border: 2px solid #FFD700!important;
-        border-radius: 15px!important;
-        padding: 20px!important;
-        height: 115px!important;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.2)!important;
-    }
-    div[data-testid="stMetric"] label {
-        color: #FFEB3B!important;
-        font-weight: bold!important;
-        font-size: 13px!important;
-    }
-    div[data-testid="stMetric"] div[data-testid="stMetricValue"] {
-        color: #FFEB3B!important;
-        font-weight: bold!important;
-        font-size: 32px!important;
-    }
-    div[data-testid="stHorizontalBlock"] { align-items: flex-start!important; }
-    /* Popover biar natural di sidebar, tak ganggu graf */
-    div[data-testid="stSelectbox"] label p {
-        color: black!important; font-weight: 800!important; font-size: 17px!important;
-    }
-    div[data-baseweb="select"] > div {
-        background-color: #004D40!important; border: 2px solid #FFD700!important;
-    }
-    div[data-baseweb="select"] span {
-        color: #FFEB3B!important; font-weight: bold!important; font-size: 16px!important;
-    }
-    input[data-baseweb="input"] { color: black!important; font-weight: bold!important; }
-    div[data-testid="stTextInput"] label p {
-        color: black!important; font-weight: 800!important; font-size: 16px!important;
-    }
+    }}
+    button[kind="primary"]:hover {{
+        box-shadow: 0 0 20px rgba(255,215,0,0.75)!important;
+        transform: translateY(-2px)!important;
+    }}
+    .daerah-map-card {{
+        background: linear-gradient(135deg, #E0F2F1 0%, #B2DFDB 100%);
+        border: 2px solid #00897B;
+        border-radius: 12px;
+        padding: 10px 6px;
+        text-align: center;
+        transition: all 0.3s ease;
+        height: 88px;
+        cursor: pointer;
+    }}
+    .daerah-map-card:hover {{
+        transform: scale(1.06);
+        border-color: #FFD700;
+        box-shadow: 0 0 18px rgba(255,215,0,0.6);
+        background: linear-gradient(135deg, #004D40 0%, #00695C 100%);
+    }}
+    div[data-testid="stHorizontalBlock"] {{ align-items: flex-start!important; }}
+    div[data-testid="stSelectbox"] label p {{ color: #004D40!important; font-weight: 800!important; font-size: 16px!important; }}
+    div[data-baseweb="select"] > div {{ background-color: #004D40!important; border: 2px solid #FFD700!important; }}
+    div[data-baseweb="select"] span {{ color: #FFEB3B!important; font-weight: bold!important; }}
     </style>
     """
 st.markdown(hide_st_style, unsafe_allow_html=True)
@@ -553,20 +631,28 @@ def page_senarai_pusat():
             st.dataframe(df_output, use_container_width=True, hide_index=True)
             st.download_button("📥 Download Senarai Pusat (Excel)", to_excel(df_output), f"senarai_pusat_{pilih_daerah_pusat}.xlsx", use_container_width=True)
 
+# HERO BANNER V28 SPM 2026
 if os.path.exists("logo.png"):
     with open("logo.png", "rb") as f:
         logo_b64 = base64.b64encode(f.read()).decode()
-        logo_html = f'<img src="data:image/png;base64,{logo_b64}" width="110" style="border:2px solid #FFD700; border-radius:10px;">'
-else: logo_html = '<div style="font-size:50px;">🏛️</div>'
+        logo_html = f'<img src="data:image/png;base64,{logo_b64}" width="115" style="border:3px solid #FFD700; border-radius:14px; box-shadow: 0 0 15px rgba(255,215,0,0.6);">'
+else: 
+    logo_html = '<div style="font-size:55px; filter: drop-shadow(0 0 10px gold);">🏛️</div>'
 
 st.markdown(f"""
-<div style="background: linear-gradient(90deg, #004D40 0%, #00695C 100%); border: 2px solid #FFD700; border-radius: 15px; padding: 15px 20px; margin-bottom: 15px;">
-    <div style="display: flex; align-items: center;">
-        <div style="margin-right: 20px;">{logo_html}</div>
+<div class="hero-banner">
+    <div style="display: flex; align-items: center; position: relative; z-index: 1;">
+        <div style="margin-right: 22px;">{logo_html}</div>
         <div>
-            <div style="color: #FFD700; font-size: 26px; font-weight: bold;">JABATAN PENDIDIKAN SELANGOR</div>
-            <div style="color: white; font-size: 18px;">SEKTOR PENTAKSIRAN DAN PEPERIKSAAN</div>
-            <div style="color: #FFD700; margin-top: 8px; border-top: 1px solid #FFD700; padding-top: 5px; font-weight: bold;">SIJIL PELAJARAN MALAYSIA</div>
+            <div class="hero-title">JABATAN PENDIDIKAN SELANGOR</div>
+            <div class="hero-subtitle">SEKTOR PENTAKSIRAN DAN PEPERIKSAAN</div>
+            <div class="hero-spm">✨ SIJIL PELAJARAN MALAYSIA 2026 ✨ | SISTEM PENGURUSAN PEPERIKSAAN BERSEPADU</div>
+        </div>
+        <div style="margin-left: auto; text-align: right;">
+            <div style="background: rgba(255,215,0,0.15); border: 2px solid #FFD700; border-radius: 10px; padding: 8px 14px;">
+                <div style="color: #FFD700; font-size: 13px; font-weight: bold;">📅 TAHUN</div>
+                <div style="color: white; font-size: 22px; font-weight: 800;">2026</div>
+            </div>
         </div>
     </div>
 </div>
@@ -574,7 +660,19 @@ st.markdown(f"""
 
 col_sidebar, col_main = st.columns([1, 4])
 with col_sidebar:
-    st.markdown("### Menu")
+    # DARK MODE TOGGLE V28
+    col_dark1, col_dark2 = st.columns([3,1])
+    with col_dark1:
+        st.markdown("### Menu")
+    with col_dark2:
+        if st.button("🌙" if not st.session_state["dark_mode"] else "☀️", key="toggle_dark"):
+            st.session_state["dark_mode"] = not st.session_state["dark_mode"]
+            st.rerun()
+    
+    if st.session_state["dark_mode"]:
+        st.caption("🌙 Dark Mode SPM 2026")
+    else:
+        st.caption("☀️ Light Mode SPM 2026")
     if st.button("📊 Dashboard", use_container_width=True): st.session_state["menu"] = "Dashboard"; st.rerun()
     if st.button("📅 Jadual Waktu", use_container_width=True): st.session_state["menu"] = "Jadual"; st.rerun()
     if st.button("📋 Senarai Pusat", use_container_width=True): st.session_state["menu"] = "SenaraiPusat"; st.rerun()
@@ -674,13 +772,85 @@ with col_main:
         # Biru muda dibuang terus - tiada info box
         pass
 
+        # GLASSMORPHISM ANIMATED KPI CARDS V28 SPM 2026
         colA, colB, colC = st.columns(3)
         with colA:
-            st.metric(label_calon, f"{jumlah_calon_total:,}")
+            st.markdown(f"""
+            <div class="kpi-card">
+                <div class="kpi-icon">🎓</div>
+                <div class="kpi-label">{label_calon}</div>
+                <div class="kpi-value" style="animation: countUp 1s ease-out;">{jumlah_calon_total:,}</div>
+            </div>
+            """, unsafe_allow_html=True)
         with colB:
-            st.metric(label_petugas, f"{jumlah_petugas_total:,}")
+            st.markdown(f"""
+            <div class="kpi-card" style="background: linear-gradient(135deg, rgba(121,85,72,0.9) 0%, rgba(62,39,35,0.95) 100%);">
+                <div class="kpi-icon">👮</div>
+                <div class="kpi-label">{label_petugas}</div>
+                <div class="kpi-value">{jumlah_petugas_total:,}</div>
+            </div>
+            """, unsafe_allow_html=True)
         with colC:
-            st.metric(label_pusat, f"{jumlah_pusat_total:,}")
+            st.markdown(f"""
+            <div class="kpi-card" style="background: linear-gradient(135deg, rgba(2,119,189,0.9) 0%, rgba(1,87,155,0.95) 100%);">
+                <div class="kpi-icon">🏫</div>
+                <div class="kpi-label">{label_pusat}</div>
+                <div class="kpi-value">{jumlah_pusat_total:,}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        st.markdown("<style>@keyframes countUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }</style>", unsafe_allow_html=True)
+
+        # ===== V28 PETA SELANGOR INTERAKTIF - SPM 2026 =====
+        st.write("")
+        st.markdown("#### 🗺️ Peta Interaktif Daerah Selangor - Klik Untuk Filter")
+        # Hitung jumlah calon per daerah untuk heatmap
+        daerah_totals = {d: sum(data[d][k] for k in JENIS_CALON[1:]) for d in data.keys()}
+        max_total = max(daerah_totals.values()) if daerah_totals else 1
+        
+        cols = st.columns(5)
+        for idx, (d_name, total) in enumerate(daerah_totals.items()):
+            col = cols[idx % 5]
+            # intensity 0-1 untuk warna
+            intensity = total / max_total
+            # Warna dari light teal ke dark teal + gold border kalau aktif
+            is_active = (st.session_state["filter_daerah_v14"] == d_name)
+            bg = f"linear-gradient(135deg, #004D40 0%, #00695C 100%)" if is_active else f"linear-gradient(135deg, rgba(0,105,92,{0.4+intensity*0.6}) 0%, rgba(0,77,64,{0.5+intensity*0.5}) 100%)"
+            border = "3px solid #FFD700" if is_active else "2px solid #80CBC4"
+            txt_color = "#FFD700" if is_active else "white"
+            with col:
+                if st.button(f"📍 {d_name}\n{total:,}", key=f"map_{d_name}", use_container_width=True):
+                    st.session_state["filter_daerah_v14"] = d_name
+                    st.rerun()
+                # Custom card visual via markdown after button
+                st.markdown(f"""
+                <div style="background: {bg}; border: {border}; border-radius: 10px; padding: 6px; text-align: center; margin-top: -10px; margin-bottom: 12px;">
+                    <div style="color: {txt_color}; font-size: 11px; font-weight: bold;">{total:,} calon</div>
+                    <div style="background: rgba(255,255,255,0.25); height: 4px; border-radius: 2px; margin-top: 4px;">
+                        <div style="background: #FFD700; height: 100%; width: {intensity*100:.0f}%; border-radius: 2px;"></div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # Plotly Map Scatter - jika PLOTLY_AVAILABLE
+        if PLOTLY_AVAILABLE and daerah_totals:
+            try:
+                import pandas as pd
+                map_df = pd.DataFrame([
+                    {"Daerah": d, "lat": DAERAH_COORDS.get(d, {"lat":3.0, "lon":101.5})["lat"], 
+                     "lon": DAERAH_COORDS.get(d, {"lat":3.0, "lon":101.5})["lon"],
+                     "Jumlah": daerah_totals[d]}
+                    for d in daerah_totals
+                ])
+                fig_map = px.scatter_mapbox(map_df, lat="lat", lon="lon", size="Jumlah", color="Jumlah",
+                                            hover_name="Daerah", hover_data={"Jumlah": True, "lat": False, "lon": False},
+                                            color_continuous_scale="Teal", size_max=35, zoom=8.5,
+                                            mapbox_style="open-street-map", height=420,
+                                            title="📍 Taburan Pusat Peperiksaan SPM 2026 Selangor")
+                fig_map.update_layout(margin={"r":0,"t":40,"l":0,"b":0}, paper_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(fig_map, use_container_width=True)
+            except Exception as e:
+                st.caption(f"Peta interaktif: {e}")
 
         # ===== V16 - FILTER CANTIK TANPA TIPS - ANGKA ATAS FILTER BAWAH =====
         st.write("")
@@ -823,3 +993,13 @@ with col_main:
     elif st.session_state["menu"] == "Selenggara": page_selenggara_pusat()
     elif st.session_state["menu"] == "CariMP": page_cari_mp()
     elif st.session_state["menu"] == "SenaraiPusat": page_senarai_pusat()
+    
+    # FOOTER CANTIK SPM 2026
+    st.markdown("---")
+    st.markdown(f"""
+    <div style="background: linear-gradient(135deg, #004D40 0%, #00695C 100%); border: 2px solid #FFD700; border-radius: 15px; padding: 14px 20px; text-align: center; margin-top: 25px;">
+        <div style="color: #FFD700; font-weight: 800; font-size: 14px; letter-spacing: 1px;">© 2026 JABATAN PENDIDIKAN SELANGOR | SEKTOR PENTAKSIRAN DAN PEPERIKSAAN</div>
+        <div style="color: white; font-size: 12px; margin-top: 4px;">Sistem Pengurusan Peperiksaan SPM 2026 | Dibangunkan oleh Akashah Ismail (Kashah) & Aira | Versi V28 Super Cantik</div>
+        <div style="color: #B2DFDB; font-size: 11px; margin-top: 6px;">✨ SPM 2026 - Cemerlang Bersama ✨</div>
+    </div>
+    """, unsafe_allow_html=True)
