@@ -71,22 +71,8 @@ hide_st_style = f"""
     footer {{visibility: hidden; height: 0px;}}
     header {{visibility: hidden; height: 0px;}}
     div.block-container {{
-        padding-top: 0.8rem!important;
-        margin-top: -0.8rem!important;
+        padding-top: 0.5rem!important;
         background: {dark_bg}!important;
-    }}
-    div[data-testid="stAppViewContainer"] {{
-        padding-top: 0.2rem!important;
-        margin-top: -0.2rem!important;
-    }}
-    section.main {{
-        padding-top: 0.3rem!important;
-        margin-top: -0.3rem!important;
-    }}
-    /* TURUNKAN SIKIT - TAK TERLALU ATAS */
-    div[data-testid="stVerticalBlock"] > div:first-child {{
-        margin-top: -0.2rem!important;
-        padding-top: 0.2rem!important;
     }}
     section.main > div.block-container > div[data-testid="stVerticalBlock"] > div > div[data-testid="stHorizontalBlock"]:nth-child(1) > div[data-testid="column"]:nth-child(1) > div[data-testid="stVerticalBlock"] {{
         background: linear-gradient(180deg, #00695C 0%, #004D40 100%)!important;
@@ -126,7 +112,7 @@ hide_st_style = f"""
         border: 3px solid #FFD700;
         border-radius: 20px;
         padding: 20px 28px;
-        margin-bottom: 8px;
+        margin-bottom: 20px;
         position: relative;
         overflow: hidden;
         box-shadow: 0 8px 25px rgba(0,0,0,0.35), 0 0 25px rgba(255,215,0,0.25);
@@ -354,14 +340,14 @@ img_notis = data_notis.get("image")
 if teks_notis.strip()!="" or img_notis:
     img_tag = f'<img src="data:image/png;base64,{img_notis}" style="height:28px; vertical-align:middle; margin-right:12px; border:1px solid #FFD700; border-radius:4px; background:white;">' if img_notis else ""
     st.markdown(f"""
-    <div style="background: linear-gradient(90deg, #B71C1C 0%, #C62828 100%); border: 2px solid #FFD700; border-radius: 8px; padding: 5px 0px; margin-bottom: 6px; margin-top: -2px; box-shadow: 0 2px 6px rgba(0,0,0,0.2);">
-        <marquee behavior="scroll" direction="left" scrollamount="7" style="color: #FFEB3B; font-weight: bold; font-size: 14px; font-family: sans-serif;">
+    <div style="background: linear-gradient(90deg, #B71C1C 0%, #C62828 100%); border: 2px solid #FFD700; border-radius: 10px; padding: 8px 0px; margin-bottom: 12px; box-shadow: 0 3px 8px rgba(0,0,0,0.2);">
+        <marquee behavior="scroll" direction="left" scrollamount="7" style="color: #FFEB3B; font-weight: bold; font-size: 15px; font-family: sans-serif;">
             {img_tag} {teks_notis} &nbsp;&nbsp;&nbsp; • &nbsp;&nbsp;&nbsp; {teks_notis}
         </marquee>
     </div>
     """, unsafe_allow_html=True)
 
-st.markdown("<div style='text-align: right; font-size: 9px; color: grey; margin-top: -2px; margin-bottom: 4px;'>Created by: Akashah Ismail</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align: right; font-size: 10px; color: grey;'>Created by: Akashah Ismail</div>", unsafe_allow_html=True)
 
 # --- SESSION STATE - OTAK SISTEM (ingat data bila reload) ---
 if 'menu_state' not in st.session_state: st.session_state.menu_state = True
