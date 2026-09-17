@@ -91,24 +91,7 @@ hide_st_style = """
         font-size: 32px!important;
     }
     div[data-testid="stHorizontalBlock"] { align-items: flex-start!important; }
-
-    /* Buat popover keluar sebelah kanan button, bukan bawah */
-    div[data-testid="stPopover"] {
-        position: relative;
-    }
-    div[data-testid="stPopover"] > div:last-child {
-        position: absolute !important;
-        left: 100% !important;
-        top: 0 !important;
-        margin-left: 15px !important;
-        z-index: 9999 !important;
-        background: white !important;
-        border: 3px solid #0D7377 !important;
-        border-radius: 15px !important;
-        box-shadow: 0 8px 30px rgba(0,0,0,0.4) !important;
-        min-width: 320px !important;
-    }
-    
+    /* Popover biar natural di sidebar, tak ganggu graf */
     div[data-testid="stSelectbox"] label p {
         color: black!important; font-weight: 800!important; font-size: 17px!important;
     }
@@ -589,7 +572,7 @@ with col_sidebar:
     if st.button("📋 Senarai Pusat", use_container_width=True): st.session_state["menu"] = "SenaraiPusat"; st.rerun()
     if st.button("📚 Cari Mata Pelajaran", use_container_width=True): st.session_state["menu"] = "CariMP"; st.rerun()
     
-    # POPUP SEBELAH BUTANG SELENGGARA - V21
+    # SELENGGARA DATA - KEDUDUKAN LAMA DI SIDEBAR (BETUL) - POPUP SEBELAH
     if not st.session_state.get("editor_login", False):
         with st.popover("🛠️ Selenggara Data", use_container_width=True):
             login_editor()
@@ -603,7 +586,7 @@ with col_sidebar:
             st.rerun()
         if st.button("🛠️ Selenggara Pusat", use_container_width=True, type="primary"): 
             st.session_state["menu"] = "Selenggara"; st.rerun()
-    # DUPLICATE REMOVED - tinggal satu je popover
+    
     st.write("---")
     st.markdown("### 🔗 Pautan Sistem Lain")
     st.markdown("""<a href="https://sppat.moe.gov.my" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">1. SPPAT</a>""", unsafe_allow_html=True)
@@ -614,6 +597,7 @@ with col_sidebar:
         st.markdown("### 📁 Pautan Pengurusan")
         st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
         st.link_button("5. Sistem IPEP Selangor", "http://ipep.my/selangor/", use_container_width=True, type="primary")
+    # END SIDEBAR
     st.write("---")
     # OLD BLOCK REMOVED - POPUP NOW
     if False:
