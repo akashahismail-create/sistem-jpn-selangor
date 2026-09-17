@@ -745,23 +745,23 @@ with col_main:
                 df_calon_plot.rename(columns={'index':'Daerah'}, inplace=True)
                 fig1 = px.bar(df_calon_plot, x='Daerah', y='Bilangan', color='Jenis Calon', 
                               barmode='group', height=550,
-                              color_discrete_sequence=px.colors.qualitative.Safe)
+                              color_discrete_sequence=['#0D7377', '#FFD700', '#D32F2F', '#1976D2', '#388E3C', '#F57C00', '#7B1FA2', '#0097A7'])
                 fig1.update_layout(xaxis_tickangle=-35, legend_title="Jenis Calon", 
                                    yaxis_title="Bilangan Calon", xaxis_title="Daerah",
                                    font=dict(color="black"), plot_bgcolor="white")
-                fig1.update_traces(hovertemplate='<b>%{x}</b><br>%{fullData.name}: %{y:,}<extra></extra>')
+                fig1.update_traces(hovertemplate='<b>%{x}</b><br>%{fullData.name}: %{y:,}<extra></extra>', marker=dict(line=dict(width=1.5, color='white'), opacity=0.9))
                 st.plotly_chart(fig1, use_container_width=True)
                 
                 st.markdown("#### 🥧 Pecahan Jenis Calon Keseluruhan")
                 pie_data = df_calon.sum().reset_index()
                 pie_data.columns = ['Jenis', 'Bilangan']
                 fig_pie = px.pie(pie_data, values='Bilangan', names='Jenis', hole=0.4,
-                                 color_discrete_sequence=px.colors.sequential.Teal_r)
+                                 color_discrete_sequence=['#0D7377', '#FFCA28', '#EF5350', '#42A5F5', '#66BB6A', '#FFA726', '#26C6DA', '#AB47BC'])
                 fig_pie.update_traces(textinfo='percent+label', textfont_size=12)
                 st.plotly_chart(fig_pie, use_container_width=True)
             else:
                 fig1, ax1 = plt.subplots(figsize=(13, 6.5))
-                df_calon.plot(kind='bar', ax=ax1, width=0.75)
+                df_calon.plot(kind='bar', ax=ax1, width=0.75, color=['#0D7377', '#FFD700', '#D32F2F', '#1976D2', '#388E3C', '#F57C00'])
                 ax1.set_ylabel("Bilangan Calon", fontweight='bold', fontsize=12, color='black')
                 ax1.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
                 for label in ax1.get_xticklabels(): label.set_fontweight('bold'); label.set_rotation(35); label.set_ha('right')
@@ -783,11 +783,11 @@ with col_main:
                 df_petugas_plot.rename(columns={'index':'Daerah'}, inplace=True)
                 fig2 = px.bar(df_petugas_plot, x='Daerah', y='Bilangan', color='Jawatan',
                               barmode='group', height=600,
-                              color_discrete_sequence=px.colors.qualitative.Set2)
+                              color_discrete_sequence=['#004D40', '#C62828', '#1565C0', '#AB47BC', '#2E7D32', '#EF6C00', '#FFD600'])
                 fig2.update_layout(xaxis_tickangle=-35, legend_title="Jawatan Petugas",
                                    yaxis_title="Bilangan Petugas", xaxis_title="Daerah",
                                    font=dict(color="black"), plot_bgcolor="white")
-                fig2.update_traces(hovertemplate='<b>%{x}</b><br>%{fullData.name}: %{y:,}<extra></extra>')
+                fig2.update_traces(hovertemplate='<b>%{x}</b><br>%{fullData.name}: %{y:,}<extra></extra>', marker=dict(line=dict(width=1.5, color='white'), opacity=0.9))
                 st.plotly_chart(fig2, use_container_width=True)
                 
                 st.markdown("#### ⚖️ Nisbah Petugas vs Calon Mengikut Daerah")
@@ -797,14 +797,14 @@ with col_main:
                     'Pengawas': [data[d].get('Pengawas', 0) for d in data.keys()]
                 })
                 fig_ratio = go.Figure()
-                fig_ratio.add_trace(go.Bar(name='Calon', x=df_ratio['Daerah'], y=df_ratio['Calon'], marker_color='#00897B'))
-                fig_ratio.add_trace(go.Bar(name='Pengawas', x=df_ratio['Daerah'], y=df_ratio['Pengawas'], marker_color='#FF6F00'))
+                fig_ratio.add_trace(go.Bar(name='Calon', x=df_ratio['Daerah'], y=df_ratio['Calon'], marker=dict(color='#00ACC1', line=dict(width=1.5, color='white'))))
+                fig_ratio.add_trace(go.Bar(name='Pengawas', x=df_ratio['Daerah'], y=df_ratio['Pengawas'], marker=dict(color='#FFA000', line=dict(width=1.5, color='white'))))
                 fig_ratio.update_layout(barmode='group', height=500, xaxis_tickangle=-35,
                                         yaxis_title="Bilangan", xaxis_title="Daerah")
                 st.plotly_chart(fig_ratio, use_container_width=True)
             else:
                 fig2, ax2 = plt.subplots(figsize=(13, 6.5))
-                df_petugas.plot(kind='bar', ax=ax2, width=0.75)
+                df_petugas.plot(kind='bar', ax=ax2, width=0.75, color=['#004D40', '#C62828', '#1565C0', '#AB47BC', '#2E7D32', '#EF6C00'])
                 ax2.set_ylabel("Bilangan Petugas", fontweight='bold', fontsize=12, color='black')
                 ax2.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
                 for label in ax2.get_xticklabels(): label.set_fontweight('bold'); label.set_rotation(35); label.set_ha('right')
