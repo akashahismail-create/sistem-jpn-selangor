@@ -631,13 +631,9 @@ with col_main:
 
         if daerah == "Semua Daerah":
             if jenis_data == "Calon" and sub_filter != "Semua Jenis":
-                st.info(f"📍 Memaparkan **keseluruhan Selangor** | {label_calon}: **{jumlah_calon_total:,}** | Petugas: **{jumlah_petugas_total:,}** | Pusat: **{jumlah_pusat_total:,}** | Filter: **{sub_filter}**")
             elif jenis_data == "Petugas" and sub_filter != "Semua Jawatan":
-                st.info(f"📍 Memaparkan **keseluruhan Selangor** | Calon: **{jumlah_calon_total:,}** | {label_petugas}: **{jumlah_petugas_total:,}** | Pusat: **{jumlah_pusat_total:,}** | Filter: **{sub_filter}**")
             else:
-                st.info(f"📍 Memaparkan **keseluruhan Selangor** | Calon: **{jumlah_calon_total:,}** | Petugas: **{jumlah_petugas_total:,}** | Pusat: **{jumlah_pusat_total:,}**")
         else:
-            st.info(f"📍 Daerah: **{daerah}** | {label_calon}: **{jumlah_calon_total:,}** | {label_petugas}: **{jumlah_petugas_total:,}** | {label_pusat}: **{jumlah_pusat_total:,}** | Filter: **{jenis_data} - {sub_filter}**")
 
         colA, colB, colC = st.columns(3)
         with colA:
