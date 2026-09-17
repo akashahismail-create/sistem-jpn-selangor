@@ -275,12 +275,12 @@ hide_st_style = f"""
     }}
 
     /* EXTRA FIX - FILTER LABEL & PLACEHOLDER VISIBILITY */
-    .stSelectbox label {
+    .stSelectbox label {{
         color: #FFEB3B!important;
-    }
-    [data-baseweb="select"] input {
+    }}
+    [data-baseweb="select"] input {{
         color: #FFEB3B!important;
-    }
+    }}
 
     </style>
     """
@@ -433,12 +433,12 @@ def login_editor():
     }
 
     /* EXTRA FIX - FILTER LABEL & PLACEHOLDER VISIBILITY */
-    .stSelectbox label {
+    .stSelectbox label {{
         color: #FFEB3B!important;
-    }
-    [data-baseweb="select"] input {
+    }}
+    [data-baseweb="select"] input {{
         color: #FFEB3B!important;
-    }
+    }}
 
     </style>
     """, unsafe_allow_html=True)
