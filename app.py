@@ -581,24 +581,18 @@ with col_sidebar:
 with col_main:
     if st.session_state["menu"] == "Dashboard":
         data = st.session_state["data_calon"]
-        # ===== V13 - FILTER SUPER ATAS + INDIKATOR COMPACT BY AIRA =====
-        # Container filter rapat ke atas
-        with st.container():
-            st.markdown("<div style='margin-top:-20px;'></div>", unsafe_allow_html=True)
-            f1, f2, f3 = st.columns([1.2, 1, 1.2], gap="small")
-            with f1:
-                daerah_list = ["Semua Daerah"] + list(data.keys())
-                daerah = st.selectbox("📍 Daerah:", daerah_list, key="filter_daerah_top_v13")
-            with f2:
-                jenis_data = st.selectbox("📊 Data:", ["Calon", "Petugas", "Semua"], key="filter_jenis_top_v13")
-            with f3:
-                if jenis_data == "Calon":
-                    sub_filter = st.selectbox("🎓 Jenis Calon:", JENIS_CALON, key="filter_sub1_top_v13")
-                elif jenis_data == "Petugas":
-                    sub_filter = st.selectbox("👮 Jawatan Petugas:", JENIS_PETUGAS, key="filter_sub2_top_v13")
-                else:
-                    sub_filter = "Semua"
-                    st.selectbox("📋 Paparan:", ["Semua Data"], disabled=True, key="filter_all_top_v13")
+        # ===== V14 - ANGKA ATAS, FILTER BAWAH - BY AIRA =====
+        # Default values dulu, filter akan set di bawah nanti - tapi untuk kiraan kita guna session state
+        if "filter_daerah_v14" not in st.session_state:
+            st.session_state["filter_daerah_v14"] = "Semua Daerah"
+        if "filter_jenis_v14" not in st.session_state:
+            st.session_state["filter_jenis_v14"] = "Semua"
+        if "filter_sub_v14" not in st.session_state:
+            st.session_state["filter_sub_v14"] = "Semua"
+        
+        daerah = st.session_state["filter_daerah_v14"]
+        jenis_data = st.session_state["filter_jenis_v14"]
+        sub_filter = st.session_state["filter_sub_v14"]
 
 
         # ===== FIX DINAMIK OLEH AIRA - ikut filter =====
@@ -652,6 +646,33 @@ with col_main:
             st.metric(label_petugas, f"{jumlah_petugas_total:,}")
         with colC:
             st.metric(label_pusat, f"{jumlah_pusat_total:,}")
+
+        # ===== FILTER SEKARANG DIBAWAH ANGKA - PILIH BAWAH NAMPAK ATAS =====
+        st.write("")
+        st.markdown("### 🔍 Tapis Data (Pilih di bawah, angka di atas akan bertukar)")
+        f1, f2, f3 = st.columns([1.2, 1, 1.2], gap="medium")
+        with f1:
+            daerah_list = ["Semua Daerah"] + list(data.keys())
+            daerah_new = st.selectbox("📍 Pilih Daerah:", daerah_list, key="filter_daerah_v14_select", index=daerah_list.index(daerah) if daerah in daerah_list else 0)
+        with f2:
+            jenis_list = ["Calon", "Petugas", "Semua"]
+            jenis_new = st.selectbox("📊 Pilih Data:", jenis_list, key="filter_jenis_v14_select", index=jenis_list.index(jenis_data) if jenis_data in jenis_list else 2)
+        with f3:
+            if jenis_new == "Calon":
+                sub_new = st.selectbox("🎓 Pilih Jenis Calon:", JENIS_CALON, key="filter_sub1_v14_select")
+            elif jenis_new == "Petugas":
+                sub_new = st.selectbox("👮 Pilih Jawatan Petugas:", JENIS_PETUGAS, key="filter_sub2_v14_select")
+            else:
+                sub_new = "Semua"
+                st.selectbox("📋 Paparan:", ["Semua Data"], disabled=True, key="filter_all_v14_select")
+
+        # Update session if changed and rerun to update angka atas
+        if daerah_new != daerah or jenis_new != jenis_data or sub_new != sub_filter:
+            st.session_state["filter_daerah_v14"] = daerah_new
+            st.session_state["filter_jenis_v14"] = jenis_new
+            st.session_state["filter_sub_v14"] = sub_new
+            st.rerun()
+
         st.write("---")
         if jenis_data == "Calon" or jenis_data == "Semua":
             st.subheader("📊 Bilangan Calon Mengikut Daerah")
