@@ -720,18 +720,18 @@ with col_main:
             if daerah!= "Semua Daerah": df_calon = df_calon.loc[[daerah]]
             if sub_filter!= "Semua Jenis" and jenis_data == "Calon": df_calon = df_calon[[sub_filter]]
             st.dataframe(df_calon, use_container_width=True)
-            fig1, ax1 = plt.subplots(figsize=(11, 5.5))
-            df_calon.plot(kind='bar', ax=ax1, width=0.8)
+            fig1, ax1 = plt.subplots(figsize=(13, 6.5))
+            df_calon.plot(kind='bar', ax=ax1, width=0.75)
             ax1.set_ylabel("Bilangan Calon", fontweight='bold', fontsize=12, color='black')
             ax1.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
             ax1.tick_params(axis='x', labelsize=10, colors='black')
             ax1.tick_params(axis='y', labelsize=11, colors='black')
-            for label in ax1.get_xticklabels(): label.set_fontweight('bold'); label.set_color('black'); label.set_rotation(45); label.set_ha('right')
+            for label in ax1.get_xticklabels(): label.set_fontweight('bold'); label.set_color('black'); label.set_rotation(35); label.set_ha('right')
             leg = ax1.legend(title="Jenis Calon", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
             plt.setp(leg.get_texts(), color='black', fontweight='bold'); plt.setp(leg.get_title(), color='black', fontweight='bold')
             for container in ax1.containers:
-                labels = [f"{int(v)}" if v > 300 else "" for v in container.datavalues]
-                ax1.bar_label(container, labels=labels, label_type='edge', fontsize=10, fontweight='bold', color='black', padding=4)
+                labels = [f"{int(v)}" if v > 400 else "" for v in container.datavalues]
+                ax1.bar_label(container, labels=labels, label_type='edge', fontsize=9, fontweight='bold', color='black', padding=3)
             plt.tight_layout(); st.pyplot(fig1)
         if jenis_data == "Petugas" or jenis_data == "Semua":
             st.write("---")
@@ -740,18 +740,26 @@ with col_main:
             if daerah!= "Semua Daerah": df_petugas = df_petugas.loc[[daerah]]
             if sub_filter!= "Semua Jawatan" and jenis_data == "Petugas": df_petugas = df_petugas[[sub_filter]]
             st.dataframe(df_petugas, use_container_width=True)
-            fig2, ax2 = plt.subplots(figsize=(11, 5.5))
-            df_petugas.plot(kind='bar', ax=ax2, width=0.8)
+            fig2, ax2 = plt.subplots(figsize=(13, 6.5))
+            df_petugas.plot(kind='bar', ax=ax2, width=0.75)
             ax2.set_ylabel("Bilangan Petugas", fontweight='bold', fontsize=12, color='black')
             ax2.set_xlabel("Daerah", fontweight='bold', fontsize=12, color='black')
             ax2.tick_params(axis='x', labelsize=10, colors='black')
             ax2.tick_params(axis='y', labelsize=11, colors='black')
-            for label in ax2.get_xticklabels(): label.set_fontweight('bold'); label.set_color('black'); label.set_rotation(45); label.set_ha('right')
+            for label in ax2.get_xticklabels(): label.set_fontweight('bold'); label.set_color('black'); label.set_rotation(35); label.set_ha('right')
             leg2 = ax2.legend(title="Jawatan Petugas", bbox_to_anchor=(1.05, 1), loc='upper left', fontsize=10)
             plt.setp(leg2.get_texts(), color='black', fontweight='bold'); plt.setp(leg2.get_title(), color='black', fontweight='bold')
+            # FIX: Hanya tunjuk label untuk Pengawas sahaja (nilai besar) - elak bertindih
             for container in ax2.containers:
-                labels = [f"{int(v)}" if v > 20 else "" for v in container.datavalues]
-                ax2.bar_label(container, labels=labels, label_type='edge', fontsize=10, fontweight='bold', color='black', padding=4)
+                # Dapatkan nama jawatan dari label
+                jawatan = container.get_label()
+                # Hanya label untuk Pengawas atau nilai >300 sahaja
+                if "Pengawas" == jawatan or "Pengawas" in jawatan:
+                    labels = [f"{int(v)}" if v > 150 else "" for v in container.datavalues]
+                    ax2.bar_label(container, labels=labels, label_type='edge', fontsize=9, fontweight='bold', color='black', padding=3)
+                else:
+                    # Jawatan kecil jangan label - elak tindih
+                    pass
             plt.tight_layout(); st.pyplot(fig2)
     elif st.session_state["menu"] == "Jadual":
         st.subheader("📅 Jadual Waktu SPM")
