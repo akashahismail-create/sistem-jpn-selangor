@@ -234,69 +234,52 @@ hide_st_style = f"""
         box-shadow: 0 6px 18px rgba(0,0,0,0.35), 0 0 18px rgba(255,215,0,0.5)!important;
         transform: translateY(-2px)!important;
     }}
-    /* FILTER & MENU HIGH CONTRAST - FIX TULISAN TAK NAMPAK V36 */
+        /* V37 - FIX TULISAN PUDAR KELABU CAIR - PAKSA HITAM PEKAT */
     div[data-testid="stSelectbox"] label p {{ 
-        color: #004D40!important; 
+        color: #FFD700!important; 
+        -webkit-text-fill-color: #FFD700!important;
         font-weight: 900!important; 
         font-size: 16px!important;
-        text-shadow: none!important;
-        -webkit-text-fill-color: #004D40!important;
+        opacity: 1!important;
     }}
-    div[data-testid="stSelectbox"] label {{
-        color: #004D40!important;
-    }}
-    /* Dropdown box - putih cerah + text hitam pekat = pasti nampak */
     div[data-baseweb="select"] > div {{ 
-        background-color: #FFFFFF!important; 
-        background: #FFFFFF!important;
-        border: 2.5px solid #FFD700!important;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.15)!important;
-        color: #000000!important;
+        background: #FFFFFF!important; 
+        border: 3px solid #FFD700!important;
+        opacity: 1!important;
     }}
-    div[data-baseweb="select"] span {{ 
-        color: #000000!important; 
+    div[data-baseweb="select"] * {{
+        color: #000000!important;
         -webkit-text-fill-color: #000000!important;
+        opacity: 1!important;
         font-weight: 800!important;
+    }}
+    div[data-baseweb="select"] span {{
+        color: #000000!important;
+        -webkit-text-fill-color: #000000!important;
+        opacity: 1!important;
+        font-weight: 900!important;
         font-size: 15px!important;
     }}
-    div[data-baseweb="select"] div {{ 
+    div[data-baseweb="select"] > div > div {{
         color: #000000!important;
         -webkit-text-fill-color: #000000!important;
+        opacity: 1!important;
     }}
-    div[data-baseweb="select"] input {{
-        color: #000000!important;
-        -webkit-text-fill-color: #000000!important;
-    }}
-    /* Menu buttons - teal pekat + kuning terang = pasti nampak walau gelap */
     button[kind="secondary"] {{
         background: linear-gradient(135deg, #00897B 0%, #004D40 100%)!important;
         color: #FFEB3B!important;
         -webkit-text-fill-color: #FFEB3B!important;
-        border: 2.5px solid #FFD700!important;
-        box-shadow: 0 3px 10px rgba(0,0,0,0.4)!important;
-        font-weight: 800!important;
+        border: 3px solid #FFD700!important;
+        opacity: 1!important;
+        font-weight: 900!important;
     }}
-    button[kind="secondary"] p {{
+    button[kind="secondary"] * {{
         color: #FFEB3B!important;
         -webkit-text-fill-color: #FFEB3B!important;
+        opacity: 1!important;
     }}
-    button[kind="secondary"]:hover {{
-        background: linear-gradient(135deg, #00695C 0%, #00332C 100%)!important;
-        color: #FFFFFF!important;
-        -webkit-text-fill-color: #FFFFFF!important;
-        border-color: #FFEB3B!important;
-        box-shadow: 0 0 18px rgba(255,215,0,0.7)!important;
-    }}
-    /* Main - kekalkan cerah untuk elak tenggelam */
     div[data-testid="stAppViewContainer"] {{
-        background: #FAFAFA!important;
-    }}
-    /* Extra fix for all select text */
-    .stSelectbox div {{
-        color: #000000!important;
-    }}
-    [data-testid="stSelectbox"] div[data-baseweb="select"] {{
-        background: white!important;
+        background: #121212!important;
     }}
 
     </style>
