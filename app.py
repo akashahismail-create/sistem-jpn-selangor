@@ -574,19 +574,31 @@ with col_sidebar:
             st.caption(f"Role: **{st.session_state['role']}**")
             if st.button("Log Keluar", use_container_width=True): st.session_state["editor_login"] = False; st.session_state["show_editor"] = False; st.session_state["menu"] = "Dashboard"; st.rerun()
     if st.session_state["menu"] == "Dashboard":
-        st.write("---")
-        data = st.session_state["data_calon"]
-        daerah_list = ["Semua Daerah"] + list(data.keys())
-        daerah = st.selectbox("Pilih Daerah:", daerah_list, key="filter_daerah_v2")
-        jenis_data = st.selectbox("Pilih Data:", ["Calon", "Petugas", "Semua"], key="filter_jenis_v2")
-        if jenis_data == "Calon": sub_filter = st.selectbox("Pilih Jenis Calon:", JENIS_CALON, key="filter_sub1_v2")
-        elif jenis_data == "Petugas": sub_filter = st.selectbox("Pilih Jawatan Petugas:", JENIS_PETUGAS, key="filter_sub2_v2")
-        else: sub_filter = "Semua"
-    else: daerah, jenis_data, sub_filter = "Semua Daerah", "Semua", "Semua"
+        # Filters akan di-handle di main area (atas), bukan sidebar lagi
+        pass
+    daerah, jenis_data, sub_filter = "Semua Daerah", "Semua", "Semua"
 
 with col_main:
     if st.session_state["menu"] == "Dashboard":
         data = st.session_state["data_calon"]
+        # ===== FILTER PINDAH KE ATAS - BY AIRA =====
+        st.markdown("### 🔍 Tapis Data")
+        f1, f2, f3 = st.columns(3)
+        with f1:
+            daerah_list = ["Semua Daerah"] + list(data.keys())
+            daerah = st.selectbox("📍 Pilih Daerah:", daerah_list, key="filter_daerah_top")
+        with f2:
+            jenis_data = st.selectbox("📊 Pilih Data:", ["Calon", "Petugas", "Semua"], key="filter_jenis_top")
+        with f3:
+            if jenis_data == "Calon":
+                sub_filter = st.selectbox("🎓 Pilih Jenis Calon:", JENIS_CALON, key="filter_sub1_top")
+            elif jenis_data == "Petugas":
+                sub_filter = st.selectbox("👮 Pilih Jawatan Petugas:", JENIS_PETUGAS, key="filter_sub2_top")
+            else:
+                sub_filter = "Semua"
+                st.selectbox("📋 Paparan:", ["Semua Data"], disabled=True, key="filter_all_top")
+        st.write("")
+
         # ===== FIX DINAMIK OLEH AIRA - ikut filter =====
         # Calon
         if daerah == "Semua Daerah":
