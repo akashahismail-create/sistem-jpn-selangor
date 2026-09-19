@@ -924,12 +924,14 @@ with col_sidebar:
     st.markdown("### 🔗 Pautan Sistem Lain")
     st.markdown("""<a href="https://sppat.moe.gov.my" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">1. SPPAT</a>""", unsafe_allow_html=True)
     st.markdown("""<a href="https://elp.moe.gov.my/eportal/login" target="_blank" style="display:block; text-align:center; background:linear-gradient(135deg, #00897B 0%, #004D40 100%); border:2px solid #FFD700; color:#FFEB3B; padding:10px; border-radius:10px; text-decoration:none; font-weight:bold; margin-bottom:10px;">2. ELP Portal</a>""", unsafe_allow_html=True)
+    st.link_button("🔬 UAS - Amali Sains 2026", "https://sistem-amali-sains-selangor-2026.streamlit.app/", use_container_width=True, type="primary")
     if st.session_state.get("editor_login", False):
         st.link_button("3. Selenggara Calon PPD", "https://script.google.com/macros/s/AKfycbwav3jbWQEkTW2yTK9PnanlItxPM5NpCHADLNb_BRjY4hmsale257tSqMsRTdqv88HA/exec", use_container_width=True, type="primary")
         st.write("---")
         st.markdown("### 📁 Pautan Pengurusan")
         st.link_button("4. Pengurusan", LINK_PENGURUSAN, use_container_width=True, type="primary")
         st.link_button("5. Sistem IPEP Selangor", "http://ipep.my/selangor/", use_container_width=True, type="primary")
+        st.link_button("6. UAS - Amali Sains 2026", "https://sistem-amali-sains-selangor-2026.streamlit.app/", use_container_width=True, type="primary")
     # END SIDEBAR
     st.write("---")
     # OLD BLOCK REMOVED - POPUP NOW
