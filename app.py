@@ -383,8 +383,10 @@ USERS = {
 FILE_EXCEL = "data_v1.1.xlsx"
 SHEET_PUSAT = "selenggara_pusat"
 SHEET_MP = "MataPelajaran"
-COLUMNS_PUSAT = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Nama_Bilik_Kebal","Dikemaskini_Oleh","Tarikh_Kemaskini"]
+COLUMNS_PUSAT = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Kod_Bilik_Kebal","Nama_Bilik_Kebal","Dikemaskini_Oleh","Tarikh_Kemaskini"]
+COLUMNS_PUSAT_FULL = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Kod_Bilik_Kebal","Nama_Bilik_Kebal","Dikemaskini_Oleh","Tarikh_Kemaskini"]
 COLUMNS_MP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Tarikh"]
+COLUMNS_MP_LENGKAP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Bil_Calon","Bil_Naskah","Kod_Bilik_Kebal","Nama_Bilik_Kebal","Kawasan","Pakej","Tarikh"]
 LINK_PENGURUSAN = "https://drive.google.com/drive/folders/193ELWVyPDORTVE7ZSVe2B3rsZILkg7f6?usp=drive_link"
 FILE_CALON_JSON = "data_calon.json"
 
@@ -441,6 +443,11 @@ def load_data_mp():
     if os.path.exists(file_excel):
         try: 
             df = pd.read_excel(file_excel, sheet_name=SHEET_MP, engine='openpyxl', dtype=str)
+            # FIX: Pastikan Kod_PPD huruf besar BA + uppercase Kod_Bilik_Kebal
+            if 'Kod_PPD' in df.columns:
+                df['Kod_PPD'] = df['Kod_PPD'].astype(str).str.upper()
+            if 'Kod_Bilik_Kebal' in df.columns:
+                df['Kod_Bilik_Kebal'] = df['Kod_Bilik_Kebal'].astype(str).str.upper()
             return df
         except: 
             # Jika sheet tak wujud atau kosong, return kosong tapi jangan error
@@ -885,12 +892,23 @@ def page_cari_mp():
                 jumlah_rekod = len(df_filter)
                 jumlah_pusat_unik = df_filter.drop_duplicates(subset=["Kod_PPD", "No_Pusat"]).shape[0]
                 st.success(f"✅ Jumpa {jumlah_rekod} rekod | {jumlah_pusat_unik} pusat")
-                m1, m2 = st.columns(2)
+                m1, m2, m3 = st.columns(3)
                 with m1: st.metric("Jumlah Rekod MP", f"{jumlah_rekod:,}")
                 with m2: st.metric(f"Jumlah Pusat Tawar {cari_kod if cari_kod else cari_nama if cari_nama else 'MP'} Kertas {cari_kertas if cari_kertas!='Semua' else ''}", f"{jumlah_pusat_unik:,} pusat")
+                try:
+                    total_calon = df_filter["Bil_Calon"].astype(int).sum() if "Bil_Calon" in df_filter.columns else 0
+                    with m3: st.metric("Jumlah Calon", f"{total_calon:,}")
+                except: 
+                    with m3: st.metric("Jumlah Calon", "-")
                 
-                # Show data
-                st.dataframe(df_filter[COLUMNS_MP].drop_duplicates(), use_container_width=True)
+                # Show data - guna kolom lengkap jika ada
+                cols_show = [c for c in COLUMNS_MP_LENGKAP if c in df_filter.columns]
+                if not cols_show:
+                    cols_show = [c for c in COLUMNS_MP if c in df_filter.columns]
+                st.dataframe(df_filter[cols_show].drop_duplicates(), use_container_width=True)
+                
+                # Download button untuk hasil carian
+                st.download_button("📥 Download Hasil Carian (Excel)", to_excel(df_filter[cols_show]), f"carian_{cari_kod or cari_nama or 'MP'}_kertas{cari_kertas}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 
                 # Button auto-betulkan
                 if st.button("🛠️ Auto-Betulkan Kertas dari NamaMP (Jika Bercampur)"):
