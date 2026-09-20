@@ -385,6 +385,7 @@ SHEET_PUSAT = "selenggara_pusat"
 SHEET_MP = "MataPelajaran"
 COLUMNS_PUSAT = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Nama_Bilik_Kebal","Dikemaskini_Oleh","Tarikh_Kemaskini"]
 COLUMNS_MP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Tarikh"]
+COLUMNS_MP_LENGKAP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Bil_Calon","Bil_Naskah","Kod_Bilik_Kebal","Nama_Bilik_Kebal","Kawasan","Pakej","NamaMP_Sebenar"]
 LINK_PENGURUSAN = "https://drive.google.com/drive/folders/193ELWVyPDORTVE7ZSVe2B3rsZILkg7f6?usp=drive_link"
 FILE_CALON_JSON = "data_calon.json"
 
@@ -947,7 +948,12 @@ def page_cari_mp():
                 with m2: st.metric(f"Jumlah Pusat Tawar {cari_kod if cari_kod else cari_nama if cari_nama else 'MP'} Kertas {cari_kertas if cari_kertas!='Semua' else ''}", f"{jumlah_pusat_unik:,} pusat")
                 
                 # Show data
-                st.dataframe(df_filter[COLUMNS_MP].drop_duplicates(), use_container_width=True)
+                cols_safe = [c for c in COLUMNS_MP_LENGKAP if c in df_filter.columns]
+                if not cols_safe:
+                    cols_safe = [c for c in COLUMNS_MP if c in df_filter.columns]
+                if not cols_safe:
+                    cols_safe = list(df_filter.columns)
+                st.dataframe(df_filter[cols_safe].drop_duplicates(), use_container_width=True)
                 
                 # Button auto-betulkan
                 if st.button("🛠️ Auto-Betulkan Kertas dari NamaMP (Jika Bercampur)"):
