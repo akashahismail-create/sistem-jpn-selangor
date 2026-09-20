@@ -386,7 +386,7 @@ SHEET_MP = "MataPelajaran"
 COLUMNS_PUSAT = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Kod_Bilik_Kebal","Nama_Bilik_Kebal","Dikemaskini_Oleh","Tarikh_Kemaskini"]
 COLUMNS_PUSAT_FULL = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Kod_Bilik_Kebal","Nama_Bilik_Kebal","Dikemaskini_Oleh","Tarikh_Kemaskini"]
 COLUMNS_MP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Tarikh"]
-COLUMNS_MP_LENGKAP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Bil_Calon","Bil_Naskah","Kod_Bilik_Kebal","Nama_Bilik_Kebal","Kawasan","Pakej","Tarikh"]
+COLUMNS_MP_LENGKAP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Bil_Calon","Bil_Naskah","Kod_Bilik_Kebal","Nama_Bilik_Kebal","Kawasan","Pakej","Bil_Calon_Pusat","Bil_Calon_Batch","Tarikh"]
 LINK_PENGURUSAN = "https://drive.google.com/drive/folders/193ELWVyPDORTVE7ZSVe2B3rsZILkg7f6?usp=drive_link"
 FILE_CALON_JSON = "data_calon.json"
 
@@ -896,9 +896,20 @@ def page_cari_mp():
                 with m1: st.metric("Jumlah Rekod MP", f"{jumlah_rekod:,}")
                 with m2: st.metric(f"Jumlah Pusat Tawar {cari_kod if cari_kod else cari_nama if cari_nama else 'MP'} Kertas {cari_kertas if cari_kertas!='Semua' else ''}", f"{jumlah_pusat_unik:,} pusat")
                 try:
-                    total_calon = df_filter["Bil_Calon"].astype(int).sum() if "Bil_Calon" in df_filter.columns else 0
-                    with m3: st.metric("Jumlah Calon", f"{total_calon:,}")
-                except: 
+                    if "Bil_Calon" in df_filter.columns:
+                        # Untuk elak double count kertas (1103 ada 3 kertas), kira unique pusat
+                        if "No_Pusat" in df_filter.columns:
+                            df_unique_pusat = df_filter.drop_duplicates(subset=["No_Pusat"])
+                            total_calon = df_unique_pusat["Bil_Calon"].astype(int).sum()
+                            total_calon_all_kertas = df_filter["Bil_Calon"].astype(int).sum()
+                            # Jika core MP (BM, BI etc) - unique pusat = jumlah calon sebenar
+                            with m3: st.metric("Jumlah Calon (Unique Pusat)", f"{total_calon:,}", help=f"Total semua rekod kertas: {total_calon_all_kertas:,}")
+                        else:
+                            total_calon = df_filter["Bil_Calon"].astype(int).sum()
+                            with m3: st.metric("Jumlah Calon", f"{total_calon:,}")
+                    else:
+                        with m3: st.metric("Jumlah Calon", "-")
+                except Exception as e: 
                     with m3: st.metric("Jumlah Calon", "-")
                 
                 # Show data - guna kolom lengkap jika ada
