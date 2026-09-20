@@ -1373,10 +1373,40 @@ with col_main:
                         ax2.bar_label(container, labels=labels, label_type='edge', fontsize=9, fontweight='bold', padding=3)
                 plt.tight_layout(); st.pyplot(fig2)
     elif st.session_state["menu"] == "Jadual":
-        st.subheader("📅 Jadual Waktu SPM")
+        st.subheader("📅 Jadual Waktu SPM 2026")
+        st.info("💡 Sistem tidak akan auto-download. Sila pilih apa yang anda nak buat di bawah.")
+        
         LINK_JADUAL_PDF = "https://raw.githubusercontent.com/akashahismail-create/sistem-jpn-selangor/main/Jadual_Waktu_SPM.pdf"
-        st.markdown(f"[📥 Klik sini untuk Muat Turun Jadual Waktu]({LINK_JADUAL_PDF})")
-        st.markdown(f'<iframe src="{LINK_JADUAL_PDF}" width="100%" height="800" type="application/pdf"></iframe>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            lihat_jadual = st.checkbox("👁️ Ya, saya nak LIHAT Jadual Waktu", key="lihat_jadual_cb")
+        with col2:
+            nak_download = st.checkbox("📥 Ya, saya nak DOWNLOAD Jadual Waktu", key="download_jadual_cb")
+        
+        st.markdown("---")
+        
+        if lihat_jadual:
+            st.success("✅ Papar Jadual Waktu SPM 2026 di bawah:")
+            st.markdown(f'<iframe src="{LINK_JADUAL_PDF}" width="100%" height="800" type="application/pdf"></iframe>', unsafe_allow_html=True)
+        else:
+            st.caption("☝️ Tick 'LIHAT' di atas untuk papar Jadual Waktu")
+        
+        if nak_download:
+            st.warning("⚠️ Anda pilih untuk download Jadual Waktu SPM 2026")
+            st.markdown(f"📥 **Link Download:** [Klik sini untuk Muat Turun Jadual Waktu]({LINK_JADUAL_PDF})")
+            # Confirmation buttons
+            c_yes, c_no = st.columns(2)
+            with c_yes:
+                if st.button("✅ Ya, Download Sekarang", type="primary", use_container_width=True, key="btn_dl_yes"):
+                    st.markdown(f'<a href="{LINK_JADUAL_PDF}" download target="_blank">📥 Download bermula...</a>', unsafe_allow_html=True)
+                    st.success("📥 Download bermula! Check folder Downloads anda.")
+            with c_no:
+                if st.button("❌ Batal Download", use_container_width=True, key="btn_dl_no"):
+                    st.session_state["download_jadual_cb"] = False
+                    st.rerun()
+        else:
+            st.caption("☝️ Tick 'DOWNLOAD' di atas jika anda nak download Jadual Waktu")
     elif st.session_state["menu"] == "Selenggara": page_selenggara_pusat()
     elif st.session_state["menu"] == "CariMP":
         page_cari_mp()
