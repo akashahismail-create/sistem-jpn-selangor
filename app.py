@@ -397,16 +397,56 @@ def load_data_calon():
 def simpan_data_calon(data):
     with open(FILE_CALON_JSON, "w") as f: json.dump(data, f, indent=2)
     st.session_state["data_calon"] = data
+def cari_file_excel():
+    # Cari file excel walau nama besar-kecil lain (case-insensitive)
+    kemungkinan = [
+        "data_v1.1.xlsx", "Data-V1-1.xlsx", "Data_V1_1.xlsx", 
+        "data_v1.1.XLSX", "data_v1.xlsx", "data.xlsx",
+        "DATA_V1.1.xlsx", "Data-v1-1.xlsx"
+    ]
+    for nama in kemungkinan:
+        if os.path.exists(nama):
+            return nama
+    # Cari apa saja file xlsx dalam folder yang ada perkataan data
+    for f in os.listdir("."):
+        if f.lower().endswith(".xlsx") and "data" in f.lower():
+            return f
+    return FILE_EXCEL
+
 def load_data_pusat():
-    if os.path.exists(FILE_EXCEL):
-        try: return pd.read_excel(FILE_EXCEL, sheet_name=SHEET_PUSAT, engine='openpyxl', dtype=str)
-        except: return pd.DataFrame(columns=COLUMNS_PUSAT)
-    else: return pd.DataFrame(columns=COLUMNS_PUSAT)
+    file_excel = cari_file_excel()
+    if os.path.exists(file_excel):
+        try: 
+            df = pd.read_excel(file_excel, sheet_name=SHEET_PUSAT, engine='openpyxl', dtype=str)
+            # Jika kosong, cuba sheet lain
+            if df.empty:
+                # cuba baca tanpa nama sheet spesifik
+                try:
+                    xls = pd.ExcelFile(file_excel)
+                    for sh in xls.sheet_names:
+                        df_try = pd.read_excel(file_excel, sheet_name=sh, engine='openpyxl', dtype=str)
+                        if not df_try.empty and 'No_Pusat' in df_try.columns:
+                            return df_try
+                except:
+                    pass
+            return df
+        except Exception as e:
+            st.warning(f"Ralat baca {file_excel}: {e}")
+            return pd.DataFrame(columns=COLUMNS_PUSAT)
+    else: 
+        st.error(f"File {FILE_EXCEL} tak jumpa! Sila upload data_v1.1.xlsx di GitHub. File yang ada: {os.listdir('.')}")
+        return pd.DataFrame(columns=COLUMNS_PUSAT)
 def load_data_mp():
-    if os.path.exists(FILE_EXCEL):
-        try: return pd.read_excel(FILE_EXCEL, sheet_name=SHEET_MP, engine='openpyxl', dtype=str)
-        except: return pd.DataFrame(columns=COLUMNS_MP)
-    else: return pd.DataFrame(columns=COLUMNS_MP)
+    file_excel = cari_file_excel()
+    if os.path.exists(file_excel):
+        try: 
+            df = pd.read_excel(file_excel, sheet_name=SHEET_MP, engine='openpyxl', dtype=str)
+            return df
+        except: 
+            # Jika sheet tak wujud atau kosong, return kosong tapi jangan error
+            return pd.DataFrame(columns=COLUMNS_MP)
+    else: 
+        return pd.DataFrame(columns=COLUMNS_MP)
 def to_excel(df):
     output = BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer: df.to_excel(writer, index=False, sheet_name='Sheet1')
