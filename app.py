@@ -383,10 +383,8 @@ USERS = {
 FILE_EXCEL = "data_v1.1.xlsx"
 SHEET_PUSAT = "selenggara_pusat"
 SHEET_MP = "MataPelajaran"
-COLUMNS_PUSAT = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Kod_Bilik_Kebal","Nama_Bilik_Kebal","Dikemaskini_Oleh","Tarikh_Kemaskini"]
-COLUMNS_PUSAT_FULL = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Kod_Bilik_Kebal","Nama_Bilik_Kebal","Dikemaskini_Oleh","Tarikh_Kemaskini"]
+COLUMNS_PUSAT = ["Kod_PPD","No_Pusat","Nama_Pusat","Bil_Calon_Pusat","Nama_Bilik_Kebal","Dikemaskini_Oleh","Tarikh_Kemaskini"]
 COLUMNS_MP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Tarikh"]
-COLUMNS_MP_LENGKAP = ["Kod_PPD","No_Pusat","Nama_Pusat","KodMP","NamaMP","Kertas","Bil_Calon","Bil_Naskah","Kod_Bilik_Kebal","Nama_Bilik_Kebal","Kawasan","Pakej","Bil_Calon_Pusat","Bil_Calon_Batch","Tarikh"]
 LINK_PENGURUSAN = "https://drive.google.com/drive/folders/193ELWVyPDORTVE7ZSVe2B3rsZILkg7f6?usp=drive_link"
 FILE_CALON_JSON = "data_calon.json"
 
@@ -443,11 +441,6 @@ def load_data_mp():
     if os.path.exists(file_excel):
         try: 
             df = pd.read_excel(file_excel, sheet_name=SHEET_MP, engine='openpyxl', dtype=str)
-            # FIX: Pastikan Kod_PPD huruf besar BA + uppercase Kod_Bilik_Kebal
-            if 'Kod_PPD' in df.columns:
-                df['Kod_PPD'] = df['Kod_PPD'].astype(str).str.upper()
-            if 'Kod_Bilik_Kebal' in df.columns:
-                df['Kod_Bilik_Kebal'] = df['Kod_Bilik_Kebal'].astype(str).str.upper()
             return df
         except: 
             # Jika sheet tak wujud atau kosong, return kosong tapi jangan error
@@ -625,6 +618,63 @@ def login_editor():
                 st.rerun()
             else:
                 st.error("Salah!")
+
+
+def page_cari_tarikh():
+    st.header("📅 Cari Subjek Ikut Tarikh Peperiksaan")
+    st.info("Masukkan tarikh untuk lihat subjek apa yang ada pada tarikh tersebut (ikut Jadual Rasmi SPM 2026) - 100 kertas")
+    
+    file_excel = cari_file_excel()
+    df_jadual = pd.DataFrame()
+    try:
+        df_jadual = pd.read_excel(file_excel, sheet_name="Jadual_Rasmi_SPM2026", engine='openpyxl', dtype=str)
+    except:
+        try:
+            df_jadual = pd.read_excel(file_excel, sheet_name="JADUAL PEPERIKSAAN", engine='openpyxl', dtype=str)
+        except Exception as e:
+            st.error(f"Jadual Rasmi tak jumpa dalam {file_excel}: {e}")
+            return
+    
+    if df_jadual.empty:
+        st.warning("Jadual kosong")
+        return
+
+    df_jadual['TARIKH'] = df_jadual['TARIKH'].astype(str)
+    tarikh_list = sorted(df_jadual['TARIKH'].dropna().unique().tolist())
+    
+    col1,col2 = st.columns([2,1])
+    with col1:
+        selected_tarikh = st.selectbox("📅 Pilih Tarikh Peperiksaan (dari Jadual Rasmi SPM 2026)", tarikh_list, index=0, key="tarikh_select")
+    with col2:
+        cari_tarikh_text = st.text_input("Atau taip tarikh (contoh: 2026-12-16)", placeholder="2026-12-16", key="tarikh_text")
+    
+    if st.button("🔍 Cari Subjek Pada Tarikh", use_container_width=True, type="primary", key="btn_tarikh"):
+        if cari_tarikh_text:
+            df_filter = df_jadual[df_jadual['TARIKH'].astype(str).str.contains(cari_tarikh_text, case=False, na=False)]
+            tarikh_display = cari_tarikh_text
+        else:
+            df_filter = df_jadual[df_jadual['TARIKH'] == selected_tarikh]
+            tarikh_display = selected_tarikh
+        
+        if df_filter.empty:
+            st.warning(f"Tiada subjek pada tarikh {tarikh_display}")
+        else:
+            st.success(f"✅ Jumpa {len(df_filter)} kertas peperiksaan pada tarikh {tarikh_display}")
+            cols_show = [c for c in ['HARI','TARIKH','MASA MENJAWAB','KOD MATA PELAJARAN','KOD KERTAS','MATA PELAJARAN'] if c in df_filter.columns]
+            st.dataframe(df_filter[cols_show], use_container_width=True)
+            
+            st.subheader(f"📚 Ringkasan Subjek pada {tarikh_display}")
+            for _, row in df_filter.iterrows():
+                kod = row.get('KOD KERTAS','') or row.get('KOD MATA PELAJARAN','')
+                subjek = row.get('MATA PELAJARAN','')
+                masa = row.get('MASA MENJAWAB','')
+                hari = row.get('HARI','')
+                st.markdown(f"- **{kod}** - {subjek} | ⏰ {masa} | 📅 {hari}")
+    
+    with st.expander("📋 Lihat Jadual Penuh SPM 2026 (100 kertas)"):
+        st.dataframe(df_jadual, use_container_width=True, height=500)
+
+
 
 def page_selenggara_pusat():
     st.header("⚙️ Selenggara Data")
@@ -845,60 +895,6 @@ def page_selenggara_pusat():
             if st.button("🌐 BUKA GITHUB SEKARANG", use_container_width=True, disabled=not boleh_github):
                 st.markdown(f'<meta http-equiv="refresh" content="0; url={LINK_GITHUB}">', unsafe_allow_html=True)
                 st.link_button(f"➡️ Klik sini jika tak auto buka: {LINK_GITHUB}", LINK_GITHUB, use_container_width=True, type="primary")  
-
-def page_cari_tarikh():
-    st.header("📅 Cari Subjek Ikut Tarikh Peperiksaan")
-    st.info("Masukkan tarikh untuk lihat subjek apa yang ada pada tarikh tersebut (ikut Jadual Rasmi SPM 2026)")
-
-    # Load jadual rasmi
-    file_excel = cari_file_excel()
-    try:
-        df_jadual = pd.read_excel(file_excel, sheet_name="Jadual_Rasmi_SPM2026", engine='openpyxl', dtype=str)
-    except:
-        try:
-            df_jadual = pd.read_excel("/mnt/data/JADUAL_PEPERISAAN_SPM_2026.xlsx", sheet_name="JADUAL PEPERIKSAAN", engine='openpyxl', dtype=str)
-        except Exception as e:
-            st.error(f"Jadual Rasmi tak jumpa: {e}")
-            return
-
-    # Clean tarikh
-    df_jadual['TARIKH'] = df_jadual['TARIKH'].astype(str)
-    # Extract date list
-    tarikh_list = sorted(df_jadual['TARIKH'].dropna().unique().tolist())
-    
-    col1, col2 = st.columns([2,1])
-    with col1:
-        # Date input - use selectbox from available dates
-        selected_tarikh = st.selectbox("Pilih Tarikh Peperiksaan", tarikh_list, index=0, help="Pilih tarikh dari Jadual Rasmi SPM 2026")
-    with col2:
-        # Also allow free text search
-        cari_tarikh_text = st.text_input("Atau taip tarikh (YYYY-MM-DD)", placeholder="2026-12-15")
-
-    if st.button("🔍 Cari Subjek Pada Tarikh", use_container_width=True):
-        if cari_tarikh_text:
-            # Filter by text contains
-            df_filter = df_jadual[df_jadual['TARIKH'].astype(str).str.contains(cari_tarikh_text, case=False, na=False)]
-        else:
-            df_filter = df_jadual[df_jadual['TARIKH'] == selected_tarikh]
-        
-        if df_filter.empty:
-            st.warning(f"Tiada subjek pada tarikh {selected_tarikh}")
-        else:
-            st.success(f"✅ Jumpa {len(df_filter)} subjek pada tarikh {selected_tarikh if not cari_tarikh_text else cari_tarikh_text}")
-            # Show
-            cols_show = [c for c in ['HARI','TARIKH','MASA MENJAWAB','KOD MATA PELAJARAN','KOD KERTAS','MATA PELAJARAN'] if c in df_filter.columns]
-            st.dataframe(df_filter[cols_show], use_container_width=True)
-            
-            # Also show ringkasan
-            st.subheader("Ringkasan Subjek")
-            for _, row in df_filter.iterrows():
-                st.markdown(f"- **{row.get('KOD KERTAS','')}** - {row.get('MATA PELAJARAN','')} | {row.get('MASA MENJAWAB','')}")
-
-    # Show full jadual
-    with st.expander("📋 Lihat Jadual Penuh SPM 2026"):
-        st.dataframe(df_jadual, use_container_width=True, height=400)
-
-
 def page_cari_mp():
     st.header("📚 Carian Mata Pelajaran Mengikut Pusat")
     df_mp = st.session_state["data_mp"]
@@ -946,34 +942,12 @@ def page_cari_mp():
                 jumlah_rekod = len(df_filter)
                 jumlah_pusat_unik = df_filter.drop_duplicates(subset=["Kod_PPD", "No_Pusat"]).shape[0]
                 st.success(f"✅ Jumpa {jumlah_rekod} rekod | {jumlah_pusat_unik} pusat")
-                m1, m2, m3 = st.columns(3)
+                m1, m2 = st.columns(2)
                 with m1: st.metric("Jumlah Rekod MP", f"{jumlah_rekod:,}")
                 with m2: st.metric(f"Jumlah Pusat Tawar {cari_kod if cari_kod else cari_nama if cari_nama else 'MP'} Kertas {cari_kertas if cari_kertas!='Semua' else ''}", f"{jumlah_pusat_unik:,} pusat")
-                try:
-                    if "Bil_Calon" in df_filter.columns:
-                        # Untuk elak double count kertas (1103 ada 3 kertas), kira unique pusat
-                        if "No_Pusat" in df_filter.columns:
-                            df_unique_pusat = df_filter.drop_duplicates(subset=["No_Pusat"])
-                            total_calon = df_unique_pusat["Bil_Calon"].astype(int).sum()
-                            total_calon_all_kertas = df_filter["Bil_Calon"].astype(int).sum()
-                            # Jika core MP (BM, BI etc) - unique pusat = jumlah calon sebenar
-                            with m3: st.metric("Jumlah Calon (Unique Pusat)", f"{total_calon:,}", help=f"Total semua rekod kertas: {total_calon_all_kertas:,}")
-                        else:
-                            total_calon = df_filter["Bil_Calon"].astype(int).sum()
-                            with m3: st.metric("Jumlah Calon", f"{total_calon:,}")
-                    else:
-                        with m3: st.metric("Jumlah Calon", "-")
-                except Exception as e: 
-                    with m3: st.metric("Jumlah Calon", "-")
                 
-                # Show data - guna kolom lengkap jika ada
-                cols_show = [c for c in COLUMNS_MP_LENGKAP if c in df_filter.columns]
-                if not cols_show:
-                    cols_show = [c for c in COLUMNS_MP if c in df_filter.columns]
-                st.dataframe(df_filter[cols_show].drop_duplicates(), use_container_width=True)
-                
-                # Download button untuk hasil carian
-                st.download_button("📥 Download Hasil Carian (Excel)", to_excel(df_filter[cols_show]), f"carian_{cari_kod or cari_nama or 'MP'}_kertas{cari_kertas}.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+                # Show data
+                st.dataframe(df_filter[COLUMNS_MP].drop_duplicates(), use_container_width=True)
                 
                 # Button auto-betulkan
                 if st.button("🛠️ Auto-Betulkan Kertas dari NamaMP (Jika Bercampur)"):
@@ -1133,6 +1107,7 @@ with col_sidebar:
     if st.button("📅 Jadual Waktu", use_container_width=True): st.session_state["menu"] = "Jadual"; st.rerun()
     if st.button("📋 Senarai Pusat", use_container_width=True): st.session_state["menu"] = "SenaraiPusat"; st.rerun()
     if st.button("📚 Cari Mata Pelajaran", use_container_width=True): st.session_state["menu"] = "CariMP"; st.rerun()
+    if st.button("📅 Cari Ikut Tarikh", use_container_width=True): st.session_state["menu"] = "CariTarikh"; st.rerun()
     
     # SELENGGARA DATA - KEDUDUKAN LAMA DI SIDEBAR (BETUL) - POPUP SEBELAH
     if not st.session_state.get("editor_login", False):
@@ -1397,7 +1372,10 @@ with col_main:
         st.markdown(f"[📥 Klik sini untuk Muat Turun Jadual Waktu]({LINK_JADUAL_PDF})")
         st.markdown(f'<iframe src="{LINK_JADUAL_PDF}" width="100%" height="800" type="application/pdf"></iframe>', unsafe_allow_html=True)
     elif st.session_state["menu"] == "Selenggara": page_selenggara_pusat()
-    elif st.session_state["menu"] == "CariMP": page_cari_mp()
+    elif st.session_state["menu"] == "CariMP":
+        page_cari_mp()
+    elif st.session_state["menu"] == "CariTarikh":
+        page_cari_tarikh()
     elif st.session_state["menu"] == "SenaraiPusat": page_senarai_pusat()
     
     # FOOTER CANTIK SPM 2026
