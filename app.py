@@ -424,6 +424,95 @@ def simpan_data_pusat(kod_ppd, no_pusat, nama_pusat, bil_calon, nama_kebal, dike
 def simpan_data_mp(df_baru):
     st.session_state["data_mp"] = df_baru
     simpan_ke_excel()
+
+def parse_lp_format(uploaded_file):
+    """Parse maklumat_pusat.xls format LP (Lembaga Peperiksaan) dengan 504 pusat"""
+    try:
+        import pandas as pd
+        df_raw = pd.read_excel(uploaded_file, header=None)
+        
+        prefix_to_daerah = {
+            "BA": "Klang", "BB": "Kuala Langat", "BC": "Kuala Selangor", "BD": "Hulu Langat",
+            "BE": "Hulu Selangor", "BF": "Sabak Bernam", "BG": "Gombak", "BH": "Petaling Perdana",
+            "BJ": "Sepang", "BK": "Petaling Utama",
+        }
+        daerah_to_kod = {
+            "Klang": "ba", "Kuala Langat": "bb", "Kuala Selangor": "bc", "Hulu Langat": "bd",
+            "Hulu Selangor": "be", "Sabak Bernam": "bf", "Gombak": "bg", "Petaling Perdana": "bh",
+            "Sepang": "bj", "Petaling Utama": "bk",
+        }
+        
+        records = []
+        for idx, row in df_raw.iterrows():
+            try:
+                bil = row[0]
+                if pd.notna(bil) and str(bil).strip().isdigit():
+                    nombor_pusat = str(row[7]).strip() if pd.notna(row[7]) else ""
+                    if not nombor_pusat or nombor_pusat == "NOMBOR" or len(nombor_pusat)<3:
+                        continue
+                    prefix = nombor_pusat[:2].upper()
+                    nama_sekolah = str(row[11]).strip() if len(row)>11 and pd.notna(row[11]) else nombor_pusat
+                    jumlah_calon = row[15] if len(row)>15 and pd.notna(row[15]) else 0
+                    jumlah_di_pusat = row[22] if len(row)>22 and pd.notna(row[22]) else None
+                    daerah = prefix_to_daerah.get(prefix, "Unknown")
+                    
+                    records.append({
+                        "DAERAH": daerah,
+                        "PREFIX": prefix,
+                        "NOMBOR_PUSAT": nombor_pusat,
+                        "NAMA_SEKOLAH": nama_sekolah,
+                        "JUMLAH_CALON": jumlah_calon,
+                        "JUMLAH_DI_PUSAT": jumlah_di_pusat,
+                    })
+            except:
+                pass
+        
+        if not records:
+            return False, "Tiada rekod ditemui dalam file LP. Pastikan format maklumat_pusat.xls"
+        
+        df = pd.DataFrame(records)
+        pusat_group = df.groupby('NOMBOR_PUSAT').agg({
+            'DAERAH': 'first',
+            'NAMA_SEKOLAH': 'first',
+            'JUMLAH_DI_PUSAT': 'first',
+            'PREFIX': 'first',
+            'JUMLAH_CALON': 'sum'
+        }).reset_index()
+        
+        template_rows = []
+        for _, r in pusat_group.iterrows():
+            kod_ppd = daerah_to_kod.get(r['DAERAH'], r['PREFIX'].lower())
+            bil = r['JUMLAH_DI_PUSAT']
+            if pd.isna(bil) or bil == 0:
+                bil = r['JUMLAH_CALON']
+            try:
+                bil_int = int(float(bil))
+            except:
+                bil_int = 0
+            template_rows.append({
+                "Kod_PPD": kod_ppd,
+                "No_Pusat": r['NOMBOR_PUSAT'],
+                "Nama_Pusat": str(r['NAMA_SEKOLAH'])[:100],
+                "Bil_Calon_Pusat": bil_int,
+                "Nama_Bilik_Kebal": "",
+                "Dikemaskini_Oleh": "LP-Import",
+                "Tarikh_Kemaskini": datetime.now().strftime("%Y-%m-%d %H:%M")
+            })
+        
+        df_pusat_new = pd.DataFrame(template_rows)
+        
+        # Merge dengan data sedia ada
+        df_lama = st.session_state["data_pusat"]
+        df_gabung = pd.concat([df_lama, df_pusat_new]).drop_duplicates(subset=['No_Pusat'], keep='last')
+        st.session_state["data_pusat"] = df_gabung
+        simpan_ke_excel()
+        
+        return True, f"Berjaya import {len(df_pusat_new)} pusat dari file LP (dari {len(records)} rekod sekolah). Jumlah calon: {df_pusat_new['Bil_Calon_Pusat'].sum():,}. Sekarang total pusat: {len(df_gabung)}"
+    except Exception as e:
+        return False, f"Ralat parse LP: {e}"
+
+
+
 def upload_pukal(uploaded_file, dikemaskini_oleh):
     try:
         df_upload = pd.read_excel(uploaded_file, engine='openpyxl', dtype=str)
@@ -509,6 +598,23 @@ def page_selenggara_pusat():
             pilihan_ppd = st.selectbox("Pilih PPD untuk kemaskini", list(KOD_PPD.values()))
             st.write("---")
             with st.expander("📤 Upload Data Pukal 1000 Pusat - Admin Sahaja"):
+                st.markdown("### 🟢 Upload Format LP (maklumat_pusat.xls) - Auto Convert 504 Pusat")
+                st.caption("Upload file maklumat_pusat.xls dari Lembaga Peperiksaan - sistem akan auto parse semua daerah & jumlah calon")
+                up_lp = st.file_uploader("Upload maklumat_pusat.xls (LP Format)", type=["xls","xlsx"], key="up_lp")
+                if up_lp:
+                    if st.button("🚀 Parse & Import File LP Sekarang", type="primary", use_container_width=True, key="btn_parse_lp"):
+                        with st.spinner("Parsing file LP..."):
+                            ok, msg = parse_lp_format(up_lp)
+                            if ok:
+                                st.success(msg)
+                                st.balloons()
+                                st.dataframe(st.session_state["data_pusat"].head(10), use_container_width=True)
+                            else:
+                                st.error(msg)
+                st.write("---")
+                st.markdown("### 🔵 Upload Template Biasa")
+
+
                 st.download_button("⬇️ Download Template Excel", to_excel(pd.DataFrame(columns=COLUMNS_PUSAT)), "template_pusat.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
                 uploaded_file = st.file_uploader("Upload File Excel", type=['xlsx'], key="up_pusat")
                 if uploaded_file:
