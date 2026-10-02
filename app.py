@@ -1296,7 +1296,19 @@ with col_main:
             df_calon = pd.DataFrame([{k: v[k] for k in JENIS_CALON[1:]} for v in data.values()], index=data.keys())
             if daerah!= "Semua Daerah": df_calon = df_calon.loc[[daerah]]
             if sub_filter!= "Semua Jenis" and jenis_data == "Calon": df_calon = df_calon[[sub_filter]]
-            st.dataframe(df_calon, use_container_width=True)
+            # === TAMBAH JUMLAH - Kashah request ===
+            if not df_calon.empty:
+                # Jumlah per baris (per daerah)
+                if len(df_calon.columns) > 1:
+                    df_calon["Jumlah"] = df_calon.sum(axis=1)
+                # Jumlah per column (baris terakhir)
+                total_row = df_calon.sum(axis=0)
+                total_row.name = "JUMLAH KESELURUHAN"
+                df_calon_display = pd.concat([df_calon, pd.DataFrame([total_row])])
+                st.dataframe(df_calon_display, use_container_width=True)
+                st.caption(f"✅ Jumlah Keseluruhan Calon: {total_row['Jumlah'] if 'Jumlah' in total_row else df_calon.sum().sum():,} calon")
+            else:
+                st.dataframe(df_calon, use_container_width=True)
             if PLOTLY_AVAILABLE:
                 df_calon_plot = df_calon.reset_index().melt(id_vars='index', var_name='Jenis Calon', value_name='Bilangan')
                 df_calon_plot.rename(columns={'index':'Daerah'}, inplace=True)
@@ -1334,7 +1346,25 @@ with col_main:
             df_petugas = pd.DataFrame([{k: v[k] for k in JENIS_PETUGAS[1:]} for v in data.values()], index=data.keys())
             if daerah!= "Semua Daerah": df_petugas = df_petugas.loc[[daerah]]
             if sub_filter!= "Semua Jawatan" and jenis_data == "Petugas": df_petugas = df_petugas[[sub_filter]]
-            st.dataframe(df_petugas, use_container_width=True)
+            # === TAMBAH JUMLAH - Kashah request ===
+            if not df_petugas.empty:
+                # Jumlah per baris (per daerah) - semua petugas
+                if len(df_petugas.columns) > 1:
+                    df_petugas["Jumlah Keseluruhan"] = df_petugas.sum(axis=1)
+                # Jumlah per column (baris terakhir) - jumlah dari atas ke bawah
+                total_row_petugas = df_petugas.sum(axis=0)
+                total_row_petugas.name = "JUMLAH KESELURUHAN"
+                df_petugas_display = pd.concat([df_petugas, pd.DataFrame([total_row_petugas])])
+                st.dataframe(df_petugas_display, use_container_width=True)
+                # Show example calculation
+                if "JUMLAH KESELURUHAN" in df_petugas_display.index:
+                    # Example Petaling Perdana
+                    if "Petaling Perdana" in df_petugas_display.index:
+                        pp_total = df_petugas_display.loc["Petaling Perdana", "Jumlah Keseluruhan"] if "Jumlah Keseluruhan" in df_petugas_display.columns else 0
+                        st.caption(f"📍 Contoh: Petaling Perdana = {pp_total:,} petugas (Penyelia 30 + Ketua 91 + Timbalan 91 + Pengawas 1027 + Pengemas 91 + Sukarelawan 50)")
+                    st.caption(f"✅ Jumlah Keseluruhan Petugas Selangor: {total_row_petugas['Jumlah Keseluruhan'] if 'Jumlah Keseluruhan' in total_row_petugas else df_petugas.sum().sum():,} petugas")
+            else:
+                st.dataframe(df_petugas, use_container_width=True)
             if PLOTLY_AVAILABLE:
                 df_petugas_plot = df_petugas.reset_index().melt(id_vars='index', var_name='Jawatan', value_name='Bilangan')
                 df_petugas_plot.rename(columns={'index':'Daerah'}, inplace=True)
