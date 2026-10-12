@@ -1188,19 +1188,19 @@ elif MODE=="STAM":
     if calon_hadir == 0:
         st.warning("⚠️ Sila isi Calon Hadir STAM (wajib)")
 
-else: # MUET - TAMBAH CALON HADIR & TH (ikut arahan terbaru Kashah)
-    st.markdown("#### 👥 Bilangan Calon (MUET) - Tambah Hadir & TH")
-    st1,st2,st3,st4,st5 = st.columns(5)
-    calon_berdaftar = st1.number_input("Calon Berdaftar (MUET)", 0,500, 30, key=f"muet_berdaftar_{MODE}")
-    calon_hadir = st2.number_input("✅ Calon Hadir (MUET) - WAJIB ISI", 0,500, 28, key=f"muet_hadir_{MODE}", help="Pemantau WAJIB isi bilangan calon yang hadir MUET")
-    calon_menumpang = st3.number_input("Calon Menumpang", 0,100, 0, key=f"muet_menumpang_{MODE}")
-    calon_cicir = st4.number_input("Calon Cicir", 0,50,0, key=f"muet_cicir_{MODE}")
-    calon_bantah = st5.number_input("Calon Bantah", 0,50,0, key=f"muet_bantah_{MODE}")
+else: # MUET - SAMA 100% TEMPLATE BORANG SPM (ikut arahan terbaru Kashah - screenshot)
+    st.markdown('<div class="borang-header"><div class="borang-header-icon" style="background: linear-gradient(135deg, #C2185B 0%, #EC407A 100%);">👥</div><div><div class="borang-header-title">Bilangan Calon MUET</div><div class="borang-header-subtitle">Hadir + Berdaftar + Cicir + Bantah - Sama Template SPM</div></div></div>', unsafe_allow_html=True)
+    ca1,ca2,ca3,ca4 = st.columns(4)
+    calon_hadir = ca1.number_input("Calon Hadir", 0,500, 20, key=f"muet_hadir_{MODE}")
+    calon_berdaftar = ca2.number_input("Calon Berdaftar", 0,500, 22, key=f"muet_berdaftar_{MODE}")
+    calon_cicir = ca3.number_input("Calon Cicir", 0,50,0, key=f"muet_cicir_{MODE}")
+    calon_bantah = ca4.number_input("Calon Bantah", 0,50,0, key=f"muet_bantah_{MODE}")
+    calon_menumpang=0
     tidak_hadir = calon_berdaftar - calon_hadir
     if tidak_hadir < 0:
         tidak_hadir = 0
-    keseluruhan = calon_berdaftar + calon_menumpang + calon_cicir + calon_bantah
-    st.caption(f"MUET | Berdaftar: {calon_berdaftar} | Hadir: {calon_hadir} | TH: {tidak_hadir} | Menumpang: {calon_menumpang} | Cicir: {calon_cicir} | Bantah: {calon_bantah} | Keseluruhan: {keseluruhan} | Petugas: {petugas}")
+    keseluruhan = calon_berdaftar + calon_cicir + calon_bantah
+    st.caption(f"Tidak Hadir: {tidak_hadir} | Keseluruhan: {keseluruhan}")
     if calon_hadir == 0:
         st.warning("⚠️ Sila isi Calon Hadir MUET (wajib)")
 
