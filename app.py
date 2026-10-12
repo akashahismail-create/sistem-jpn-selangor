@@ -1651,10 +1651,9 @@ elif MODE=="STAM":
     calon_html = f"{badge(f'Berdaftar: {c_berdaftar}', '#E3F2FD', '#0D47A1')} {badge(f'Hadir: {c_hadir}', '#E8F5E9', '#2E7D32')} {badge(f'TH: {c_th}', '#FFEBEE', '#C62828')} {badge(f'Menumpang: {c_menumpang}', '#E0F7FA', '#006064')} {badge(f'Cicir: {c_cicir}', '#FFF3E0', '#EF6C00')} {badge(f'Bantah: {c_bantah}', '#F3E5F5', '#6A1B9A')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
     petugas_html = f"{badge(f'Bil Petugas: {b_petugas}', '#0D47A1', 'white')} {badge(f'Ketua Pengawas + Pengawas', '#E0F7FA', '#006064')}"
 else:
-    # MUET sahaja - JANGAN KACAU STAM
-    # FIX: Petugas jangan dalam bilik untuk MUET juga - letak atas Kehadiran Calon
+    # MUET sahaja - FIX TERBARU KASHAH: SAMA KONSEP SPM - Ada Hadir & TH
     bilik_html = f"{badge(f'Kelas/Dewan: {b_kelas}', '#E8F5E9', '#2E7D32')} {badge(f'Kuarantin: {b_kuar}', '#FFF3E0', '#EF6C00')} {badge(f'Total: {b_total}', '#0D47A1', 'white')}"
-    calon_html = f"{badge(f'Berdaftar: {c_berdaftar}', '#E3F2FD', '#0D47A1')} {badge(f'Menumpang: {c_menumpang}', '#E0F7FA', '#006064')} {badge(f'Cicir: {c_cicir}', '#FFF3E0', '#EF6C00')} {badge(f'Bantah: {c_bantah}', '#F3E5F5', '#6A1B9A')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
+    calon_html = f"{badge(f'Berdaftar: {c_berdaftar}', '#E3F2FD', '#0D47A1')} {badge(f'Hadir: {c_hadir}', '#E8F5E9', '#2E7D32')} {badge(f'TH: {c_th}', '#FFEBEE', '#C62828')} {badge(f'Menumpang: {c_menumpang}', '#E0F7FA', '#006064')} {badge(f'Cicir: {c_cicir}', '#FFF3E0', '#EF6C00')} {badge(f'Bantah: {c_bantah}', '#F3E5F5', '#6A1B9A')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
     petugas_html = f"{badge(f'Bil Petugas: {b_petugas}', '#0D47A1', 'white')} {badge(f'Ketua Pengawas + Pengawas', '#E0F7FA', '#006064')}"
 
 jenis_label = sel.get('jenis','SPM')
