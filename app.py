@@ -1,2000 +1,322 @@
 import streamlit as st
-import streamlit.components.v1 as components
-import pandas as pd
-import os, json
-from datetime import datetime, date, time
-from io import BytesIO
+from pathlib import Path
+import csv
+import re
+from collections import Counter
+import tempfile
 
-st.set_page_config(page_title="e-Pemantauan Sektor Pentaksiran dan Peperiksaan JPN Selangor Tahun 2026", layout="wide", page_icon="📋")
+st.set_page_config(page_title="Sistem Analisis Kehadiran Calon - JPN Selangor", layout="wide", initial_sidebar_state="collapsed")
 
-st.markdown("""
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
-* { font-family: 'Inter', sans-serif; }
-#MainMenu, header, footer, [data-testid="stToolbar"], [data-testid="stHeader"], [data-testid="stDecoration"], div[data-testid="stStatusWidget"], .stAppToolbar {visibility: hidden !important; display: none !important;}
-.stApp { background: linear-gradient(180deg, #F8FAFF 0%, #EEF2FF 60%, #F5F7FF 100%) !important; }
-div[data-testid="stRadio"] label {
-    font-family: 'Plus Jakarta Sans', sans-serif !important; font-size: 14.5px !important; font-weight: 700 !important;
-    color: #334155 !important; padding: 8px 16px !important; border-radius: 100px !important;
-    border: 1.5px solid #E2E8F0 !important; background: white !important;
-    transition: all 0.25s ease !important; box-shadow: 0 1px 2px rgba(0,0,0,0.04) !important;
+FOLDER_DESKTOP = Path.home() / "Desktop" / "data_kehadiran_calon"
+TEMP_FOLDER = Path(tempfile.gettempdir()) / "data_kehadiran_calon_jpn"
+TEMP_FOLDER.mkdir(exist_ok=True)
+
+JENIS_CALON = {"A": "Sekolah (SBK/SABK)", "B": "Agensi Kerajaan", "C": "Agama Rakyat", "D": "Sekolah Swasta", "E": "Persendirian"}
+
+def parse_angka(angka):
+    angka = str(angka).strip().upper()
+    m = re.match(r'^([A-Z]{2})(\d{3})([A-Z])(\d{3})$', angka)
+    if m:
+        return {"daerah": m.group(1), "pusat": m.group(2), "jenis": m.group(3)}
+    return {"daerah": "", "pusat": "", "jenis": "?"}
+
+def baca_csv(file_path):
+    total=0; hadir=0; th=0
+    asing=Counter(); ah=Counter(); at=Counter()
+    rd={}; rl=[]
+    with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            angka = str(row.get('Angka Giliran','')).strip().upper()
+            if not angka: continue
+            total+=1
+            p = parse_angka(angka)
+            jenis = p['jenis']
+            row['Jenis_Huruf'] = jenis
+            row['Jenis_Label'] = JENIS_CALON.get(jenis, jenis)
+            row['Daerah_Kod'] = p['daerah']
+            asing[jenis]+=1
+            status = row.get('Status Kehadiran','').strip()
+            if status == 'Hadir': hadir+=1; ah[jenis]+=1
+            elif status == 'Tidak Hadir': th+=1; at[jenis]+=1
+            rd[angka]=row; rl.append(row)
+    peratus = (hadir/total*100) if total>0 else 0
+    return total, hadir, th, peratus, asing, ah, at, rd, rl
+
+SUBJEK_LENGKAP = {
+    "1103 - Bahasa Melayu (4 Kertas)": {"kertas": [{"key": "1103/1", "file": "1103_1", "nama": "BM K1 Bertulis"}, {"key": "1103/2", "file": "1103_2", "nama": "BM K2 Bertulis"}, {"key": "1103/3", "file": "1103_3", "nama": "BM K3 Bertutur"}, {"key": "1103/4", "file": "1103_4", "nama": "BM K4 Mendengar"}]},
+    "1119 - Bahasa Inggeris (4 Kertas)": {"kertas": [{"key": "1119/1", "file": "1119_1", "nama": "BI K1"}, {"key": "1119/2", "file": "1119_2", "nama": "BI K2"}, {"key": "1119/3", "file": "1119_3", "nama": "BI K3 Bertutur"}, {"key": "1119/4", "file": "1119_4", "nama": "BI K4 Mendengar"}]},
+    "1223 - Pendidikan Islam": {"kertas": [{"key": "1223/1", "file": "1223_1"}, {"key": "1223/2", "file": "1223_2"}]},
+    "1225 - Pendidikan Moral": {"kertas": [{"key": "1225", "file": "1225"}]},
+    "1249 - Sejarah": {"kertas": [{"key": "1249/1", "file": "1249_1"}, {"key": "1249/2", "file": "1249_2"}]},
+    "1449 - Matematik": {"kertas": [{"key": "1449/1", "file": "1449_1"}, {"key": "1449/2", "file": "1449_2"}]},
+    "1511 - Sains": {"kertas": [{"key": "1511/1", "file": "1511_1"}, {"key": "1511/2", "file": "1511_2"}]},
+    "2361 - Bahasa Arab": {"kertas": [{"key": "2361/1", "file": "2361_1"}]},
+    "2611 - Seni Visual": {"kertas": [{"key": "2611/1", "file": "2611_1"}, {"key": "2611/2", "file": "2611_2"}]},
+    "3729 - Pertanian": {"kertas": [{"key": "3729/1", "file": "3729_1"}]},
+    "3759 - Lukisan Kejuruteraan": {"kertas": [{"key": "3759/1", "file": "3759_1"}]},
+    "3763 - Reka Cipta": {"kertas": [{"key": "3763/1", "file": "3763_1"}]},
+    "3766 - Perniagaan": {"kertas": [{"key": "3766/1", "file": "3766_1"}, {"key": "3766/2", "file": "3766_2"}, {"key": "3766/4", "file": "3766_4"}]},
+    "3767 - Ekonomi": {"kertas": [{"key": "3767/1", "file": "3767_1"}, {"key": "3767/2", "file": "3767_2"}]},
+    "3769 - Sains Rumah Tangga": {"kertas": [{"key": "3769/1", "file": "3769_1"}]},
+    "3771 - Grafik Teknikal": {"kertas": [{"key": "3771/1", "file": "3771_1"}]},
+    "4531 - Fizik": {"kertas": [{"key": "4531/1", "file": "4531_1"}, {"key": "4531/2", "file": "4531_2"}, {"key": "4531/3", "file": "4531_3"}]},
+    "4541 - Kimia": {"kertas": [{"key": "4541/3", "file": "4541_3"}, {"key": "4541/1", "file": "4541_1"}, {"key": "4541/2", "file": "4541_2"}]},
+    "4551 - Biologi": {"kertas": [{"key": "4551/1", "file": "4551_1"}, {"key": "4551/2", "file": "4551_2"}, {"key": "4551/3", "file": "4551_3"}]},
+    "4561 - Sains Tambahan": {"kertas": [{"key": "4561/3", "file": "4561_3"}]},
+    "5226 - Tasawwur Islam": {"kertas": [{"key": "5226", "file": "5226"}]},
+    "5302 - Maharat Quran": {"kertas": [{"key": "5302/2", "file": "5302_2"}]},
+    "5402 - Al-Syariah": {"kertas": [{"key": "5402/1", "file": "5402_1"}]},
+    "5403 - Al-Lughah": {"kertas": [{"key": "5403/1", "file": "5403_1"}]},
+    "5404 - Manahij": {"kertas": [{"key": "5404/1", "file": "5404_1"}]},
+    "6351 - Bahasa Cina": {"kertas": [{"key": "6351/1", "file": "6351_1"}]},
+    "7101 - MPV": {"kertas": [{"key": "7101/1", "file": "7101_1"}]},
+    "3472 - Math Tambahan": {"kertas": [{"key": "3472/1", "file": "3472_1"}, {"key": "3472/2", "file": "3472_2"}]},
+    "3756 - Prinsip Perakaunan": {"kertas": [{"key": "3756/1", "file": "3756_1"}, {"key": "3756/4", "file": "3756_4"}]},
 }
-div[data-testid="stRadio"] label:hover { color: #0D47A1 !important; background: #EFF6FF !important; border-color: #93C5FD !important; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(13,71,161,0.12) !important; }
-div[data-testid="stRadio"] div[role="radiogroup"] { gap: 10px !important; padding: 8px 0 !important; }
-div[data-testid="stRadio"] div[data-testid="stWidgetLabel"] + div div[aria-checked="true"] label {
-    background: linear-gradient(135deg, #0D47A1 0%, #1976D2 100%) !important; color: white !important; border-color: #0D47A1 !important;
-    padding: 9px 18px !important; border-radius: 100px !important; box-shadow: 0 6px 20px rgba(13,71,161,0.35) !important;
-}
-div[data-testid="stRadio"] div[data-testid="stWidgetLabel"] + div div[aria-checked="true"] label p { color: white !important; }
-div[data-testid="stNumberInput"] input, div[data-testid="stTextInput"] input, div[data-testid="stTextArea"] textarea {
-    border-radius: 12px !important; border: 1.5px solid #E2E8F0 !important; padding: 10px 14px !important;
-    font-weight: 600 !important; font-size: 14px !important; background: white !important; box-shadow: 0 1px 3px rgba(0,0,0,0.04) !important;
-}
-div[data-testid="stNumberInput"] input:focus, div[data-testid="stTextInput"] input:focus, div[data-testid="stTextArea"] textarea:focus {
-    border-color: #0D47A1 !important; box-shadow: 0 0 0 4px rgba(13,71,161,0.1), 0 4px 12px rgba(13,71,161,0.12) !important;
-}
-div[data-testid="stSelectbox"] div[data-baseweb="select"] { border-radius: 12px !important; border: 1.5px solid #E2E8F0 !important; background: white !important; }
-div[data-testid="stButton"] button { border-radius: 12px !important; font-weight: 700 !important; letter-spacing: 0.3px !important; padding: 10px 20px !important; box-shadow: 0 4px 14px rgba(0,0,0,0.08) !important; transition: all 0.2s ease !important; border: none !important; }
-div[data-testid="stButton"] button[kind="primary"] { background: linear-gradient(135deg, #0D47A1 0%, #1976D2 100%) !important; color: white !important; }
-div[data-testid="stButton"] button:hover { transform: translateY(-2px) !important; box-shadow: 0 8px 24px rgba(13,71,161,0.25) !important; }
-div[data-testid="stMetric"] { background: white !important; border-radius: 16px !important; padding: 16px !important; border: 1px solid #EEF2FF !important; box-shadow: 0 4px 20px rgba(13,71,161,0.06) !important; }
-.borang-card { background: white; border-radius: 20px; padding: 22px; border: 1px solid #EEF2FF; box-shadow: 0 8px 32px rgba(13,71,161,0.08), 0 1px 3px rgba(0,0,0,0.04); margin: 18px 0; position: relative; overflow: hidden; }
-.borang-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #0D47A1 0%, #42A5F5 50%, #FFC107 100%); }
-.borang-header { display: flex; align-items: center; gap: 12px; margin-bottom: 18px; padding-bottom: 14px; border-bottom: 2px solid #F1F5F9; }
-.borang-header-icon { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px; background: linear-gradient(135deg, #0D47A1 0%, #1976D2 100%); color: white; box-shadow: 0 4px 12px rgba(13,71,161,0.25); }
-.borang-header-title { font-family: 'Plus Jakarta Sans', sans-serif; font-size: 17px; font-weight: 800; color: #0F172A; letter-spacing: -0.3px; }
-.borang-header-subtitle { font-size: 11.5px; color: #64748B; font-weight: 600; margin-top: 2px; }
-hr { border: none !important; height: 2px !important; background: linear-gradient(90deg, transparent 0%, #E2E8F0 20%, #CBD5E1 50%, #E2E8F0 80%, transparent 100%) !important; margin: 22px 0 !important; }
-.header-biru {
-    background: linear-gradient(135deg, #0A1931 0%, #0D2A54 20%, #0D47A1 60%, #1565C0 100%);
-    padding: 30px 28px; border-radius: 24px; margin-bottom: 26px;
-    box-shadow: 0 20px 60px rgba(13,71,161,0.30); border: 1px solid rgba(255,255,255,0.1); text-align: center; position: relative; overflow: hidden;
-}
-.header-biru::after { content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #FFC107 0%, #FFD54F 30%, #FFC107 60%, #FFB300 100%); }
-.header-biru h1 { color: white; margin: 0; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 28px; font-weight: 900; letter-spacing: -0.5px; text-shadow: 0 2px 12px rgba(0,0,0,0.3); }
-.header-biru h3 { color: #FFECB3; margin: 10px 0 0 0; font-size: 13px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; }
-.header-biru h2 { color: white; margin: 16px 0 0 0; font-size: 18px; font-weight: 800; background: rgba(255,255,255,0.12); backdrop-filter: blur(12px); display: inline-block; padding: 9px 22px; border-radius: 100px; border: 1px solid rgba(255,255,255,0.15); }
-.header-biru p { color: #BBDEFB; margin: 12px 0 0 0; font-size: 12.5px; font-weight: 500; }
-.login-card { background: white; padding: 30px; border-radius: 24px; border: 1px solid #EEF2FF; box-shadow: 0 20px 60px rgba(13,71,161,0.12); position: relative; overflow: hidden; }
-.login-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: linear-gradient(90deg, #0D47A1 0%, #42A5F5 50%, #FFC107 100%); }
-.login-container { max-width: 520px; margin: 0 auto; }
-.login-title { text-align: center; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 20px; font-weight: 800; color: #0F172A; margin-bottom: 22px; }
-</style>
-""", unsafe_allow_html=True)
 
-# ===== GAMBAR BASE64 - DEWAN & SEKOLAH (FIX NameError) =====
-IMG_DEWAN_B64 = """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"""
+if 'logged_in' not in st.session_state:
+    st.session_state['logged_in'] = False
+if 'stats_all' not in st.session_state:
+    st.session_state.stats_all = {}
+if 'menu_utama' not in st.session_state:
+    st.session_state['menu_utama'] = "📚 Semua Subjek"
+if 'filter_jenis' not in st.session_state:
+    st.session_state['filter_jenis'] = None
 
-IMG_SEKOLAH_B64 = """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"""
+def get_active_folder():
+    # FIX: Check TEMP dulu, baru Desktop - sebab di Streamlit Cloud Desktop tak wujud
+    temp_files = list(TEMP_FOLDER.glob("*.csv")) if TEMP_FOLDER.exists() else []
+    if len(temp_files) > 0:
+        return TEMP_FOLDER, f"UPLOAD (Streamlit Cloud) - {len(temp_files)} file"
+    desktop_files = list(FOLDER_DESKTOP.glob("*.csv")) if FOLDER_DESKTOP.exists() else []
+    if len(desktop_files) > 0:
+        return FOLDER_DESKTOP, f"DESKTOP - {len(desktop_files)} file"
+    # Kalau temp folder wujud tapi kosong, guna temp untuk upload
+    if TEMP_FOLDER.exists():
+        return TEMP_FOLDER, "UPLOAD (Streamlit Cloud) - Sedia Upload"
+    return FOLDER_DESKTOP, "DESKTOP (Belum Ada Data)"
 
-st.markdown('''
-<div class="header-biru">
-    <h1>🏛️ JABATAN PENDIDIKAN NEGERI SELANGOR</h1>
-    <h3>SEKTOR PENTAKSIRAN DAN PEPERIKSAAN</h3>
-    <h2>📋 e-Pemantauan Sektor Pentaksiran dan Peperiksaan JPN Selangor Tahun 2026</h2>
-    <p>🎓 SPM • Amali Sains • Ujian Bertutur BM/BI • STAM • MUET | 10 Daerah Selangor</p>
-    <p style="margin-top:10px; font-size:11px; background: rgba(255,255,255,0.12); display:inline-block; padding:6px 14px; border-radius:100px; border:1px solid rgba(255,255,255,0.15);">✨ Created by Akashah Ismail | JPN Selangor 2026 | Versi Cantik & Kemas Ultimate</p>
-</div>
-''', unsafe_allow_html=True)
-
-all_files = os.listdir('.')
-FILE_SPM = FILE_AMALI = None
-for f in all_files:
-    if f.lower().endswith('.xlsx') and 'v1.1' in f.lower(): FILE_SPM = f
-    if f.lower().endswith('.xlsx') and 'amali' in f.lower(): FILE_AMALI = f
-if not FILE_SPM:
-    for f in all_files:
-        if f.lower().endswith('.xlsx') and 'data_v1' in f.lower(): FILE_SPM = f; break
-
-@st.cache_data
-def load_spm():
-    xl = pd.ExcelFile(FILE_SPM)
-    return xl.parse("selenggara_pusat", dtype=str), xl.parse("Jadual_Rasmi_SPM2026", dtype=str)
-
-@st.cache_data
-def load_amali():
-    xl = pd.ExcelFile(FILE_AMALI)
-    df_r = xl.parse("Ringkasan_Makmal", dtype=str)
-    df_j = xl.parse("jadual_amali", dtype=str) if "jadual_amali" in xl.sheet_names else pd.DataFrame()
-    return df_r, df_j
-
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
-    st.session_state.role = ""
-    st.session_state.user_name = ""
-    st.session_state.is_admin = False
-    st.session_state.is_kppk = False
-
-ADMIN_PASSWORD = "JPN2026"
-
-def login_screen():
-    # Muka depan cantik - tanpa peraturan serabut
-    _, col_center, _ = st.columns([1,2,1])
-    with col_center:
-        st.markdown('<div class="login-container">', unsafe_allow_html=True)
-        st.markdown('<div class="login-title">🔐 e-Pemantauan Sektor Pentaksiran dan Peperiksaan<br>JPN Selangor Tahun 2026</div>', unsafe_allow_html=True)
-        st.markdown('<div class="login-card">', unsafe_allow_html=True)
-        
-        role_pilih = st.radio("Log masuk sebagai:", ["👤 Pemantau (PPD/JPN)", "🔑 Admin JPN", "👔 KPPK/Pengarah"], horizontal=True)
-        st.divider()
-        
-        if "Pemantau" in role_pilih:
-            nama_login = st.text_input("Nama Pemantau (penuh)", placeholder="Contoh: Akashah Bin Ismail")
-            st.caption("Gunakan nama penuh yang sama setiap kali login | Sistem menyokong 600 orang pemantau")
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("➡️ Masuk sebagai Pemantau", type="primary", use_container_width=True):
-                if nama_login.strip() == "":
-                    st.error("Sila isi nama pemantau!")
-                else:
-                    st.session_state.logged_in = True
-                    st.session_state.role = "pemantau"
-                    st.session_state.user_name = nama_login.strip()
-                    st.session_state.is_admin = False
-                    st.session_state.is_kppk = False
-                    st.success(f"Selamat datang, {nama_login}!")
-                    st.rerun()
-        elif "Admin" in role_pilih:
-            pwd = st.text_input("Kata Laluan Admin", type="password", placeholder="Masukkan password admin")
-            st.caption("Hubungi Urus Setia JPN untuk kata laluan")
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("🔓 Masuk sebagai Admin", type="primary", use_container_width=True):
-                if pwd == ADMIN_PASSWORD:
-                    st.session_state.logged_in = True
-                    st.session_state.role = "admin"
-                    st.session_state.user_name = "ADMIN JPN"
-                    st.session_state.is_admin = True
-                    st.session_state.is_kppk = False
-                    st.success("Login Admin berjaya!")
-                    st.rerun()
-                else:
-                    st.error("❌ Password salah!")
-        else:  # KPPK/Pengarah
-            pwd_kppk = st.text_input("Kata Laluan KPPK/Pengarah", type="password", placeholder="Masukkan password KPPK/Pengarah")
-            st.caption("Password sama: JPN2026 | Hanya lihat semua laporan, tidak boleh padam")
-            st.markdown("<br>", unsafe_allow_html=True)
-            if st.button("👔 Masuk sebagai KPPK/Pengarah", type="primary", use_container_width=True):
-                if pwd_kppk == ADMIN_PASSWORD:
-                    st.session_state.logged_in = True
-                    st.session_state.role = "kppk"
-                    st.session_state.user_name = "KPPK/PENGARAH"
-                    st.session_state.is_admin = False
-                    st.session_state.is_kppk = True
-                    st.success("✅ Selamat Datang KPPK/Pengarah")
-                    st.rerun()
-                else:
-                    st.error("❌ Password salah!")
-        
-        st.markdown('<div style="text-align:center; margin-top:20px; padding:12px; background:#F8FAFC; border-radius:10px; border:1px solid #E8EEF6;">', unsafe_allow_html=True)
-        st.markdown('<span style="color:#64748B; font-size:11px;">✨ Created by <b style="color:#0D47A1;">Akashah Ismail</b> | JPN Selangor 2026</span>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
-    
-    return False
-
-if not st.session_state.logged_in:
-    login_screen()
+if not st.session_state['logged_in']:
+    st.markdown("""
+    <div style="text-align: center; background: linear-gradient(90deg, #0d47a1, #1976d2); color: white; padding: 30px; border-radius: 15px; margin-bottom: 20px;">
+        <h1>📊 SISTEM ANALISIS KEHADIRAN CALON</h1>
+        <h3>Sektor Pentaksiran dan Peperiksaan</h3>
+        <h4>Jabatan Pendidikan Negeri Selangor</h4>
+        <p>SPM 2026 - 27 Subjek, 43 Kertas - Data di DESKTOP</p>
+    </div>
+    """, unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1,2,1])
+    with col2:
+        st.markdown("### 🔐 Log Masuk Sistem")
+        id_input = st.text_input("ID Pengguna:", placeholder="Masukkan ID")
+        pass_input = st.text_input("Password:", type="password", placeholder="Masukkan Password")
+        if st.button("🔓 LOG MASUK", type="primary", use_container_width=True):
+            if id_input == "jpn" and pass_input == "2026":
+                st.session_state['logged_in'] = True
+                st.rerun()
+            else:
+                st.error("❌ ID atau Password salah! ID: jpn, Password: 2026")
+        st.info("ID: jpn | Password: 2026 | Data di Desktop/data_kehadiran_calon")
     st.stop()
 
-c_user, c_logout = st.columns([4,1])
-with c_user:
-    if st.session_state.is_admin:
-        st.markdown(f"✅ Login sebagai: **🔑 ADMIN** | **{st.session_state.user_name}** | Boleh PADAM & PADAM SEMUA", unsafe_allow_html=True)
-    elif st.session_state.get('is_kppk', False):
-        st.markdown(f"✅ Login sebagai: **👔 KPPK/PENGARAH** | **{st.session_state.user_name}** | Lihat SEMUA laporan (Tak boleh padam)", unsafe_allow_html=True)
-    else:
-        st.markdown(f"✅ Login sebagai: **👤 PEMANTAU** | **{st.session_state.user_name}** | Hanya laporan anda", unsafe_allow_html=True)
-with c_logout:
-    if st.button("🚪 Log Keluar", use_container_width=True):
-        st.session_state.logged_in = False
-        st.session_state.role = ""
-        st.session_state.user_name = ""
-        st.session_state.is_admin = False
-        st.session_state.is_kppk = False
+FOLDER, SUMBER = get_active_folder()
+
+st.markdown(f"""
+<div style="background: linear-gradient(90deg, #0d47a1, #1976d2); color:white; padding:15px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+<div>
+<h3 style="margin:0; color:white;">📊 SISTEM ANALISIS KEHADIRAN CALON</h3>
+<p style="margin:0; color:#bbdefb;">Sektor Pentaksiran dan Peperiksaan | JPN Selangor | {SUMBER}</p>
+</div>
+<div style="text-align:right;">
+<p style="margin:0; color:white;">👤 JPN (jpn)</p>
+<p style="margin:0; color:#bbdefb; font-size:12px;">{SUMBER}</p>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+col_logout1, col_logout2 = st.columns([6,1])
+with col_logout2:
+    if st.button("🔒 Log Keluar", use_container_width=True):
+        st.session_state['logged_in'] = False
         st.rerun()
 
-st.markdown("""
-<div style="background: linear-gradient(135deg, #0A1931 0%, #0D47A1 50%, #1565C0 100%); padding:18px 24px; border-radius:14px; margin:10px 0; box-shadow: 0 8px 24px rgba(13,71,161,0.25);">
-    <div style="display:flex; align-items:center; gap:12px;">
-        <div style="background: rgba(255,193,7,0.2); border:1px solid rgba(255,193,7,0.4); color:#FFECB3; font-size:11px; font-weight:800; letter-spacing:1.5px; padding:4px 12px; border-radius:20px;">🏛️ JPN SELANGOR 2026</div>
-        <div style="color:#FFC107; font-size:10px; font-weight:700;">● SISTEM RASMI</div>
-        <div style="background: rgba(255,255,255,0.15); color:#FFECB3; font-size:9px; font-weight:700; padding:3px 10px; border-radius:20px; border:1px solid rgba(255,193,7,0.3); margin-left:8px;">✨ Created by Akashah Ismail</div>
-    </div>
-    <div style="color:white; font-size:22px; font-weight:900; margin-top:8px; letter-spacing:0.5px; text-shadow:0 2px 8px rgba(0,0,0,0.3);">e-Pemantauan Sektor Pentaksiran dan Peperiksaan</div>
-    <div style="color:#90CAF9; font-size:13px; font-weight:600; margin-top:4px; letter-spacing:0.3px;">Jabatan Pendidikan Negeri Selangor Tahun 2026 | SPM • Amali Sains • Ujian Bertutur BM/BI • STAM • MUET</div>
-</div>
-""", unsafe_allow_html=True)
+# ===== UPLOADER - FIXED =====
+# Kalau Desktop kosong dan Temp pun kosong, atau kita di Cloud, tunjuk uploader
+desktop_has = len(list(FOLDER_DESKTOP.glob("*.csv"))) if FOLDER_DESKTOP.exists() else []
+temp_has = len(list(TEMP_FOLDER.glob("*.csv"))) if TEMP_FOLDER.exists() else []
 
-st.divider()
-
-# ===== KPPK/PENGARAH - TANPA BORANG, HANYA PILIH PEPERIKSAAN & TARIKH - LAPORAN SAMA FORMAT 100% DENGAN ADMIN/PEMANTAU (FIX FINAL KASHAH) =====
-if st.session_state.get('is_kppk', False):
-    st.markdown("<div style='background: linear-gradient(135deg, #4A148C 0%, #7B1FA2 100%); padding:18px 22px; border-radius:14px; margin-bottom:16px;'><div style='display:flex; align-items:center; gap:10px;'><div style='background: rgba(255,255,255,0.2); padding:8px 14px; border-radius:20px; font-size:12px; font-weight:800; color:white;'>KPPK / PENGARAH</div><div style='color:#E1BEE7; font-size:11px; font-weight:700;'>Paparan Laporan Pemantauan</div></div><div style='color:white; font-size:18px; font-weight:800; margin-top:10px;'>Papan Pemuka Laporan - Pilih Peperiksaan</div><div style='color:#CE93D8; font-size:12px; margin-top:4px;'>Pilih peperiksaan - Pilih tarikh - Format sama 100% dengan Admin & Pemantau</div></div>", unsafe_allow_html=True)
-    
-    jenis_kppk = st.radio("Pilih Peperiksaan untuk Lihat Laporan:", ["1. Pemantauan SPM", "2. Pemantauan Amali Sains", "3. Ujian Bertutur BM", "4. Ujian Bertutur BI", "5. STAM", "6. MUET"], horizontal=True)
-    
-    if "1. Pemantauan SPM" in jenis_kppk:
-        FILE_LAP_KPPK = "laporan_spm_504.json"
-        MODE_KPPK = "SPM"
-    elif "2. Pemantauan Amali" in jenis_kppk:
-        FILE_LAP_KPPK = "laporan_amali_473.json"
-        MODE_KPPK = "AMALI"
-    elif "3. Ujian Bertutur BM" in jenis_kppk:
-        FILE_LAP_KPPK = "laporan_ubbm.json"
-        MODE_KPPK = "UBBM"
-    elif "4. Ujian Bertutur BI" in jenis_kppk:
-        FILE_LAP_KPPK = "laporan_ubbi.json"
-        MODE_KPPK = "UBBI"
-    elif "5. STAM" in jenis_kppk:
-        FILE_LAP_KPPK = "laporan_stam.json"
-        MODE_KPPK = "STAM"
+if temp_has == 0 and desktop_has == 0:
+    st.warning(f"⚠️ Data tidak ditemui. Sila upload CSV dari Desktop/data_kehadiran_calon")
+    st.markdown("### 📤 Upload Data dari Desktop (Data Tidak Disimpan di GitHub)")
+    uploaded_files = st.file_uploader("Pilih file CSV (1103_1.csv, dll) - boleh pilih banyak file terus", type=["csv"], accept_multiple_files=True)
+    if uploaded_files:
+        for uf in uploaded_files:
+            save_path = TEMP_FOLDER / uf.name
+            with open(save_path, "wb") as f:
+                f.write(uf.getbuffer())
+        st.success(f"✅ {len(uploaded_files)} file berjaya diupload! Sila tunggu refresh...")
+        st.rerun()
+else:
+    # Dah ada data, tunjuk info dan bagi option upload lagi kalau nak tambah
+    if "UPLOAD" in SUMBER:
+        st.success(f"✅ {SUMBER} | Folder: {TEMP_FOLDER}")
+        with st.expander("📤 Tambah / Ganti file CSV"):
+            uploaded_files = st.file_uploader("Upload lagi file CSV dari Desktop", type=["csv"], accept_multiple_files=True, key="tambah")
+            if uploaded_files:
+                for uf in uploaded_files:
+                    save_path = TEMP_FOLDER / uf.name
+                    with open(save_path, "wb") as f:
+                        f.write(uf.getbuffer())
+                st.success(f"✅ {len(uploaded_files)} file diupload!")
+                st.rerun()
     else:
-        FILE_LAP_KPPK = "laporan_muet.json"
-        MODE_KPPK = "MUET"
+        st.success(f"✅ {SUMBER} | Folder: {FOLDER}")
+
+# Refresh folder selepas upload
+FOLDER, SUMBER = get_active_folder()
+
+left_menu, right_content = st.columns([1.2, 3.8])
+
+with left_menu:
+    st.markdown("### 📋 MENU UTAMA")
+    if st.button("📚 Semua Subjek\n27 Subjek", use_container_width=True, type="primary" if st.session_state['menu_utama']=="📚 Semua Subjek" else "secondary"):
+        st.session_state['menu_utama'] = "📚 Semua Subjek"; st.rerun()
+    if st.button("⚖️ Perbandingan\n3 Butang", use_container_width=True, type="primary" if st.session_state['menu_utama']=="⚖️ Perbandingan" else "secondary"):
+        st.session_state['menu_utama'] = "⚖️ Perbandingan"; st.rerun()
+    st.markdown("---")
+    st.markdown("### 🎓 JENIS CALON")
+    if st.button("🌐 SEMUA", use_container_width=True, type="primary" if st.session_state['filter_jenis'] is None else "secondary"):
+        st.session_state['filter_jenis']=None; st.rerun()
+    for h,l in JENIS_CALON.items():
+        if st.button(f"{h} - {l}", use_container_width=True, type="primary" if st.session_state['filter_jenis']==h else "secondary", key=f"jenis_{h}"):
+            st.session_state['filter_jenis']=h; st.rerun()
+    st.markdown("---")
+    st.write(f"📂 {SUMBER}")
+    st.write(f"📁 {FOLDER}")
+    if FOLDER.exists():
+        files = sorted([f.name for f in FOLDER.glob("*.csv")])
+        if files:
+            st.success(f"📂 {len(files)} file")
+            for f in files[:15]:
+                st.write(f"📄 {f}")
+        else:
+            st.warning("Tiada CSV"); files=[]
+    else:
+        st.error(f"Folder tak wujud"); files=[]
+
+with right_content:
+    filter_huruf = st.session_state['filter_jenis']
+    if filter_huruf:
+        st.warning(f"🔍 Filter: Jenis {filter_huruf} - {JENIS_CALON[filter_huruf]} | {SUMBER}")
+    else:
+        st.info(f"🌐 SEMUA JENIS | {SUMBER} | {len(files)} file CSV")
     
-    def load_laporan_kppk():
-        if os.path.exists(FILE_LAP_KPPK):
-            try:
-                with open(FILE_LAP_KPPK, "r", encoding="utf-8") as f:
-                    return json.load(f)
-            except:
-                return []
-        return []
-    
-    lap_list_kppk = load_laporan_kppk()
-    st.divider()
-    
-    if not lap_list_kppk:
-        st.info(f"Belum ada laporan {MODE_KPPK} dalam sistem.")
+    if not files:
+        st.error("❌ Tiada file CSV. Sila upload di atas.")
         st.stop()
     
-    c1,c2,c3 = st.columns(3)
-    with c1: st.metric(f"Jumlah Laporan {MODE_KPPK}", len(lap_list_kppk))
-    with c2: 
-        tarikh_unique = len(set([l.get('tarikh_lawatan','') for l in lap_list_kppk]))
-        st.metric("Bilangan Tarikh", tarikh_unique)
-    with c3:
-        pemantau_unique = len(set([l.get('nama_pemantau','') for l in lap_list_kppk]))
-        st.metric("Bilangan Pemantau", pemantau_unique)
-    
-    from collections import Counter
-    tarikh_all = [l.get('tarikh_lawatan','') for l in lap_list_kppk]
-    counter_tarikh = Counter(tarikh_all)
-    unique_tarikh = sorted(set(tarikh_all), reverse=True)
-    tarikh_options = ["Semua Tarikh"] + [f"{t} ({counter_tarikh[t]} laporan)" for t in unique_tarikh if t]
-    pilih_tarikh_raw = st.selectbox(f"Pilih Tarikh Pemantauan {MODE_KPPK} ({len(unique_tarikh)} tarikh, {len(lap_list_kppk)} laporan):", tarikh_options)
-    
-    if pilih_tarikh_raw == "Semua Tarikh":
-        filtered_kppk = lap_list_kppk
+    if st.session_state['menu_utama'] == "📚 Semua Subjek":
+        st.header(f"📚 Semua Subjek - {len(files)} file ada")
+        selected_subjek = st.selectbox("Pilih Mata Pelajaran (27 subjek):", list(SUBJEK_LENGKAP.keys()), index=0)
+        kertas_list = SUBJEK_LENGKAP[selected_subjek]["kertas"]
+        st.write(f"**{selected_subjek}** - {len(kertas_list)} kertas")
+        tabs = st.tabs([f"{k['key']}" for k in kertas_list])
+        for idx, tab in enumerate(tabs):
+            with tab:
+                k_info = kertas_list[idx]
+                file_hint = k_info["file"]
+                key = k_info["key"]
+                st.write(f"**{key} - {k_info.get('nama','')}** - File: {file_hint}.csv")
+                found = FOLDER / f"{file_hint}.csv" if (FOLDER / f"{file_hint}.csv").exists() else None
+                c1,c2 = st.columns([3,1])
+                with c1:
+                    if found:
+                        st.success(f"✅ {found.name} ada di {SUMBER}")
+                    else:
+                        st.warning(f"Belum ada {file_hint}.csv")
+                with c2:
+                    if st.button(f"📂 BACA {key}", key=f"baca_{key}_{idx}", type="primary", use_container_width=True, disabled=found is None):
+                        if found:
+                            total, hadir, th, peratus, asing, ah, at, rd, rl = baca_csv(found)
+                            st.session_state.stats_all[key] = {"total": total, "hadir": hadir, "th": th, "peratus": peratus, "asing": asing, "ah": ah, "at": at, "rd": rd, "rl": rl, "file_hint": file_hint}
+                            st.rerun()
+                stats = st.session_state.stats_all.get(key)
+                if stats:
+                    rows_filtered = stats['rl']
+                    if filter_huruf:
+                        rows_filtered = [r for r in rows_filtered if r['Jenis_Huruf']==filter_huruf]
+                        total_f = len(rows_filtered); hadir_f = sum(1 for r in rows_filtered if r.get('Status Kehadiran')=='Hadir'); th_f = total_f-hadir_f; per_f = (hadir_f/total_f*100) if total_f>0 else 0
+                    else:
+                        total_f = stats['total']; hadir_f = stats['hadir']; th_f = stats['th']; per_f = stats['peratus']
+                    m1,m2,m3,m4 = st.columns(4)
+                    m1.metric(f"Jumlah ({filter_huruf if filter_huruf else 'SEMUA'})", f"{total_f:,}")
+                    m2.metric("Hadir", f"{hadir_f:,}")
+                    m3.metric("TH", f"{th_f:,}")
+                    m4.metric("%", f"{per_f:.1f}%")
+                    st.markdown(f"#### 📊 Asingan A-E")
+                    table=[]
+                    for h in ["A","B","C","D","E"]:
+                        if h in stats['asing']:
+                            table.append({"Huruf": h, "Jenis": JENIS_CALON[h], "Jumlah": stats['asing'][h], "Hadir": stats['ah'].get(h,0), "TH": stats['at'].get(h,0), "Aktif": "👉" if filter_huruf==h else ""})
+                    st.dataframe(table, use_container_width=True)
+                    st.markdown(f"#### 📋 Senarai {filter_huruf if filter_huruf else 'SEMUA'} ({len(rows_filtered)} calon)")
+                    if rows_filtered:
+                        disp=[{"Angka": r.get('Angka Giliran'), "Nama": r.get('Nama',''), "Daerah": r.get('Daerah_Kod'), "Jenis": r.get('Jenis_Huruf'), "Status": r.get('Status Kehadiran'), "Pusat": r.get('Nama Pusat','')[:35]} for r in rows_filtered[:500]]
+                        st.dataframe(disp, use_container_width=True)
     else:
-        tarikh_selected = pilih_tarikh_raw.split(" (")[0]
-        filtered_kppk = [l for l in lap_list_kppk if l.get('tarikh_lawatan','') == tarikh_selected]
-    
-    filtered_kppk = sorted(filtered_kppk, key=lambda x: (x.get('tarikh_lawatan',''), x.get('masa_lawatan',''), x.get('no_pusat','')))
-
-    # ===== TAMBAH PILIH DAERAH UNTUK KPPK/PENGARAH SELEPAS PILIH TARIKH =====
-    from collections import Counter as CounterDaerahKPPK
-    daerah_list_kppk = []
-    for l in filtered_kppk:
-        try:
-            d = get_nama_daerah_from_pusat(l.get('no_pusat',''), l.get('kod_ppd',''))
-        except:
-            d = l.get('daerah_pemantau','') or l.get('kod_ppd','') or 'Tidak Diketahui'
-        if not d or str(d).strip() == '':
-            d = l.get('daerah_pemantau','Tidak Diketahui')
-        daerah_list_kppk.append(str(d).strip())
-
-    counter_daerah_kppk = CounterDaerahKPPK(daerah_list_kppk)
-    unique_daerah_kppk = sorted(set(daerah_list_kppk))
-
-    if len(unique_daerah_kppk) > 1:
-        daerah_options_kppk = ["🌍 Semua Daerah"] + [f"{d} ({counter_daerah_kppk[d]} laporan)" for d in unique_daerah_kppk]
-        pilih_daerah_kppk_raw = st.selectbox(f"📍 Pilih Daerah (KPPK/Pengarah) - {len(unique_daerah_kppk)} daerah:", daerah_options_kppk, key=f"pilih_daerah_kppk_{MODE_KPPK}_{pilih_tarikh_raw}")
-
-        if pilih_daerah_kppk_raw == "🌍 Semua Daerah":
-            filtered_kppk_daerah = filtered_kppk
+        st.header("⚖️ Perbandingan 2 Kertas")
+        if len(files) < 2:
+            st.warning("Perlu upload sekurang-kurangnya 2 file CSV untuk perbandingan")
         else:
-            daerah_selected_kppk = pilih_daerah_kppk_raw.split(" (")[0]
-            filtered_kppk_daerah = []
-            for l in filtered_kppk:
-                try:
-                    d = get_nama_daerah_from_pusat(l.get('no_pusat',''), l.get('kod_ppd',''))
-                except:
-                    d = l.get('daerah_pemantau','') or l.get('kod_ppd','') or 'Tidak Diketahui'
-                if str(d).strip() == daerah_selected_kppk:
-                    filtered_kppk_daerah.append(l)
-        filtered_kppk = filtered_kppk_daerah
-        st.info(f"📍 KPPK Filter: {pilih_tarikh_raw} + {pilih_daerah_kppk_raw} = {len(filtered_kppk)} laporan")
-    else:
-        if unique_daerah_kppk:
-            st.caption(f"📍 Daerah: {unique_daerah_kppk[0]} - {len(filtered_kppk)} laporan")
-
-    st.write(f"Menunjukkan {len(filtered_kppk)} laporan untuk {pilih_tarikh_raw}")
-    
-    if len(filtered_kppk) > 1:
-        pilihan_labels = []
-        for l in filtered_kppk:
-            mp_short = l.get('mata_pelajaran','')[:35]
-            pilihan_labels.append(f"{l.get('no_pusat','')} | {l.get('nama_sekolah','')[:25]} | {l.get('masa_lawatan','')} | {mp_short} | {l.get('nama_pemantau','')[:15]}")
-        idx_pilih = st.selectbox(f"Pilih Laporan {MODE_KPPK} - {pilih_tarikh_raw}:", range(len(filtered_kppk)), format_func=lambda i: pilihan_labels[i])
-        sel = filtered_kppk[idx_pilih]
-    else:
-        sel = filtered_kppk[0]
-        st.success(f"{sel['no_pusat']} | {sel['nama_sekolah']} | {sel['tarikh_lawatan']} {sel.get('masa_lawatan','')} | {sel['mata_pelajaran'][:40]}")
-    
-    MODE = MODE_KPPK
-    
-    def badge(text, bg="#E3F2FD", color="#0D47A1"):
-        return f'<span style="display:inline-block; background:{bg}; color:{color}; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; margin:1px;">{text}</span>'
-
-    b_kebal = sel.get('bilik_kebal_penyelia','')
-    if b_kebal and "Penyelia Kawasan" in str(sel.get('jawatan_pemantau','')):
-        pemantau_html = f" {sel['nama_pemantau']} | {badge(sel['jawatan_pemantau'], '#0D47A1', 'white')} {badge(sel['daerah_pemantau'], '#E0E7FF', '#4338CA')} {badge(f'Bilik Kebal: {b_kebal}', '#FFF3E0', '#EF6C00')}"
-    else:
-        pemantau_html = f" {sel.get('nama_pemantau','')} | {badge(sel.get('jawatan_pemantau',''), '#0D47A1', 'white')} {badge(sel.get('daerah_pemantau',''), '#E0E7FF', '#4338CA')}"
-
-    b_pep = sel.get('bilik_peperiksaan',0)
-    b_kuar = sel.get('bilik_kuarantin',0)
-    b_sakit = sel.get('bilik_sakit',0)
-    b_dewan = sel.get('dewan',0)
-    b_total = sel.get('total_bilik',0)
-    b_makmal = sel.get('bilik_makmal',0)
-    b_makmal_ujian = sel.get('bilik_makmal_ujian', sel.get('bilik_peperiksaan',0))
-    b_persediaan = sel.get('bilik_persediaan',0)
-    b_sidang = sel.get('sidang_no','')
-    b_ujian = sel.get('bilik_ujian',0)
-    b_menunggu = sel.get('bilik_menunggu', sel.get('bilik_lapor',0))
-    b_petugas = sel.get('petugas',0)
-    b_kelas = sel.get('bilik_kelas',0)
-    c_berdaftar = sel.get('calon_berdaftar',0)
-    c_hadir = sel.get('calon_hadir',0)
-    c_th = sel.get('calon_tidak_hadir',0)
-    c_cicir = sel.get('calon_cicir',0)
-    c_bantah = sel.get('calon_bantah',0)
-    c_menumpang = sel.get('calon_menumpang',0)
-    c_keseluruhan = sel.get('calon_keseluruhan',0)
-    c_hari = sel.get('hari','')
-    # Jumlah sebenar sidang yang pemantau isi (contoh 15), bukan keseluruhan 62
-    c_jumlah_sebenar_sidang = sel.get('jumlah_sebenar_sidang', sel.get('jumlah_sebenar', 0)) or c_berdaftar
-    if c_jumlah_sebenar_sidang == 0:
-        c_jumlah_sebenar_sidang = 15
-    # Jika jumlah sebenar >20, cap max 20 (1 sidang max 20)
-    if c_jumlah_sebenar_sidang > 20:
-        c_jumlah_sebenar_sidang = sel.get('jumlah_sebenar_sidang', sel.get('jumlah_sebenar', 20)) if sel.get('jumlah_sebenar_sidang', 0) <= 20 else 20
-
-    if MODE in ["SPM"]:
-        bilik_html = f"{badge(f'Pep: {b_pep}', '#E8F5E9', '#2E7D32')} {badge(f'Kuarantin: {b_kuar}', '#FFF3E0', '#EF6C00')} {badge(f'Sakit: {b_sakit}', '#FCE4EC', '#C2185B')} {badge(f'Dewan: {b_dewan}', '#E3F2FD', '#1565C0')} {badge(f'Total: {b_total}', '#0D47A1', 'white')}"
-        calon_html = f"{badge(f'Berdaftar: {c_berdaftar}', '#E3F2FD', '#0D47A1')} {badge(f'Hadir: {c_hadir}', '#E8F5E9', '#2E7D32')} {badge(f'TH: {c_th}', '#FFEBEE', '#C62828')} {badge(f'Cicir: {c_cicir}', '#FFF3E0', '#EF6C00')} {badge(f'Bantah: {c_bantah}', '#F3E5F5', '#6A1B9A')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
-        petugas_html = f"{badge(f'Bil Petugas: {b_petugas}', '#0D47A1', 'white')} {badge(f'Ketua Pengawas + Pengawas', '#E0F7FA', '#006064')}"
-    elif MODE=="AMALI":
-        b_kuar_amali = sel.get('bilik_kuarantin', 0)
-        b_bilangan_sidang = sel.get('bilangan_sidang', sel.get('total_bilik', 0))
-        b_sidang_lawatan = sel.get('sidang_lawatan', sel.get('sidang_no',''))
-        bilik_html = f"{badge(f'Makmal: {b_makmal}', '#E8F5E9', '#2E7D32')} {badge(f'Bilik Ujian: {b_makmal_ujian}', '#E3F2FD', '#1565C0')} {badge(f'Persediaan: {b_persediaan}', '#FFF3E0', '#EF6C00')} {badge(f'Kuarantin: {b_kuar_amali}', '#FFEBEE', '#C62828')} {badge(f'Bil Sidang: {b_bilangan_sidang}', '#E0F7FA', '#006064')} {badge(f'Lawatan Sidang: {b_sidang_lawatan}', '#F3E5F5', '#6A1B9A')} {badge(f'Total Bilik: {b_total}', '#0D47A1', 'white')}"
-        calon_html = f"{badge(f'Sebenar Sidang: {c_jumlah_sebenar_sidang}', '#E3F2FD', '#0D47A1')} {badge(f'Hadir: {c_hadir}', '#E8F5E9', '#2E7D32')} {badge(f'TH: {c_th}', '#FFEBEE', '#C62828')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
-        petugas_html = f"{badge(f'Bil Petugas: {b_petugas}', '#0D47A1', 'white')} {badge(f'Petugas Makmal Amali', '#E0F7FA', '#006064')}"
-    elif MODE in ["UBBM","UBBI"]:
-        bilik_html = f"{badge(f'Bilik Menunggu: {b_menunggu}', '#E3F2FD', '#1565C0')} {badge(f'Bilik Ujian: {b_ujian}', '#E8F5E9', '#2E7D32')} {badge(f'Kuarantin: {b_kuar}', '#FFF3E0', '#EF6C00')} {badge(f'Sidang Dipantau: {b_sidang}', '#E0F2F1', '#00695C')} {badge(f'Total: {b_total}', '#0D47A1', 'white')}"
-        petugas_html = f"{badge(f'Bil Petugas: {b_petugas}', '#0D47A1', 'white')} {badge(f'Ketua Pengawas + Pengawas', '#E0F7FA', '#006064')}"
-        calon_html = f"{badge(f'Berdaftar: {c_berdaftar}', '#E3F2FD', '#0D47A1')} {badge(f'Hadir: {c_hadir}', '#E8F5E9', '#2E7D32')} {badge(f'TH: {c_th}', '#FFEBEE', '#C62828')} {badge(f'Hari: {c_hari}', '#FFF8E1', '#F57F17')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
-    else:
-        bilik_html = f"{badge(f'Kelas/Dewan: {b_kelas}', '#E8F5E9', '#2E7D32')} {badge(f'Kuarantin: {b_kuar}', '#FFF3E0', '#EF6C00')} {badge(f'Total: {b_total}', '#0D47A1', 'white')}"
-        calon_html = f"{badge(f'Berdaftar: {c_berdaftar}', '#E3F2FD', '#0D47A1')} {badge(f'Hadir: {c_hadir}', '#E8F5E9', '#2E7D32')} {badge(f'TH: {c_th}', '#FFEBEE', '#C62828')} {badge(f'Menumpang: {c_menumpang}', '#E0F7FA', '#006064')} {badge(f'Cicir: {c_cicir}', '#FFF3E0', '#EF6C00')} {badge(f'Bantah: {c_bantah}', '#F3E5F5', '#6A1B9A')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
-        petugas_html = f"{badge(f'Bil Petugas: {b_petugas}', '#0D47A1', 'white')} {badge(f'Ketua Pengawas + Pengawas', '#E0F7FA', '#006064')}"
-
-    jenis_label = sel.get('jenis','SPM')
-    if jenis_label=="UBBM":
-        jenis_label_full = "UJIAN BERTUTUR BAHASA MELAYU"
-        jenis_icon = "BM"
-    elif jenis_label=="UBBI":
-        jenis_label_full = "UJIAN BERTUTUR BAHASA INGGERIS"
-        jenis_icon = "BI"
-    elif jenis_label=="STAM":
-        jenis_label_full = "STAM"
-        jenis_icon = "STAM"
-    elif jenis_label=="MUET":
-        jenis_label_full = "MUET"
-        jenis_icon = "MUET"
-    elif jenis_label=="AMALI":
-        jenis_label_full = "AMALI SAINS SPM 2026"
-        jenis_icon = "AMALI"
-    else:
-        jenis_label_full = "SPM 2026"
-        jenis_icon = "SPM"
-
-    IMG_D = IMG_DEWAN_B64 if 'IMG_DEWAN_B64' in globals() else ""
-    IMG_S = IMG_SEKOLAH_B64 if 'IMG_SEKOLAH_B64' in globals() else ""
-
-    def buat_carta_pai_html_kppk(sel_data):
-        try:
-            hadir = int(sel_data.get('calon_hadir',0) or 0)
-            th = int(sel_data.get('calon_tidak_hadir',0) or 0)
-            berdaftar = int(sel_data.get('calon_berdaftar',0) or 0)
-            sidang_lawatan = sel_data.get('sidang_lawatan', sel_data.get('sidang_no','')) or ''
-            mode_data = sel_data.get('jenis','')
-            
-            # KHAS AMALI - graf sidang sebenar - HANYA sidang dilawati (20), bukan keseluruhan 62
-            if mode_data == "AMALI" or str(sidang_lawatan).strip() != "":
-                jumlah_sebenar_sidang = sel_data.get('jumlah_sebenar_sidang', 0) or sel_data.get('jumlah_sebenar', 0) or 20
-                if jumlah_sebenar_sidang == 0:
-                    jumlah_sebenar_sidang = berdaftar if berdaftar > 0 and berdaftar <= 20 else (hadir + th if (hadir+th) > 0 else 20)
-                total_sidang = jumlah_sebenar_sidang
-                if total_sidang == 0:
-                    total_sidang = 20
-                th = total_sidang - hadir
-                if th < 0:
-                    th = 0
-                pct_hadir = int(hadir/total_sidang*100) if total_sidang else 0
-                pct_th = 100 - pct_hadir
-                return f'<div style="text-align:center;"><div style="font-size:9px; font-weight:800; color:#6A1B9A; background:#F3E5F5; padding:3px 8px; border-radius:20px; margin-bottom:6px;">📊 SIDANG {sidang_lawatan} - {hadir}/{total_sidang}</div><div style="width:90px; height:90px; border-radius:50%; background: conic-gradient(#4CAF50 0% {pct_hadir}%, #EF5350 {pct_hadir}% 100%); margin:0 auto;"></div><div style="font-size:9px; margin-top:8px;"><span style="color:#4CAF50; font-weight:700;">Hadir S{sidang_lawatan}: {hadir} ({pct_hadir}%)</span><br/><span style="color:#EF5350; font-weight:700;">TH S{sidang_lawatan}: {th} ({pct_th}%)</span><br/><span style="font-size:8px; color:#6A1B9A;">Jumlah Sebenar S{sidang_lawatan}: {total_sidang}</span></div></div>'
-            
-            total = hadir + th
-            if total == 0: total = 1
-            pct_hadir = int(hadir/total*100) if total else 0
-            pct_th = 100 - pct_hadir
-            return f'<div style="text-align:center;"><div style="width:90px; height:90px; border-radius:50%; background: conic-gradient(#4CAF50 0% {pct_hadir}%, #EF5350 {pct_hadir}% 100%); margin:0 auto;"></div><div style="font-size:10px; margin-top:8px;"><span style="color:#4CAF50;">Hadir {pct_hadir}%</span> <span style="color:#EF5350; margin-left:8px;">TH {pct_th}%</span></div></div>'
-        except:
-            return '<div style="text-align:center; font-size:10px; color:#999;">Carta</div>'
-    
-    CHART_PAI_HTML = buat_carta_pai_html_kppk(sel)
-
-    if MODE=="SPM":
-        table_rows = f"<tr style='background:#FAFBFC; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;'>📅 TARIKH & HARI LAWATAN SPM</td><td style='padding:10px 14px;'><span style='background:#0D47A1; color:white; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700;'>📅 {sel['tarikh_lawatan']}</span> <span style='background:#E8F5E9; color:#2E7D32; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;'>📆 {sel.get('hari','')}</span> <span style='background:#FFF8E1; color:#F57F17; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;'>🕒 {sel['masa_lawatan']}</span></td></tr><tr style='background:#FFF9C4; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:800; color:#F57F17; font-size:11px; border-right:1px solid #FFE0B2;'>📚 MATA PELAJARAN SPM</td><td style='padding:10px 14px;'><span style='background:#0D47A1; color:white; padding:5px 14px; border-radius:20px; font-size:12px; font-weight:800;'>{sel['mata_pelajaran']}</span></td></tr><tr style='border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;'>BILIK PEPERIKSAAN SPM</td><td style='padding:10px 14px;'>{bilik_html}</td></tr><tr style='background:#FFF3E0; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:800; color:#EF6C00; font-size:11px; border-right:1px solid #FFE0B2;'>KEHADIRAN PETUGAS SPM</td><td style='padding:10px 14px;'>{petugas_html}</td></tr><tr style='background:#FAFBFC; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;'>KEHADIRAN CALON SPM</td><td style='padding:10px 14px;'>{calon_html}</td></tr><tr style='border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;'>ULASAN PEMANTAUAN SPM</td><td style='padding:11px 14px; font-style:italic; background:#FFFEF7; border-left:3px solid #FFC107;'>{sel['ulasan'] or 'Tiada ulasan'}</td></tr><tr style='background: linear-gradient(90deg, #EEF2FF 0%, #E0E7FF 100%);'><td style='padding:11px 14px; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #C7D2FE;'>PEMANTAU SPM</td><td style='padding:11px 14px; font-weight:600;'>{pemantau_html}</td></tr>"
-    elif MODE=="AMALI":
-        table_rows = f"<tr style='background:#FAFBFC; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;'>📅 TARIKH & HARI LAWATAN AMALI</td><td style='padding:10px 14px;'><span style='background:#0D47A1; color:white; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700;'>📅 {sel['tarikh_lawatan']}</span> <span style='background:#E8F5E9; color:#2E7D32; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;'>📆 {sel.get('hari','')}</span> <span style='background:#FFF8E1; color:#F57F17; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;'>🕒 {sel['masa_lawatan']}</span></td></tr><tr style='background:#FFF9C4; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:800; color:#F57F17; font-size:11px; border-right:1px solid #FFE0B2;'>📚 MATA PELAJARAN AMALI</td><td style='padding:10px 14px;'><span style='background:#0D47A1; color:white; padding:5px 14px; border-radius:20px; font-size:12px; font-weight:800;'>{sel['mata_pelajaran']}</span></td></tr><tr style='border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;'>🔬 BILIK AMALI SAINS</td><td style='padding:10px 14px;'>{bilik_html}</td></tr><tr style='background:#E3F2FD; border-bottom:2px solid #90CAF9;'><td style='padding:12px 14px; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #90CAF9;'>📊 JUMLAH SEBENAR CALON SIDANG {sel.get('sidang_lawatan','-')}</td><td style='padding:10px 14px;'><span style='background:#0D47A1; color:white; padding:6px 18px; border-radius:20px; font-size:14px; font-weight:800;'>📊 Jumlah Sebenar Sidang {sel.get('sidang_lawatan','-')}: {sel.get('calon_berdaftar',0)} CALON</span></td></tr><tr style='background:#F3E5F5; border-bottom:2px solid #E1BEE7;'><td style='padding:12px 14px; font-weight:800; color:#6A1B9A; font-size:11px; border-right:1px solid #E1BEE7;'>⏰ SIDANG LAWATAN (DIPANTAU)</td><td style='padding:10px 14px;'><b style='color:white; background:#6A1B9A; padding:6px 18px; border-radius:20px; font-size:13px;'>📌 Sidang {sel.get('sidang_lawatan','-')} DIPANTAU</b></td></tr><tr style='background:#E8F5E9; border-bottom:2px solid #A5D6A7;'><td style='padding:12px 14px; font-weight:800; color:#2E7D32; font-size:11px; border-right:1px solid #A5D6A7;'>👥 JUMLAH CALON HADIR SIDANG {sel.get('sidang_lawatan','-')}</td><td style='padding:10px 14px;'><span style='background:#2E7D32; color:white; padding:5px 14px; border-radius:20px; font-size:12px; font-weight:800;'>✅ Hadir Sidang {sel.get('sidang_lawatan','-')}: {sel.get('calon_hadir',0)}</span> <span style='background:#FFEBEE; color:#C62828; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-left:6px;'>❌ TH: {sel.get('calon_tidak_hadir',0)} (Sebenar {sel.get('calon_berdaftar',0)} - Hadir {sel.get('calon_hadir',0)})</span></td></tr><tr style='background:#FFF3E0; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:800; color:#EF6C00;'>KEHADIRAN PETUGAS AMALI</td><td style='padding:10px 14px;'>{petugas_html}</td></tr><tr style='background:#FAFBFC; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569;'>KEHADIRAN CALON AMALI (SIDANG DIPANTAU)</td><td style='padding:10px 14px;'>{calon_html}</td></tr><tr style='border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569; background:#FAFBFC;'>ULASAN AMALI</td><td style='padding:11px 14px; font-style:italic; background:#FFFEF7; border-left:3px solid #FFC107;'>{sel['ulasan'] or 'Tiada ulasan'}</td></tr><tr style='background: linear-gradient(90deg, #EEF2FF 0%, #E0E7FF 100%);'><td style='padding:11px 14px; font-weight:800; color:#0D47A1;'>PEMANTAU AMALI</td><td style='padding:11px 14px; font-weight:600;'>{pemantau_html}</td></tr>"
-    else:
-        table_rows = f"<tr style='background:#FAFBFC; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;'>📅 TARIKH & HARI LAWATAN</td><td style='padding:10px 14px;'><span style='background:#0D47A1; color:white; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700;'>📅 {sel['tarikh_lawatan']}</span> <span style='background:#E8F5E9; color:#2E7D32; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;'>📆 {sel.get('hari','')}</span> <span style='background:#FFF8E1; color:#F57F17; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;'>🕒 {sel['masa_lawatan']}</span></td></tr><tr style='background:#FFF9C4; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:800; color:#F57F17; font-size:11px; border-right:1px solid #FFE0B2;'>📚 MATA PELAJARAN</td><td style='padding:10px 14px;'><span style='background:#0D47A1; color:white; padding:5px 14px; border-radius:20px; font-size:12px; font-weight:800;'>{sel['mata_pelajaran']}</span></td></tr><tr style='border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569; background:#FAFBFC;'>BILIK ({MODE})</td><td style='padding:10px 14px;'>{bilik_html}</td></tr><tr style='background:#FFF3E0; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:800; color:#EF6C00;'>KEHADIRAN PETUGAS {MODE}</td><td style='padding:10px 14px;'>{petugas_html}</td></tr><tr style='background:#FAFBFC; border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569;'>KEHADIRAN CALON UNTUK SIDANG DIPANTAU</td><td style='padding:10px 14px;'>{calon_html}</td></tr><tr style='border-bottom:1px solid #F1F5F9;'><td style='padding:11px 14px; font-weight:700; color:#475569; background:#FAFBFC;'>ULASAN</td><td style='padding:11px 14px; font-style:italic; background:#FFFEF7; border-left:3px solid #FFC107;'>{sel['ulasan'] or 'Tiada ulasan'}</td></tr><tr style='background: linear-gradient(90deg, #EEF2FF 0%, #E0E7FF 100%);'><td style='padding:11px 14px; font-weight:800; color:#0D47A1;'>PEMANTAU</td><td style='padding:11px 14px; font-weight:600;'>{pemantau_html}</td></tr>"
-
-    html_one = f"""
-<div style="width:100%; display:flex; justify-content:center; padding:12px 8px; background: linear-gradient(135deg, #EEF2F7 0%, #E3EAF3 100%);">
-    <div style="width:100%; max-width:860px; background:white; border-radius:20px; overflow:hidden; box-shadow: 0 20px 60px rgba(13,71,161,0.18); border:1px solid white; position:relative;">
-        <div style="height:5px; background: linear-gradient(90deg, #FFC107 0%, #FFD54F 50%, #FFC107 100%);"></div>
-        <div style="background: linear-gradient(135deg, #0A1931 0%, #0D47A1 45%, #1565C0 100%); padding:22px 26px; display:flex; justify-content:space-between; align-items:center;">
-            <div style="flex:1;">
-                <div style="background: rgba(255,193,7,0.2); color:#FFECB3; font-size:10px; font-weight:800; padding:3px 10px; border-radius:20px; display:inline-block; margin-bottom:6px;">{jenis_icon} SEKTOR PENTAKSIRAN & PEPERIKSAAN - {MODE}</div>
-                <div style="color:white; font-size:20px; font-weight:900;">JABATAN PENDIDIKAN NEGERI SELANGOR</div>
-                <div style="color:#90CAF9; font-size:11px; font-weight:700; margin-top:6px;">LAPORAN PEMANTAUAN {jenis_label_full} - {sel['tarikh_lawatan']} - {sel['masa_lawatan']}</div>
-            </div>
-            <div style="text-align:right; margin-left:20px;">
-                <div style="background:white; color:#0D2A54; font-size:20px; font-weight:900; padding:10px 18px; border-radius:12px;">{sel['no_pusat']}</div>
-                <div style="color:#FFECB3; font-size:9px; font-weight:700; margin-top:7px; text-align:center;">NO. PUSAT {MODE}</div>
-            </div>
-        </div>
-        <div style="padding:18px; background:#F8FAFC;">
-            <div style="display:flex; gap:14px;">
-                <div style="flex:1.25; position:relative; border-radius:14px; overflow:hidden; height:195px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); border:2px solid white;">
-                    <img src="data:image/jpeg;base64,{IMG_D}" style="width:100%; height:100%; object-fit:cover;">
-                    <div style="position:absolute; bottom:0; left:0; right:0; padding:12px; background: linear-gradient(transparent, rgba(0,0,0,0.7));">
-                        <div style="color:white; font-size:11px; font-weight:800;">DEWAN / BILIK {MODE}</div>
-                    </div>
-                </div>
-                <div style="flex:1.25; position:relative; border-radius:14px; overflow:hidden; height:195px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); border:2px solid white;">
-                    <img src="data:image/jpeg;base64,{IMG_S}" style="width:100%; height:100%; object-fit:cover;">
-                    <div style="position:absolute; bottom:0; left:0; right:0; padding:12px; background: linear-gradient(transparent, rgba(0,0,0,0.7));">
-                        <div style="color:white; font-size:11px; font-weight:800;">BANGUNAN {MODE}</div>
-                    </div>
-                </div>
-                <div style="flex:0.95; background:white; border-radius:14px; padding:14px 12px; box-shadow: 0 8px 24px rgba(13,71,161,0.1); border:1px solid #E8EEF6; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                    {CHART_PAI_HTML}
-                </div>
-            </div>
-        </div>
-        <div style="padding:0 18px 18px;">
-            <div style="background:white; border-radius:14px; overflow:hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border:1px solid #E8EEF6;">
-                <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
-                    {table_rows}
-                </table>
-            </div>
-        </div>
-        <div style="padding:20px 26px; background:#F1F5F9; border-top:1px solid #E2E8F0; display:flex; justify-content:space-between; gap:24px;">
-            <div style="text-align:center; flex:1; border-top:2px solid #0D47A1; padding-top:10px; margin-top:30px;">
-                <div style="font-size:11px; font-weight:800; color:#0D47A1;">PEMANTAU</div>
-                <div style="font-size:12px; font-weight:700; margin-top:4px;">{sel['nama_pemantau']}</div>
-                <div style="font-size:9px; color:#64748B;">{sel['tarikh_submit']}</div>
-            </div>
-            <div style="text-align:center; flex:1; border-top:2px dashed #94A3B8; padding-top:10px; margin-top:30px;">
-                <div style="font-size:11px; font-weight:800; color:#475569;">COP SEKOLAH / PUSAT</div>
-                <div style="font-size:12px; font-weight:700; margin-top:4px;">{sel['no_pusat']}</div>
-            </div>
-            <div style="text-align:center; flex:1; border-top:2px solid #0D47A1; padding-top:10px; margin-top:30px;">
-                <div style="font-size:11px; font-weight:800; color:#0D47A1;">PENGESAHAN JPN / PPD</div>
-                <div style="font-size:9px; color:#64748B; margin-top:12px;">Tandatangan & Cop Rasmi</div>
-            </div>
-        </div>
-        <div style="background: linear-gradient(90deg, #0D47A1 0%, #1565C0 100%); padding:10px 26px; display:flex; justify-content:space-between;">
-            <div style="color:rgba(255,255,255,0.8); font-size:9px;">2026 JPN Selangor | e-Pemantauan - SPM, Amali, Ujian Bertutur, STAM & MUET | Created by Akashah Ismail</div>
-            <div style="color:#A5D6A7; font-size:9px;">SAH & DIREKODKAN</div>
-        </div>
-        <div style="height:5px; background: linear-gradient(90deg, #FFC107 0%, #FFD54F 50%, #FFC107 100%);"></div>
-        <div style="background:#0A1931; padding:8px; text-align:center;">
-            <span style="color:#FFECB3; font-size:10px; letter-spacing:0.5px;">Created by <b style="color:white;">Akashah Ismail</b> | Sektor Pentaksiran & Peperiksaan JPN Selangor | 2026</span>
-        </div>
-    </div>
-</div>
-"""
-
-    components.html(html_one, height=740, scrolling=True)
-    st.divider()
-    c1, c2 = st.columns(2)
-    with c1:
-        full_html = f"<html><head><meta charset='utf-8'></head><body>{html_one}</body></html>"
-        st.download_button("Cetak PDF / Cetak (KPPK - Sama Format Admin)", full_html, file_name=f"Laporan_{MODE}_{sel['no_pusat']}_{sel['tarikh_lawatan']}_KPPK_SAMA_ADMIN.html", mime="text/html", use_container_width=True, type="primary")
-    with c2:
-        df_one = pd.DataFrame([sel])
-        out = BytesIO()
-        with pd.ExcelWriter(out, engine='openpyxl') as writer: df_one.to_excel(writer, index=False)
-        st.download_button("Download Excel (KPPK)", out.getvalue(), file_name=f"{MODE}_{sel['no_pusat']}_KPPK.xlsx", use_container_width=True)
-    st.stop()
-
-jenis = st.radio("", ["1. Pemantauan SPM", "2. Pemantauan Amali Sains", "3. Ujian Bertutur BM", "4. Ujian Bertutur BI", "5. STAM", "6. MUET"], horizontal=True, label_visibility="collapsed")
-
-if "1. Pemantauan SPM" in jenis:
-    df_pusat, df_jadual = load_spm()
-    df_jadual["TARIKH_CLEAN"] = df_jadual["TARIKH"].astype(str).str.extract(r"(\d{4}-\d{2}-\d{2})")
-    df_jadual["MP_CLEAN"] = df_jadual["MATA PELAJARAN"].astype(str).str.replace("\n", " ").str.strip()
-    SENARAI_TARIKH = sorted(df_jadual["TARIKH_CLEAN"].dropna().unique().tolist())
-    MODE = "SPM"
-    df_ringkas = df_pusat
-elif "2. Pemantauan Amali" in jenis:
-    df_ringkas, df_jadual_amali = load_amali()
-    df_jadual_amali["tarikh_clean"] = df_jadual_amali["tarikh"].astype(str).str.replace(",", ".").str.strip()
-    def parse_t(t):
-        try:
-            if "." in t:
-                d,m,y = t.split(".")
-                return f"{y}-{m.zfill(2)}-{d.zfill(2)}"
-            return t
-        except:
-            return t
-    df_jadual_amali["tarikh_iso"] = df_jadual_amali["tarikh_clean"].apply(parse_t)
-    df_jadual_amali["mp_clean"] = df_jadual_amali["mata_pelajaran"].astype(str).str.title() + " (" + df_jadual_amali["kod_mata_pelajaran"].astype(str) + "/" + df_jadual_amali["kertas"].astype(str) + ")"
-    SENARAI_TARIKH = sorted(df_jadual_amali["tarikh_iso"].dropna().unique().tolist())
-    MODE = "AMALI"
-    df_pusat, _ = load_spm()
-elif "3. Ujian Bertutur BM" in jenis:
-    df_pusat, _ = load_spm()
-    # UBBM - Oktober, November, Disember 2026 (ikut arahan Kashah)
-    SENARAI_TARIKH = ['2026-10-01', '2026-10-02', '2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08', '2026-10-09', '2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-23', '2026-11-24', '2026-11-25', '2026-11-26', '2026-11-27', '2026-11-30', '2026-12-01', '2026-12-02', '2026-12-03', '2026-12-04', '2026-12-07', '2026-12-08', '2026-12-09', '2026-12-10', '2026-12-11', '2026-12-14', '2026-12-15', '2026-12-16', '2026-12-17', '2026-12-18']
-    MODE = "UBBM"
-    df_ringkas = df_pusat
-    df_jadual_amali = pd.DataFrame()
-elif "4. Ujian Bertutur BI" in jenis:
-    df_pusat, _ = load_spm()
-    # UBBI - Oktober, November, Disember 2026 (ikut arahan Kashah)
-    SENARAI_TARIKH = ['2026-10-01', '2026-10-02', '2026-10-05', '2026-10-06', '2026-10-07', '2026-10-08', '2026-10-09', '2026-10-12', '2026-10-13', '2026-10-14', '2026-10-15', '2026-10-16', '2026-10-19', '2026-10-20', '2026-10-21', '2026-10-22', '2026-10-23', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-11-02', '2026-11-03', '2026-11-04', '2026-11-05', '2026-11-06', '2026-11-09', '2026-11-10', '2026-11-11', '2026-11-12', '2026-11-13', '2026-11-16', '2026-11-17', '2026-11-18', '2026-11-19', '2026-11-20', '2026-11-23', '2026-11-24', '2026-11-25', '2026-11-26', '2026-11-27', '2026-11-30', '2026-12-01', '2026-12-02', '2026-12-03', '2026-12-04', '2026-12-07', '2026-12-08', '2026-12-09', '2026-12-10', '2026-12-11', '2026-12-14', '2026-12-15', '2026-12-16', '2026-12-17', '2026-12-18']
-    MODE = "UBBI"
-    df_ringkas = df_pusat
-    df_jadual_amali = pd.DataFrame()
-elif "5. STAM" in jenis:
-    df_pusat, _ = load_spm()
-    # STAM - 1 OKTOBER HINGGA 31 OKTOBER 2026 SAHAJA (ikut arahan terbaru Kashah - bukan November)
-    SENARAI_TARIKH = ["2026-10-01","2026-10-02","2026-10-03","2026-10-04","2026-10-05","2026-10-06","2026-10-07","2026-10-08","2026-10-09","2026-10-10","2026-10-11","2026-10-12","2026-10-13","2026-10-14","2026-10-15","2026-10-16","2026-10-17","2026-10-18","2026-10-19","2026-10-20","2026-10-21","2026-10-22","2026-10-23","2026-10-24","2026-10-25","2026-10-26","2026-10-27","2026-10-28","2026-10-29","2026-10-30","2026-10-31"]
-    MODE = "STAM"
-    df_ringkas = df_pusat
-    df_jadual_amali = pd.DataFrame()
-else:  # MUET - SEMUA BULAN
-    df_pusat, _ = load_spm()
-    SENARAI_TARIKH = [
-        "2026-01-10","2026-01-11","2026-01-17","2026-01-18",
-        "2026-02-07","2026-02-08","2026-02-14","2026-02-15",
-        "2026-03-08","2026-03-09","2026-03-14","2026-03-15","2026-03-16",
-        "2026-04-11","2026-04-12","2026-04-18","2026-04-19",
-        "2026-05-09","2026-05-10","2026-05-16","2026-05-17",
-        "2026-06-06","2026-06-07","2026-06-13","2026-06-14",
-        "2026-07-11","2026-07-12","2026-07-13","2026-07-18","2026-07-19",
-        "2026-08-08","2026-08-09","2026-08-15","2026-08-16",
-        "2026-09-12","2026-09-13","2026-09-19","2026-09-20",
-        "2026-10-10","2026-10-11","2026-10-17","2026-10-18",
-        "2026-11-07","2026-11-08","2026-11-09","2026-11-14","2026-11-15","2026-11-16",
-        "2026-12-05","2026-12-06","2026-12-12","2026-12-13"
-    ]
-    MODE = "MUET"
-    df_ringkas = df_pusat
-    df_jadual_amali = pd.DataFrame()
-
-if MODE=="SPM":
-    FILE_LAP = "laporan_spm_504.json"
-elif MODE=="AMALI":
-    FILE_LAP = "laporan_amali_473.json"
-elif MODE=="UBBM":
-    FILE_LAP = "laporan_ubbm.json"
-elif MODE=="UBBI":
-    FILE_LAP = "laporan_ubbi.json"
-elif MODE=="STAM":
-    FILE_LAP = "laporan_stam.json"
-else:
-    FILE_LAP = "laporan_muet.json"
-
-def load_laporan():
-    if os.path.exists(FILE_LAP):
-        try:
-            with open(FILE_LAP, "r", encoding="utf-8") as f: return json.load(f)
-        except: return []
-    return []
-
-def save_all_laporan(list_data):
-    with open(FILE_LAP, "w", encoding="utf-8") as f: json.dump(list_data, f, ensure_ascii=False, indent=2)
-
-def save_laporan(data):
-    ex = load_laporan(); ex.append(data); save_all_laporan(ex)
-
-# KOD DAERAH RASMI - BA hingga BK (10 daerah utama Selangor)
-KOD_DAERAH_MAP = {
-    "BA": "KLANG",
-    "BB": "KUALA LANGAT",
-    "BC": "KUALA SELANGOR",
-    "BD": "HULU LANGAT",
-    "BE": "HULU SELANGOR",
-    "BF": "SABAK BERNAM",
-    "BG": "GOMBAK",
-    "BH": "PETALING PERDANA",
-    "BJ": "SEPANG",
-    "BK": "PETALING UTAMA",
-    # Kod tambahan / alias (untuk filter data lama)
-    "BL": "PETALING UTAMA",
-    "BM": "KLANG",
-    "BN": "GOMBAK",
-    "A": "KLANG",
-    "J": "SEPANG",
-}
-
-# Reverse map: Nama Daerah -> List Kod (untuk filter tepat)
-NAMA_KE_KOD_MAP = {
-    "KLANG": ["BA", "BM", "A"],
-    "KUALA LANGAT": ["BB"],
-    "KUALA SELANGOR": ["BC"],
-    "HULU LANGAT": ["BD"],
-    "HULU SELANGOR": ["BE"],
-    "SABAK BERNAM": ["BF"],
-    "GOMBAK": ["BG", "BN"],
-    "PETALING PERDANA": ["BH"],
-    "SEPANG": ["BJ", "J"],
-    "PETALING UTAMA": ["BK", "BL"],
-}
-
-# Senarai 10 daerah sahaja - papar nama sahaja, tak payah kod (BA, BJ etc)
-DAERAH_LIST = ["KLANG", "KUALA LANGAT", "KUALA SELANGOR", "HULU LANGAT", "HULU SELANGOR", "SABAK BERNAM", "GOMBAK", "PETALING PERDANA", "SEPANG", "PETALING UTAMA"]
-def kod_to_daerah(kod):
-    if not kod:
-        return ""
-    kod = str(kod).strip().upper()
-    # Kod penuh (BA, BB etc)
-    if kod in KOD_DAERAH_MAP:
-        return KOD_DAERAH_MAP[kod]
-    # Ambil 2 huruf pertama
-    k2 = kod[:2]
-    if k2 in KOD_DAERAH_MAP:
-        return KOD_DAERAH_MAP[k2]
-    # Jika dah nama daerah terus
-    if kod in DAERAH_LIST:
-        return kod
-    return kod
-
-def get_nama_daerah_from_pusat(no_pusat, kod_ppd=""):
-    if kod_ppd:
-        nama = kod_to_daerah(kod_ppd)
-        if nama != kod_ppd:
-            return nama
-        # Jika kod_ppd sudah nama daerah
-        if kod_ppd.upper() in DAERAH_LIST:
-            return kod_ppd.upper()
-    if no_pusat:
-        k = str(no_pusat).strip().upper()
-        huruf = "".join([c for c in k if c.isalpha()])[:2]
-        if huruf:
-            nama = kod_to_daerah(huruf)
-            if nama in DAERAH_LIST:
-                return nama
-            return nama
-    return kod_ppd or ""
-
-def daerah_to_kod_list(nama_daerah):
-    nama_daerah = str(nama_daerah).strip().upper()
-    return NAMA_KE_KOD_MAP.get(nama_daerah, [])
-
-DAERAH_LIST = ["Petaling Perdana","Petaling Utama","Hulu Langat","Gombak","Klang","Kuala Langat","Kuala Selangor","Hulu Selangor","Sabak Bernam","Sepang"]
-
-st.markdown('<div class="borang-card"><div class="borang-header"><div class="borang-header-icon">🏫</div><div><div class="borang-header-title">Maklumat Pusat Peperiksaan</div><div class="borang-header-subtitle">Pilih Daerah → Sekolah → No Pusat</div></div></div>', unsafe_allow_html=True)
-if MODE in ["STAM","MUET"]:
-    st.caption(f"📌 {MODE} - Pusat Tak Sama SPM - Isi Sendiri | Daerah/PPD Tetap Pilih")
-else:
-    st.caption("1️⃣ Pilih Daerah/PPD → 2️⃣ Pilih Sekolah (auto filter) → 3️⃣ Pilih No Pusat")
-
-# Pilihan Daerah - hanya 10 nama daerah, tak payah kod (BA, BJ etc) - ikut arahan Kashah
-daerah_options = ["-- Pilih Daerah --"] + DAERAH_LIST
-
-col_d, col_s, col_p = st.columns([1,2,1])
-pilih_daerah = col_d.selectbox("1️⃣ Daerah / PPD", daerah_options)
-
-# ===== UNTUK STAM - ISI SENDIRI, TAK PERLU PILIHAN =====
-if MODE in ["STAM","MUET"]:
-    pilih_nama = col_s.text_input(f"2️⃣ Nama Pusat {MODE} (Isi Sendiri)", placeholder="Contoh: SMKA ... / Pusat STAM ...")
-    pilih_no = col_p.text_input(f"3️⃣ No Pusat {MODE} (Isi Sendiri)", placeholder="Contoh: BC001 / ST001")
-    # Kod PPD ambil dari pilihan daerah - map nama ke kod pertama (case-insensitive)
-    daerah_upper = pilih_daerah.strip().upper() if pilih_daerah != "-- Pilih Daerah --" else ""
-    if daerah_upper and daerah_upper in NAMA_KE_KOD_MAP:
-        kod_ppd = NAMA_KE_KOD_MAP[daerah_upper][0]
-    else:
-        kod_ppd = pilih_daerah if pilih_daerah!="-- Pilih Daerah --" else ""
-    bil_calon = ""
-    df_by_daerah = df_pusat
-    nama_list = []
-    no_opts = []
-    st.info(f"📝 {MODE} - Pusat & No Pusat diisi manual oleh pemantau (tak sama dengan SPM)")
-else:
-    # SPM, AMALI, UBBM, UBBI - pakai dropdown dengan filter TEPAT ikut daerah sahaja (FIX case-insensitive)
-    if pilih_daerah != "-- Pilih Daerah --":
-        df_by_daerah = pd.DataFrame()
-        # Lookup case-insensitive - kunci dalam map adalah UPPER
-        daerah_upper = pilih_daerah.strip().upper()
-        kod_list = NAMA_KE_KOD_MAP.get(daerah_upper, [pilih_daerah])
-        
-        # 1. Cuba filter ikut Kod_PPD = kod (BA, BE etc)
-        if "Kod_PPD" in df_pusat.columns:
-            mask_kod = df_pusat["Kod_PPD"].astype(str).str.strip().str.upper().isin([k.upper() for k in kod_list])
-            df_by_daerah = df_pusat[mask_kod]
-            
-            # 2. Jika tak jumpa, cuba filter Kod_PPD = nama daerah terus (HULU SELANGOR)
-            if df_by_daerah.empty:
-                mask_nama = df_pusat["Kod_PPD"].astype(str).str.strip().str.upper() == daerah_upper
-                df_by_daerah = df_pusat[mask_nama]
-        
-        # 3. Jika masih kosong, cuba filter ikut No_Pusat (kod dari No Pusat - BEA... -> HULU SELANGOR)
-        if df_by_daerah.empty and "No_Pusat" in df_pusat.columns:
-            try:
-                def match_daerah(no_pusat):
-                    try:
-                        return kod_to_daerah(str(no_pusat)).upper() == daerah_upper
-                    except:
-                        return False
-                mask_no = df_pusat["No_Pusat"].apply(match_daerah)
-                df_by_daerah = df_pusat[mask_no]
-            except:
-                pass
-        
-        # 4. Jika masih kosong, cuba cari column Daerah / PPD / Nama_PPD jika ada
-        if df_by_daerah.empty:
-            for col in ["Daerah", "PPD", "Nama_PPD", "Daerah_PPD", "Nama_Daerah"]:
-                if col in df_pusat.columns:
-                    mask_col = df_pusat[col].astype(str).str.strip().str.upper().str.contains(daerah_upper, na=False)
-                    if mask_col.any():
-                        df_by_daerah = df_pusat[mask_col]
-                        break
-        
-        # 5. Jika masih kosong juga, baru papar amaran dan kosongkan list
-        if df_by_daerah.empty:
-            st.error(f"⚠️ Tiada sekolah ditemui untuk {pilih_daerah} (Kod: {', '.join(kod_list)}). Semak fail Excel selenggara_pusat. Kod_PPD dalam Excel: {df_pusat['Kod_PPD'].dropna().unique()[:10].tolist() if 'Kod_PPD' in df_pusat.columns else 'tiada'}")
-            df_by_daerah = pd.DataFrame(columns=df_pusat.columns)
-            nama_list = ["-- Tiada Sekolah Dalam Daerah Ini --"]
-        else:
-            nama_list = ["-- Pilih Sekolah --"] + sorted(df_by_daerah["Nama_Pusat"].dropna().unique().tolist()) + ["LAIN-LAIN (Taip Sendiri) ✍️"]
-            kod_display = ", ".join(kod_list)
-            st.success(f"✅ {len(nama_list)-2} sekolah dalam {pilih_daerah} (Kod: {kod_display}) - Filter Tepat! + Lain-lain")
-    else:
-        df_by_daerah = df_pusat
-        nama_list = ["-- Pilih Daerah Dulu --"]
-
-    pilih_nama = col_s.selectbox("2️⃣ Nama Sekolah / Pusat", nama_list)
-
-    # Jika pilih LAIN-LAIN, keluar column isi manual untuk SPM, AMALI, UBBM, UBBI
-    if pilih_nama == "LAIN-LAIN (Taip Sendiri) ✍️":
-        st.warning("⚠️ Sekolah tiada dalam senarai? Sila taip manual di bawah (SPM / Amali / UBBM / UBBI)")
-        lain_c1, lain_c2 = st.columns(2)
-        manual_nama_lain = lain_c1.text_input("✍️ Nama Sekolah/Pusat (Lain-lain) - Taip Sendiri", placeholder="Contoh: SMK CONTOH BARU / PUSAT BARU", key="manual_nama_lain")
-        manual_no_lain = lain_c2.text_input("✍️ No Pusat (Lain-lain) - Taip Sendiri", placeholder="Contoh: BA999 / BH001 / BK999", key="manual_no_lain")
-        no_opts = [manual_no_lain] if manual_no_lain else ["-- Taip No Pusat Dulu --"]
-        kod_ppd = pilih_daerah if pilih_daerah!="-- Pilih Daerah --" else ""
-        bil_calon = ""
-        pilih_no = col_p.selectbox("3️⃣ No Pusat (Lain-lain)", no_opts)
-        # Simpan untuk final - auto uppercase seperti STAM/MUET juga
-        st.info(f"📝 Manual: {manual_nama_lain} | No: {manual_no_lain}")
-    elif pilih_nama not in ["-- Pilih Sekolah --", "-- Pilih Daerah Dulu --"] and pilih_nama != "-- Pilih --":
-        df_f = df_by_daerah[df_by_daerah["Nama_Pusat"]==pilih_nama]
-        no_opts = df_f["No_Pusat"].tolist()
-        kod_ppd = df_f.iloc[0]["Kod_PPD"] if not df_f.empty and "Kod_PPD" in df_f.columns else pilih_daerah
-        bil_calon = df_f.iloc[0]["Bil_Calon_Pusat"] if not df_f.empty and "Bil_Calon_Pusat" in df_f.columns else ""
-        manual_nama_lain = ""
-        manual_no_lain = ""
-        pilih_no = col_p.selectbox("3️⃣ No Pusat", no_opts)
-    else:
-        no_opts = ["-- Pilih Sekolah Dulu --"]
-        kod_ppd = pilih_daerah if pilih_daerah!="-- Pilih Daerah --" else ""
-        bil_calon = ""
-        manual_nama_lain = ""
-        manual_no_lain = ""
-        pilih_no = col_p.selectbox("3️⃣ No Pusat", no_opts)
-
-if MODE=="AMALI":
-    # NAMA MAKMAL - ISI SENDIRI, BUKAN PILIHAN
-    pilih_makmal = st.text_input("4️⃣ Nama Makmal (AMALI) - Isi Sendiri ✍️", placeholder="Contoh: Makmal Sains 1 / Makmal Kimia / Makmal Fizik / Makmal Biologi")
-    nama_makmal_final = pilih_makmal.strip() if pilih_makmal else ""
-    # Papar hint makmal yang ada dalam data (jika ada) sebagai rujukan sahaja
-    try:
-        df_ringkas_amali, _ = load_amali()
-        if pilih_nama not in ["-- Pilih Sekolah --", "-- Pilih Daerah Dulu --"] and not df_ringkas_amali.empty:
-            df_mak = df_ringkas_amali[df_ringkas_amali["Nama_Pusat"]==pilih_nama] if "Nama_Pusat" in df_ringkas_amali.columns else pd.DataFrame()
-            if not df_mak.empty and "Nama_Makmal" in df_mak.columns:
-                hint_makmal = df_mak["Nama_Makmal"].dropna().unique().tolist()[:5]
-                if hint_makmal:
-                    st.caption(f"💡 Rujukan makmal di pusat ini: {', '.join(hint_makmal)} (boleh taip sendiri)")
-    except:
-        pass
-    if not nama_makmal_final:
-        st.info("📝 Nama Makmal diisi manual oleh pemantau - Contoh: Makmal Sains 1")
-else:
-    nama_makmal_final = ""
-    pilih_makmal = ""
-
-if MODE in ["STAM","MUET"]:
-    if pilih_nama and pilih_no:
-        st.success(f"✅ {MODE} | {pilih_nama} | No: {pilih_no} | PPD: {kod_ppd} | {pilih_daerah}")
-else:
-    if pilih_nama == "LAIN-LAIN (Taip Sendiri) ✍️" and manual_nama_lain and manual_no_lain:
-        st.success(f"✅ {manual_nama_lain.upper()} | No: {manual_no_lain.upper()} | PPD: {kod_ppd} | Calon: {bil_calon} (Lain-lain)")
-    elif pilih_nama not in ["-- Pilih Sekolah --", "-- Pilih Daerah Dulu --"] and pilih_no not in ["-- Pilih Sekolah Dulu --"]:
-        st.success(f"✅ {pilih_nama} | No: {pilih_no} | PPD: {kod_ppd} | Calon: {bil_calon}")
-
-if MODE in ["STAM","MUET"]:
-    # AUTO TUKAR KE HURUF BESAR untuk No Pusat dan Nama Sekolah/Pusat - STAM & MUET sahaja (ulasan kekal)
-    pilih_nama_final = pilih_nama.strip().upper() if pilih_nama and pilih_nama.strip()!="" else ""
-    pilih_no_final = pilih_no.strip().upper() if pilih_no and pilih_no.strip()!="" else ""
-else:
-    # Jika LAIN-LAIN dipilih untuk SPM, AMALI, UBBM, UBBI - auto uppercase sama seperti STAM/MUET
-    if pilih_nama == "LAIN-LAIN (Taip Sendiri) ✍️":
-        pilih_nama_final = manual_nama_lain.strip().upper() if manual_nama_lain and manual_nama_lain.strip()!="" else ""
-        pilih_no_final = manual_no_lain.strip().upper() if manual_no_lain and manual_no_lain.strip()!="" else ""
-    else:
-        pilih_nama_final = pilih_nama if pilih_nama not in ["-- Pilih Sekolah --", "-- Pilih Daerah Dulu --", "-- Pilih --", "LAIN-LAIN (Taip Sendiri) ✍️"] else ""
-        pilih_no_final = pilih_no if pilih_no not in ["-- Pilih Sekolah Dulu --", "-- Pilih --"] else ""
-
-st.divider()
-st.markdown('<div class="borang-header"><div class="borang-header-icon" style="background: linear-gradient(135deg, #7B1FA2 0%, #AB47BC 100%);">📅</div><div><div class="borang-header-title">Tarikh & Masa Lawatan</div><div class="borang-header-subtitle">Tahun → Bulan → Tarikh → Masa (6 pagi - 12 malam)</div></div></div>', unsafe_allow_html=True)
-st.caption("✅ Boleh pilih Tahun & Bulan terus")
-
-from datetime import datetime as dt_parse
-try:
-    available_dates_sorted = sorted(SENARAI_TARIKH)
-    tahun_unik = sorted(set([d.split("-")[0] for d in available_dates_sorted if "-" in d]))
-    if not tahun_unik:
-        tahun_unik = ["2026"]
-except:
-    tahun_unik = ["2026"]
-    available_dates_sorted = SENARAI_TARIKH
-
-BULAN_NAMA = {"01":"Januari","02":"Februari","03":"Mac","04":"April","05":"Mei","06":"Jun","07":"Julai","08":"Ogos","09":"September","10":"Oktober","11":"November","12":"Disember"}
-
-c_y, c_m, c_d, c_t = st.columns([1,1,1.2,1.2])
-tahun_pilih = c_y.selectbox("📅 Tahun", tahun_unik, index=tahun_unik.index("2026") if "2026" in tahun_unik else 0)
-try:
-    bulan_unik = sorted(set([d.split("-")[1] for d in available_dates_sorted if d.startswith(tahun_pilih)]))
-    if not bulan_unik:
-        bulan_unik = ["02","10","11"]
-except:
-    bulan_unik = ["11","12"]
-default_bulan_idx = 0
-if MODE in ["UBBM","UBBI"] and "10" in bulan_unik:
-    default_bulan_idx = bulan_unik.index("10")
-elif MODE in ["UBBM","UBBI"] and "11" in bulan_unik:
-    default_bulan_idx = bulan_unik.index("11")
-elif MODE in ["UBBM","UBBI"] and "12" in bulan_unik:
-    default_bulan_idx = bulan_unik.index("12")
-elif "02" in bulan_unik and MODE in ["UBBM","UBBI"]:
-    default_bulan_idx = bulan_unik.index("02")
-elif "10" in bulan_unik:
-    default_bulan_idx = bulan_unik.index("10")
-elif "11" in bulan_unik:
-    default_bulan_idx = bulan_unik.index("11")
-
-bulan_pilih = c_m.selectbox("📅 Bulan", bulan_unik, index=default_bulan_idx, format_func=lambda m: f"{BULAN_NAMA.get(m,m)} ({m})")
-tarikh_list_bulan = [d for d in available_dates_sorted if d.startswith(f"{tahun_pilih}-{bulan_pilih}")]
-if not tarikh_list_bulan:
-    tarikh_list_bulan = available_dates_sorted
-tarikh_str = c_d.selectbox("📅 Tarikh (Hari)", tarikh_list_bulan, format_func=lambda d: dt_parse.strptime(d, "%Y-%m-%d").strftime("%d %b %Y - %A") if "-" in d else d)
-try:
-    tarikh = dt_parse.strptime(tarikh_str, "%Y-%m-%d").date()
-except:
-    tarikh = date(2026,11,23)
-
-hari_minggu = tarikh.strftime("%A")
-hari_melayu = {"Monday":"Isnin","Tuesday":"Selasa","Wednesday":"Rabu","Thursday":"Khamis","Friday":"Jumaat","Saturday":"Sabtu","Sunday":"Ahad"}.get(hari_minggu, hari_minggu)
-st.caption(f"🗓️ Hari: {hari_melayu} ({hari_minggu})")
-
-jam_pilihan = []
-for h in range(6, 24):
-    for m in [0, 15, 30, 45]:
-        jam_pilihan.append(f"{h:02d}:{m:02d}")
-jam_pilihan.extend(["00:00", "00:15", "00:30"])
-masa_str = c_t.selectbox("⏰ Masa (6 Pagi - 12 Malam)", jam_pilihan, index=jam_pilihan.index("09:00") if "09:00" in jam_pilihan else 0)
-try:
-    hh, mm = masa_str.split(":")[:2]
-    masa = time(int(hh), int(mm))
-except:
-    masa = time(9, 0)
-
-st.divider()
-if MODE=="SPM":
-    df_mp = df_jadual[df_jadual["TARIKH_CLEAN"]==tarikh_str]
-    mp_options = df_mp["MP_CLEAN"].tolist() if not df_mp.empty else ["Tiada MP - Pilih Tarikh Lain"]
-    pilih_mp = st.selectbox("📚 Mata Pelajaran SPM", mp_options)
-elif MODE=="AMALI":
-    df_mp = df_jadual_amali[df_jadual_amali["tarikh_iso"]==tarikh_str] if not df_jadual_amali.empty else pd.DataFrame()
-    mp_options = df_mp["mp_clean"].tolist() if not df_mp.empty else ["Tiada MP - Pilih Tarikh Lain"]
-    pilih_mp = st.selectbox("🔬 Mata Pelajaran Amali Sains", mp_options)
-elif MODE=="UBBM":
-    pilih_mp = st.selectbox("🗣️ Mata Pelajaran", ["Bahasa Melayu - Ujian Bertutur (1103/3)", "Bahasa Melayu - Ujian Bertutur - Menumpang"])
-elif MODE=="UBBI":
-    pilih_mp = st.selectbox("🗣️ Mata Pelajaran", ["Bahasa Inggeris - Ujian Bertutur (1119/3)", "Bahasa Inggeris - Ujian Bertutur - Menumpang"])
-elif MODE=="STAM":
-    stam_options = ["Hifz Al-Quran (9301)", "Hadith & Mustolah (9302)", "Tauhid & Mantiq (9303)", "Fiqh & Usul Fiqh (9304)", "Tafsir (9305)", "Nahu & Sorof (9306)", "Insya & Mutolaah (9307)", "Arudh & Qafiyah (9308)", "Balaghah (9309)", "Adab & Nusus (9310)", "Semua Kertas STAM"]
-    pilih_mp = st.selectbox("📖 Kertas Peperiksaan STAM", stam_options)
-else: # MUET
-    muet_options = ["Listening (800/1)", "Speaking (800/2)", "Reading (800/3)", "Writing (800/4)", "Semua Kertas MUET (800)"]
-    pilih_mp = st.selectbox("📝 Kertas Peperiksaan MUET", muet_options)
-
-st.divider()
-
-if MODE=="SPM":
-    st.markdown('<div class="borang-header"><div class="borang-header-icon" style="background: linear-gradient(135deg, #2E7D32 0%, #66BB6A 100%);">🚪</div><div><div class="borang-header-title">Bilangan Bilik SPM</div><div class="borang-header-subtitle">Peperiksaan + Kuarantin + Sakit + Dewan</div></div></div>', unsafe_allow_html=True)
-    b1,b2,b3,b4 = st.columns(4)
-    bilik_pep = b1.number_input("Bilik Peperiksaan", 0,50,5)
-    bilik_kuar = b2.number_input("Bilik Kuarantin", 0,10,1)
-    bilik_sakit = b3.number_input("Bilik Sakit", 0,10,1)
-    bilik_dewan = b4.number_input("Dewan", 0,10,0)
-    b5,b6 = st.columns(2)
-    petugas = b5.number_input("👮 Bilangan Petugas SPM", 0,50,5, help="Bil petugas termasuk Ketua Pengawas")
-    bilik_makmal=""; sidang_no=""; bilik_lapor=0; bilik_ujian=0; station=0; bilik_kelas=0
-    total_bilik = bilik_pep+bilik_kuar+bilik_sakit+bilik_dewan
-elif MODE=="AMALI":
-    st.markdown('<div class="borang-header"><div class="borang-header-icon" style="background: linear-gradient(135deg, #EF6C00 0%, #FFA726 100%);">🧪</div><div><div class="borang-header-title">Bilik Amali Sains</div><div class="borang-header-subtitle">Makmal + Ujian + Persediaan + Kuarantin + Sidang</div></div></div>', unsafe_allow_html=True)
-    m1,m2,m3,m4 = st.columns(4)
-    bilik_makmal = m1.number_input("Bil Makmal", 0,10,2)
-    bilik_makmal_ujian = m2.number_input("Bilik Ujian", 0,10,1)
-    bilik_persediaan = m3.number_input("Bilik Persediaan", 0,10,1)
-    bilik_kuar = m4.number_input("Bilik Kuarantin", 0,10,1)
-    m5,m6,m7 = st.columns(3)
-    bilangan_sidang = m5.number_input("📊 Bilangan Sidang (Total Sidang Makmal)", 0,10,4, help="Berapa banyak sidang keseluruhan di makmal ini, contoh 4 sidang")
-    sidang_lawatan = m6.selectbox("⏰ Sidang Lawatan (Semasa Pemantau Hadir)", ["1","2","3","4","Semua"], help="Sidang ke berapa semasa pemantau buat lawatan, contoh Sidang 2")
-    petugas = m7.number_input("👮 Bil Petugas Amali", 0,30,5, help="Bil petugas makmal Amali")
-    sidang_no = sidang_lawatan  # untuk compatibility lama
-    bilik_pep = bilik_makmal_ujian
-    bilik_sakit=bilik_dewan=bilik_lapor=bilik_ujian=station=bilik_kelas=0
-    total_bilik = bilik_makmal+bilik_makmal_ujian+bilik_persediaan+bilik_kuar
-elif MODE in ["UBBM","UBBI"]:
-    st.markdown(f"#### 🗣️ Bilangan Bilik & Sesi (Ujian Bertutur {MODE})")
-    u1,u2,u3 = st.columns(3)
-    bilik_menunggu = u1.number_input("Bilik Menunggu", 0,20,2)
-    bilik_ujian = u2.number_input("Bilik Ujian", 0,20,3)
-    bilik_kuar = u3.number_input("Bilik Kuarantin", 0,10,1)
-    s1,s2,s3 = st.columns(3)
-    sidang_no = s1.selectbox("Sidang Dipantau", ["1","2","3","4","Semua"])
-    petugas = s2.number_input("Bilangan Petugas", 0,30,5)
-    hari_text = s3.text_input("Hari", value=hari_melayu)
-    bilik_pep=bilik_ujian; bilik_sakit=0; bilik_dewan=0; bilik_makmal=""; bilik_kelas=0
-    # Total bilik = Menunggu + Ujian + Kuarantin (Station dan Lapor Diri dibuang)
-    total_bilik = bilik_menunggu+bilik_ujian+bilik_kuar
-    bilik_lapor = bilik_menunggu  # Backward compat - simpan sebagai menunggu juga
-    station = 0  # Station dibuang
-elif MODE=="STAM":
-    st.markdown('<div class="borang-header"><div class="borang-header-icon" style="background: linear-gradient(135deg, #4A148C 0%, #7B1FA2 100%);">🕌</div><div><div class="borang-header-title">Bilik & Kelas STAM</div><div class="borang-header-subtitle">Kelas/Dewan + Kuarantin + Petugas</div></div></div>', unsafe_allow_html=True)
-    st1,st2,st3 = st.columns(3)
-    bilik_kelas = st1.number_input("Bil Kelas / Dewan", 0,30,5)
-    bilik_kuar = st2.number_input("Bilik Kuarantin", 0,10,1)
-    petugas = st3.number_input("Bil Petugas (termasuk Ketua Pengawas)", 0,30,5)
-    bilik_pep=bilik_kelas; bilik_ujian=0; bilik_lapor=0; station=0; bilik_sakit=0; bilik_dewan=0; bilik_makmal=""; sidang_no=""; hari_text=""
-    total_bilik = bilik_kelas+bilik_kuar
-else: # MUET
-    st.markdown('<div class="borang-header"><div class="borang-header-icon" style="background: linear-gradient(135deg, #0D47A1 0%, #42A5F5 100%);">🎓</div><div><div class="borang-header-title">Bilik & Kelas MUET</div><div class="borang-header-subtitle">Kelas/Dewan + Kuarantin + Petugas (Jan-Dis)</div></div></div>', unsafe_allow_html=True)
-    st1,st2,st3 = st.columns(3)
-    bilik_kelas = st1.number_input("Bil Kelas / Dewan", 0,30,5)
-    bilik_kuar = st2.number_input("Bilik Kuarantin", 0,10,1)
-    petugas = st3.number_input("Bil Petugas (termasuk Ketua Pengawas)", 0,30,5)
-    bilik_pep=bilik_kelas; bilik_ujian=0; bilik_lapor=0; station=0; bilik_sakit=0; bilik_dewan=0; bilik_makmal=""; sidang_no=""; hari_text=""
-    total_bilik = bilik_kelas+bilik_kuar
-
-st.divider()
-if MODE=="AMALI":
-    st.markdown('<div class="borang-header"><div class="borang-header-icon" style="background: linear-gradient(135deg, #C2185B 0%, #EC407A 100%);">👥</div><div><div class="borang-header-title">Bilangan Calon Amali - Auto Kira Makmal & Sidang</div><div class="borang-header-subtitle">1 Makmal = 4 Sidang x 20 = 80 calon | Sains Tambahan = 3 Sidang x 20 = 60 calon</div></div></div>', unsafe_allow_html=True)
-    
-    # Auto detect Sains Tambahan
-    is_sains_tambahan = "Tambahan" in str(pilih_mp) or "4561" in str(pilih_mp)
-    sidang_per_makmal = 3 if is_sains_tambahan else 4
-    kapasiti_per_makmal = sidang_per_makmal * 20
-    
-    ca_top1, ca_top2 = st.columns([2,1])
-    calon_berdaftar_total = ca_top1.number_input("📊 Jumlah Calon Berdaftar Keseluruhan (Semua Makmal)", 0,500, int(bil_calon) if str(bil_calon).isdigit() else 103, help="Jumlah sebenar calon keseluruhan untuk mata pelajaran ini di pusat ini, contoh 103")
-    
-    # Auto kira makmal diperlukan
-    import math
-    makmal_diperlukan = math.ceil(calon_berdaftar_total / kapasiti_per_makmal) if calon_berdaftar_total > 0 else 1
-    baki_calon = calon_berdaftar_total % kapasiti_per_makmal
-    if baki_calon == 0 and calon_berdaftar_total > 0:
-        baki_calon = kapasiti_per_makmal
-    
-    # Info kapasiti
-    if is_sains_tambahan:
-        ca_top2.info(f"🔬 Sains Tambahan\n{sidang_per_makmal} Sidang x 20 = {kapasiti_per_makmal} calon/makmal\n{makmal_diperlukan} Makmal Diperlukan")
-    else:
-        ca_top2.info(f"🧪 Fizik/Kimia/Bio\n{sidang_per_makmal} Sidang x 20 = {kapasiti_per_makmal} calon/makmal\n{makmal_diperlukan} Makmal Diperlukan")
-    
-    # Detail agihan makmal
-    with st.expander(f"📋 Agihan {calon_berdaftar_total} Calon ke {makmal_diperlukan} Makmal (Auto Kira)", expanded=True):
-        agihan_text = ""
-        baki = calon_berdaftar_total
-        for m in range(1, makmal_diperlukan+1):
-            if baki >= kapasiti_per_makmal:
-                calon_makmal = kapasiti_per_makmal
-                baki -= kapasiti_per_makmal
-            else:
-                calon_makmal = baki
-                baki = 0
-            agihan_text += f"**Makmal {m}:** {calon_makmal} calon ("
-            # Sidang breakdown
-            sidang_baki = calon_makmal
-            sidang_list = []
-            for s in range(1, sidang_per_makmal+1):
-                if sidang_baki >= 20:
-                    sidang_list.append(f"Sidang {s}: 20")
-                    sidang_baki -= 20
-                elif sidang_baki > 0:
-                    sidang_list.append(f"Sidang {s}: {sidang_baki}")
-                    sidang_baki = 0
-                else:
-                    break
-            agihan_text += ", ".join(sidang_list) + ")\n"
-        st.markdown(agihan_text)
-        st.caption(f"Contoh: 103 calon Fizik = Makmal 1: 80 calon (S1:20, S2:20, S3:20, S4:20) + Makmal 2: 23 calon (S1:20, S2:3)")
-    
-    st.divider()
-    st.markdown("#### 🎯 Sidang Yang Dilawati Pemantau (Fokus Laporan)")
-    cs1, cs2, cs3, cs4 = st.columns(4)
-    makmal_lawatan = cs1.selectbox("🏫 Makmal Lawatan", [f"Makmal {i}" for i in range(1, makmal_diperlukan+1)], help="Makmal mana yang pemantau lawat")
-    sidang_lawatan_detail = cs2.selectbox("⏰ Sidang Lawatan (Dilawat)", [f"Sidang {i}" for i in range(1, sidang_per_makmal+1)], help="Sidang ke berapa yang dilawati")
-    
-    # Kira jumlah sebenar calon untuk sidang yang dilawati ini
-    # Logik: jika makmal lawatan bukan makmal terakhir, semua sidang penuh 20
-    # Jika makmal terakhir, sidang-sidang awal penuh 20, sidang terakhir mungkin baki
-    makmal_num = int(makmal_lawatan.split()[-1])
-    sidang_num = int(sidang_lawatan_detail.split()[-1])
-    
-    # Kira calon dalam makmal ini
-    calon_dalam_makmal_ini = 0
-    temp_baki = calon_berdaftar_total
-    for m in range(1, makmal_diperlukan+1):
-        if temp_baki >= kapasiti_per_makmal:
-            calon_m = kapasiti_per_makmal
-            temp_baki -= kapasiti_per_makmal
-        else:
-            calon_m = temp_baki
-            temp_baki = 0
-        if m == makmal_num:
-            calon_dalam_makmal_ini = calon_m
-            break
-    
-    # Kira jumlah sebenar untuk sidang ini
-    sidang_baki2 = calon_dalam_makmal_ini
-    jumlah_sebenar_sidang = 20
-    for s in range(1, sidang_per_makmal+1):
-        if s < sidang_num:
-            if sidang_baki2 >= 20:
-                sidang_baki2 -= 20
-            else:
-                sidang_baki2 = 0
-        elif s == sidang_num:
-            if sidang_baki2 >= 20:
-                jumlah_sebenar_sidang = 20
-            elif sidang_baki2 > 0:
-                jumlah_sebenar_sidang = sidang_baki2
-            else:
-                jumlah_sebenar_sidang = 0
-            break
-    
-    # Pemantau taip sendiri Jumlah Sebenar Sidang (contoh 15, 20 max)
-    # Jika auto kira bagi cadangan, tapi pemantau boleh ubah
-    cs3, cs4a, cs4b = st.columns([1.2,1,1])
-    jumlah_sebenar_input = cs3.number_input(f"📊 Jumlah Sebenar Calon {sidang_lawatan_detail} {makmal_lawatan} (Pemantau Taip)", 0, 20, min(jumlah_sebenar_sidang, 20) if jumlah_sebenar_sidang>0 else 20, help="Taip jumlah sebenar calon yang sepatutnya hadir sidang ini. Contoh: 15 atau 20 (max 20 per sidang). Kalau Hadir 15/15 = penuh 100%")
-    calon_hadir_sidang = cs4a.number_input(f"✅ Hadir {sidang_lawatan_detail}", 0, jumlah_sebenar_input if jumlah_sebenar_input>0 else 20, min(jumlah_sebenar_input, jumlah_sebenar_input) if jumlah_sebenar_input>0 else 20, help=f"Hadir untuk {sidang_lawatan_detail} sahaja, max = Jumlah Sebenar ({jumlah_sebenar_input})")
-    # Auto kira TH
-    th_auto = jumlah_sebenar_input - calon_hadir_sidang
-    cs4b.metric(f"❌ TH {sidang_lawatan_detail}", f"{th_auto}", help="Auto: Sebenar - Hadir")
-    
-    # Override jumlah_sebenar_sidang dengan input pemantau
-    jumlah_sebenar_sidang = jumlah_sebenar_input
-    
-    calon_berdaftar = calon_berdaftar_total  # Simpan total keseluruhan
-    calon_hadir = calon_hadir_sidang  # Untuk graf, hadir sidang ini
-    jumlah_sebenar_sidang_var = jumlah_sebenar_sidang
-    tidak_hadir_sidang = jumlah_sebenar_sidang - calon_hadir_sidang
-    tidak_hadir = tidak_hadir_sidang  # Untuk graf
-    keseluruhan = calon_berdaftar_total
-    
-    # Simpan extra data untuk laporan
-    st.session_state['amali_makmal_diperlukan'] = makmal_diperlukan
-    st.session_state['amali_makmal_lawatan'] = makmal_lawatan
-    st.session_state['amali_sidang_lawatan_detail'] = sidang_lawatan_detail
-    st.session_state['amali_jumlah_sebenar_sidang'] = jumlah_sebenar_sidang
-    st.session_state['amali_sidang_per_makmal'] = sidang_per_makmal
-    st.session_state['amali_kapasiti_per_makmal'] = kapasiti_per_makmal
-    
-    ca_bot1, ca_bot2 = st.columns(2)
-    calon_cicir = ca_bot1.number_input("Calon Cicir (Keseluruhan Pusat)", 0,50,0)
-    calon_bantah = ca_bot2.number_input("Calon Bantah (Keseluruhan Pusat)", 0,50,0)
-    calon_menumpang=0
-    
-    st.success(f"✅ Makmal: {makmal_diperlukan} diperlukan | {makmal_lawatan} {sidang_lawatan_detail}: Jumlah Sebenar {jumlah_sebenar_sidang} calon, Hadir {calon_hadir_sidang}, TH {tidak_hadir_sidang} (Sebenar - Hadir)")
-    st.caption(f"Formula: Jumlah Sebenar Sidang = min(20, baki calon makmal) | TH Sidang = Sebenar - Hadir | Contoh 103 calon = Makmal1: 80 (4x20) + Makmal2: 23 (20+3)")
-
-elif MODE=="SPM":
-    st.markdown('<div class="borang-header"><div class="borang-header-icon" style="background: linear-gradient(135deg, #C2185B 0%, #EC407A 100%);">👥</div><div><div class="borang-header-title">Bilangan Calon SPM</div><div class="borang-header-subtitle">Hadir + Berdaftar + Cicir + Bantah</div></div></div>', unsafe_allow_html=True)
-    ca1,ca2,ca3,ca4 = st.columns(4)
-    calon_hadir = ca1.number_input("Calon Hadir", 0,500, int(bil_calon) if str(bil_calon).isdigit() else 20)
-    calon_berdaftar = ca2.number_input("Calon Berdaftar", 0,500, int(bil_calon) if str(bil_calon).isdigit() else 22)
-    calon_cicir = ca3.number_input("Calon Cicir", 0,50,0)
-    calon_bantah = ca4.number_input("Calon Bantah", 0,50,0)
-    calon_menumpang=0
-    tidak_hadir = calon_berdaftar - calon_hadir
-    keseluruhan = calon_berdaftar + calon_cicir + calon_bantah
-    st.caption(f"Tidak Hadir: {tidak_hadir} | Keseluruhan: {keseluruhan}")
-elif MODE in ["UBBM","UBBI"]:
-    st.markdown("#### 👥 Bilangan Calon Untuk Sidang yang Dipantau (Ujian Bertutur)")
-    ub1,ub2,ub3 = st.columns(3)
-    calon_berdaftar = ub1.number_input("Calon Berdaftar Untuk Sidang yang Dipantau", 0,500, 30)
-    calon_hadir = ub2.number_input("Calon Hadir Untuk Sidang yang Dipantau", 0,500, 28)
-    calon_tidak_hadir = ub3.number_input("Calon Tidak Hadir", 0,100, 2)
-    calon_cicir=0; calon_bantah=0; calon_menumpang=0
-    tidak_hadir = calon_tidak_hadir
-    keseluruhan = calon_berdaftar
-    st.caption(f"Sidang Dipantau: {sidang_no} | Petugas: {petugas} | Bilik: Menunggu={bilik_menunggu}, Ujian={bilik_ujian}, Kuarantin={bilik_kuar}")
-elif MODE=="STAM":
-    # ===== FIX KHAS STAM SAHAJA - JANGAN KACAU MODE LAIN =====
-    st.markdown('<div class="borang-header"><div class="borang-header-icon" style="background: linear-gradient(135deg, #4A148C 0%, #7B1FA2 100%);">🕌</div><div><div class="borang-header-title">Maklumat STAM 2026 - Skrip Contoh Selangor</div><div class="borang-header-subtitle">Kod Kertas + Pusat (BQ) + Bilik Kebal + Mata Pelajaran STAM</div></div></div>', unsafe_allow_html=True)
-    
-    # Data dari SKRIP_CONTOH_SELANGOR_2026.xlsx - contoh
-    # BQ21 SAMT TENGKU AMPUAN RAHIMAH, KV SULTAN ABDUL SAMAD, etc.
-    st.info("📖 Data STAM dari Skrip Contoh Selangor 2026 - 12 OKT - 2 NOV 2026 | BQ11, BQ12, BQ21, BQ31, BQ41")
-
-    s_kod1, s_kod2, s_kod3 = st.columns(3)
-    kod_kertas_stam = s_kod1.selectbox("📄 Kod Kertas STAM", 
-        ["S101/21 HIFZ AL-QURAN DAN TAJWID", "S102/21 FIQH (KERTAS 2)", "S103/21 TAUHID DAN MANTIQ (KERTAS 2)", 
-         "S104/21 TAFSIR DAN ULUMUHU (KERTAS 2)", "S106/21 NAHU DAN SARF (KERTAS 2)", "S107/21 INSYA' DAN MUTALAAH", 
-         "S108/21 ADAB DAN NUSUS", "S109/21 ARUDH DAN QAFIYAH (KERTAS 2)", "S110/21 BALAGHAH", "Lain-lain"],
-        help="Kod Kertas dari Skrip Contoh - contoh S103/21")
-    
-    pusat_bq_stam = s_kod2.selectbox("🏫 Pusat BQ (Kod Pusat STAM)", 
-        ["BQ11 SAMT SULTAN HISAMUDDIN", "BQ12 KOLEJ ISLAM SULTAN ALAM SHAH / SMK DATO HAMZAH", 
-         "BQ21 SAMT TENGKU AMPUAN RAHIMAH / KV SULTAN ABDUL SAMAD", "BQ31 SAM JERAM / SMK RAJA MUDA MUSA", 
-         "BQ41 SAMT KUALA KUBU BHARU / SMK KUALA KUBU BHARU", "Lain-lain"],
-        help="Pusat BQ dari Skrip Contoh Selangor")
-    
-    bilik_kebal_stam = s_kod3.text_input("🏦 Bilik Kebal STAM", placeholder="Contoh: Bilik Kebal BQ11 / Bilik Kebal PPD Klang", help="Bilik Kebal untuk STAM - dari Skrip Contoh")
-    
-    # Simpan untuk laporan
-    st.session_state['stam_kod_kertas'] = kod_kertas_stam
-    st.session_state['stam_pusat_bq'] = pusat_bq_stam
-    st.session_state['stam_bilik_kebal'] = bilik_kebal_stam
-
-    st.divider()
-    st.markdown("#### 👥 Bilangan Calon (STAM) - WAJIB ISI HADIR")
-    st1,st2,st3,st4,st5 = st.columns(5)
-    calon_berdaftar = st1.number_input("Calon Berdaftar (STAM)", 0,500, 30, key=f"stam_berdaftar_{MODE}")
-    calon_hadir = st2.number_input("✅ Calon Hadir (STAM) - WAJIB ISI", 0,500, 28, key=f"stam_hadir_{MODE}", help="Pemantau WAJIB isi bilangan calon yang hadir peperiksaan STAM")
-    calon_menumpang = st3.number_input("Calon Menumpang", 0,100, 0, key=f"stam_menumpang_{MODE}")
-    calon_cicir = st4.number_input("Calon Cicir", 0,50,0, key=f"stam_cicir_{MODE}")
-    calon_bantah = st5.number_input("Calon Bantah", 0,50,0, key=f"stam_bantah_{MODE}")
-    tidak_hadir = calon_berdaftar - calon_hadir
-    if tidak_hadir < 0:
-        tidak_hadir = 0
-    keseluruhan = calon_berdaftar + calon_menumpang + calon_cicir + calon_bantah
-    st.caption(f"STAM | {kod_kertas_stam} | {pusat_bq_stam} | Berdaftar: {calon_berdaftar} | Hadir: {calon_hadir} | TH: {tidak_hadir} | Menumpang: {calon_menumpang} | Cicir: {calon_cicir} | Bantah: {calon_bantah} | Keseluruhan: {keseluruhan} | Petugas: {petugas}")
-    if calon_hadir == 0:
-        st.warning("⚠️ Sila isi Calon Hadir STAM (wajib)")
-
-else: # MUET - SAMA 100% TEMPLATE BORANG SPM (ikut arahan terbaru Kashah - screenshot)
-    st.markdown('<div class="borang-header"><div class="borang-header-icon" style="background: linear-gradient(135deg, #C2185B 0%, #EC407A 100%);">👥</div><div><div class="borang-header-title">Bilangan Calon MUET</div><div class="borang-header-subtitle">Hadir + Berdaftar + Cicir + Bantah - Sama Template SPM</div></div></div>', unsafe_allow_html=True)
-    ca1,ca2,ca3,ca4 = st.columns(4)
-    calon_hadir = ca1.number_input("Calon Hadir", 0,500, 20, key=f"muet_hadir_{MODE}")
-    calon_berdaftar = ca2.number_input("Calon Berdaftar", 0,500, 22, key=f"muet_berdaftar_{MODE}")
-    calon_cicir = ca3.number_input("Calon Cicir", 0,50,0, key=f"muet_cicir_{MODE}")
-    calon_bantah = ca4.number_input("Calon Bantah", 0,50,0, key=f"muet_bantah_{MODE}")
-    calon_menumpang=0
-    tidak_hadir = calon_berdaftar - calon_hadir
-    if tidak_hadir < 0:
-        tidak_hadir = 0
-    keseluruhan = calon_berdaftar + calon_cicir + calon_bantah
-    st.caption(f"Tidak Hadir: {tidak_hadir} | Keseluruhan: {keseluruhan}")
-    if calon_hadir == 0:
-        st.warning("⚠️ Sila isi Calon Hadir MUET (wajib)")
-
-ulasan = st.text_area("📝 Ulasan Pemantau (WAJIB - min 5 huruf)", height=100, placeholder="Tulis ulasan...")
-
-st.divider()
-st.markdown('<div class="borang-header"><div class="borang-header-icon" style="background: linear-gradient(135deg, #37474F 0%, #78909C 100%);">👮</div><div><div class="borang-header-title">Maklumat Pemantau & Ulasan</div><div class="borang-header-subtitle">Nama + Jawatan + Daerah + Ulasan Wajib</div></div></div>', unsafe_allow_html=True)
-p1,p2,p3 = st.columns(3)
-if st.session_state.is_admin:
-    nama_pemantau = p1.text_input("Nama Pemantau", value=st.session_state.user_name)
-    jawatan_pemantau = p2.selectbox("Jawatan", ["-- Pilih --", "Penolong Pengarah SPP", "Penolong PPD SPP", "Penyelia Kawasan"])
-else:
-    nama_pemantau = p1.text_input("Nama Pemantau", value=st.session_state.user_name, disabled=True)
-    jawatan_pemantau = p2.selectbox("Jawatan", ["-- Pilih --", "Penolong Pengarah SPP", "Penolong PPD SPP", "Penyelia Kawasan"])
-
-# Jika Penyelia Kawasan - Daerah auto ikut pilihan daerah sebelum pilihan sekolah (tak boleh keluar daerah)
-if "Penyelia Kawasan" in jawatan_pemantau:
-    if pilih_daerah and pilih_daerah != "-- Pilih Daerah --" and pilih_daerah != "-- Pilih Daerah Dulu --":
-        daerah_pemantau = pilih_daerah
-        p3.text_input("Daerah (Auto - Penyelia Kawasan ikut daerah atas)", value=daerah_pemantau, disabled=True)
-        st.caption(f"🔒 Penyelia Kawasan terkunci di daerah: {daerah_pemantau} - tak boleh keluar daerah yang dipilih di atas ({pilih_daerah})")
-    else:
-        # Jika belum pilih daerah di atas, suruh pilih dulu
-        daerah_pemantau = p3.selectbox("Daerah (Penyelia Kawasan - Wajib pilih daerah atas dulu)", ["-- Pilih Daerah --", "Petaling Perdana","Petaling Utama","Hulu Langat","Gombak","Klang","Kuala Langat","Kuala Selangor","Hulu Selangor","Sabak Bernam","Sepang"])
-        if daerah_pemantau == "-- Pilih Daerah --":
-            st.warning("⚠️ Sila pilih Daerah di bahagian atas (1️⃣ Daerah / PPD) dulu - Penyelia Kawasan tak boleh keluar dari daerah yang dipilih")
-        else:
-            st.info(f"✅ Penyelia Kawasan akan terkunci di daerah: {daerah_pemantau}")
-    bilik_kebal_penyelia = st.text_input("🏦 Nama Bilik Kebal Penyelia Kawasan (Wajib untuk Penyelia Kawasan)", placeholder="Contoh: Bilik Kebal PPD Klang / Bilik Kebal PPD Petaling Perdana / Bilik Kebal SMK Meru")
-elif "PPD SPP" in jawatan_pemantau and "Penolong PPD" in jawatan_pemantau:
-    daerah_pemantau = p3.selectbox("Daerah", ["Petaling Perdana","Petaling Utama","Hulu Langat","Gombak","Klang","Kuala Langat","Kuala Selangor","Hulu Selangor","Sabak Bernam","Sepang"])
-    bilik_kebal_penyelia = ""
-elif "Penolong Pengarah SPP" in jawatan_pemantau:
-    daerah_pemantau = p3.selectbox("JPN", ["Sektor Pentaksiran & Peperiksaan","Sektor Pengurusan Sekolah","Lain-lain"])
-    bilik_kebal_penyelia = ""
-else:
-    daerah_pemantau = p3.text_input("Daerah / JPN")
-    bilik_kebal_penyelia = ""
-
-if st.button(f"💾 SIMPAN LAPORAN {MODE}", type="primary", use_container_width=True):
-    errors = []
-    if pilih_daerah in ["-- Pilih Daerah --", "-- Pilih Daerah Dulu --", "", None]:
-        errors.append("❌ Sila pilih Daerah / PPD")
-    if not pilih_nama_final or pilih_nama_final in ["-- Pilih Sekolah --", "-- Pilih Daerah Dulu --", "-- Pilih --", ""]:
-        errors.append("❌ Sila pilih Nama Sekolah / Pusat")
-    if not pilih_no_final or pilih_no_final in ["-- Pilih Sekolah Dulu --", "-- Pilih --", ""]:
-        errors.append("❌ Sila pilih No Pusat")
-    if MODE=="AMALI" and (not nama_makmal_final or nama_makmal_final in ["-- Pilih Makmal --", "-- Pilih Sekolah Dulu --", "-- Tiada Makmal --"]):
-        errors.append("❌ Sila pilih Nama Makmal (AMALI)")
-    if not tarikh_str:
-        errors.append("❌ Sila pilih Tarikh Lawatan")
-    if not pilih_mp or pilih_mp in ["Tiada MP", "Tiada MP - Pilih Tarikh Lain", "", "-- Pilih --"]:
-        errors.append("❌ Sila pilih Mata Pelajaran / Kertas")
-    if total_bilik == 0:
-        errors.append("❌ Sila isi Bilangan Bilik (Total tidak boleh 0)")
-    if MODE in ["SPM","AMALI","UBBM","UBBI"] and calon_berdaftar == 0:
-        errors.append("❌ Sila isi Calon Berdaftar (tidak boleh 0)")
-    if MODE in ["STAM","MUET"] and calon_berdaftar==0 and calon_menumpang==0:
-        errors.append(f"❌ Sila isi Calon Berdaftar atau Menumpang ({MODE})")
-    # Station dibuang untuk UBBM/UBBI - tak perlu validation lagi
-    if MODE in ["SPM","AMALI","UBBM","UBBI","STAM","MUET"] and petugas==0:
-        errors.append("❌ Sila isi Bilangan Petugas")
-    if not ulasan or ulasan.strip() == "" or len(ulasan.strip()) < 5:
-        errors.append("❌ Sila isi Ulasan Pemantau (min 5 huruf) - WAJIB")
-    if not nama_pemantau or nama_pemantau.strip() == "":
-        errors.append("❌ Sila isi Nama Pemantau")
-    if not jawatan_pemantau or jawatan_pemantau in ["-- Pilih --", ""]:
-        errors.append("❌ Sila pilih Jawatan Pemantau")
-    if "Penyelia Kawasan" in jawatan_pemantau and (not bilik_kebal_penyelia or bilik_kebal_penyelia.strip()==""):
-        errors.append("❌ Sila isi Nama Bilik Kebal Penyelia Kawasan (wajib untuk Penyelia Kawasan)")
-    if not daerah_pemantau or str(daerah_pemantau).strip() == "":
-        errors.append("❌ Sila isi / pilih Daerah / JPN Pemantau")
-    
-    if errors:
-        st.error("⚠️ **SEMUA MAKLUMAT WAJIB DILENGKAPKAN!**")
-        for err in errors:
-            st.markdown(f"- {err}")
-        st.warning(f"🔴 {len(errors)} maklumat belum lengkap.")
-        st.stop()
-    
-    # Simpan extra info untuk AMALI dan STAM sahaja - JANGAN KACAU LAIN
-    extra_amali = {}
-    extra_stam = {}
-    if MODE=="STAM":
-        extra_stam = {
-            "kod_kertas_stam": st.session_state.get('stam_kod_kertas', ''),
-            "pusat_bq_stam": st.session_state.get('stam_pusat_bq', ''),
-            "bilik_kebal_stam": st.session_state.get('stam_bilik_kebal', ''),
-            "tarikh_stam_skrip": str(tarikh),
-        }
-    if MODE=="AMALI":
-        extra_amali = {
-            "makmal_diperlukan": st.session_state.get('amali_makmal_diperlukan', 1),
-            "makmal_lawatan": st.session_state.get('amali_makmal_lawatan', 'Makmal 1'),
-            "sidang_lawatan_detail": st.session_state.get('amali_sidang_lawatan_detail', 'Sidang 1'),
-            "jumlah_sebenar_sidang": jumlah_sebenar_sidang if 'jumlah_sebenar_sidang' in locals() else st.session_state.get('amali_jumlah_sebenar_sidang', 20),
-            "sidang_per_makmal": st.session_state.get('amali_sidang_per_makmal', 4),
-            "kapasiti_per_makmal": st.session_state.get('amali_kapasiti_per_makmal', 80),
-            "calon_berdaftar_total": calon_berdaftar if 'calon_berdaftar' in locals() else 0,
-            "calon_hadir_sidang": calon_hadir if 'calon_hadir' in locals() else 0,
-            "tidak_hadir_sidang": tidak_hadir if 'tidak_hadir' in locals() else 0,
-        }
-    
-    data = {
-        "jenis": MODE, "tarikh_submit": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-        "nama_sekolah": pilih_nama_final, "no_pusat": pilih_no_final, "nama_makmal": nama_makmal_final,
-        "kod_ppd": kod_ppd, "tarikh_lawatan": str(tarikh), "masa_lawatan": str(masa),
-        "mata_pelajaran": pilih_mp,
-        "bilik_kebal_penyelia": bilik_kebal_penyelia if 'bilik_kebal_penyelia' in locals() else "", 
-        "bilik_peperiksaan": bilik_pep if 'bilik_pep' in locals() else 0, 
-        "bilik_kuarantin": bilik_kuar if 'bilik_kuar' in locals() else 0,
-        "bilik_sakit": bilik_sakit if 'bilik_sakit' in locals() else 0, 
-        "dewan": bilik_dewan if 'bilik_dewan' in locals() else 0, 
-        "bilik_makmal": bilik_makmal if 'bilik_makmal' in locals() else "",
-        "bilik_makmal_ujian": bilik_makmal_ujian if 'bilik_makmal_ujian' in locals() else 0,
-        "bilik_persediaan": bilik_persediaan if 'bilik_persediaan' in locals() else 0,
-        "bilangan_sidang": bilangan_sidang if 'bilangan_sidang' in locals() else 0,
-        "sidang_lawatan": sidang_lawatan if 'sidang_lawatan' in locals() else "",
-        "sidang_no": sidang_no if 'sidang_no' in locals() else "",
-        "total_bilik": total_bilik,
-        "bilik_menunggu": bilik_menunggu if 'bilik_menunggu' in locals() else 0,
-        "bilik_ujian": bilik_ujian if 'bilik_ujian' in locals() else 0,
-        "bilik_lapor": bilik_lapor if 'bilik_lapor' in locals() else 0,
-        "station": station if 'station' in locals() else 0,
-        "petugas": petugas if 'petugas' in locals() else 0,
-        "bilik_kelas": bilik_kelas if 'bilik_kelas' in locals() else 0,
-        "hari": hari_text if 'hari_text' in locals() else hari_melayu,
-        "calon_hadir": calon_hadir, "calon_berdaftar": calon_berdaftar,
-        "calon_tidak_hadir": tidak_hadir, "calon_cicir": calon_cicir if 'calon_cicir' in locals() else 0, 
-        "calon_bantah": calon_bantah if 'calon_bantah' in locals() else 0,
-        "calon_menumpang": calon_menumpang if 'calon_menumpang' in locals() else 0,
-        "calon_keseluruhan": keseluruhan,
-        "ulasan": ulasan, "nama_pemantau": nama_pemantau,
-        "jawatan_pemantau": jawatan_pemantau, "daerah_pemantau": daerah_pemantau,
-        **extra_amali,
-        **extra_stam
-    }
-    save_laporan(data)
-    st.session_state["last"] = data
-    st.success(f"✅ Berjaya SIMPAN {MODE}! Semua maklumat lengkap.")
-    st.balloons()
-
-st.divider()
-if st.session_state.is_admin:
-    st.markdown(f"#### 📊 Laporan {MODE} - ADMIN (Semua + Boleh Padam + Padam Semua)")
-elif st.session_state.get('is_kppk', False):
-    st.markdown(f"#### 📊 Laporan {MODE} - KPPK/PENGARAH (Semua - Lihat Sahaja)")
-else:
-    st.markdown(f"#### 📊 Laporan {MODE} - Saya ({st.session_state.user_name})")
-
-lap_list = load_laporan()
-
-if st.session_state.is_admin or st.session_state.get('is_kppk', False):
-    filtered_list = lap_list
-else:
-    filtered_list = [l for l in lap_list if l.get("nama_pemantau","").lower().strip() == st.session_state.user_name.lower().strip()]
-    if "last" in st.session_state and st.session_state["last"].get("jenis")==MODE:
-        if st.session_state["last"].get("nama_pemantau","").lower().strip() == st.session_state.user_name.lower().strip():
-            if st.session_state["last"] not in filtered_list:
-                filtered_list = [st.session_state["last"]] + filtered_list
-
-if not filtered_list:
-    if st.session_state.is_admin or st.session_state.get('is_kppk', False):
-        st.info(f"Belum ada laporan {MODE} dalam sistem.")
-    else:
-        st.info(f"Belum ada laporan anda untuk {MODE}. Laporan orang lain tidak dipaparkan.")
-    st.stop()
-
-st.write(f"Jumlah: {len(filtered_list)} laporan")
-
-if st.session_state.is_admin:
-    st.warning("⚠️ Anda Admin - Boleh padam laporan & padam SEMUA laporan. Pemantau biasa TIDAK ada butang padam.")
-    # Admin - Padam Semua Report function
-    with st.expander("🗑️ FUNGSI ADMIN - Padam Semua Laporan", expanded=False):
-        st.error("⚠️ AMARAN: Ini akan padam SEMUA laporan dalam sistem! Tindakan tidak boleh undur!")
-        col_del1, col_del2 = st.columns(2)
-        confirm_text = col_del1.text_input("Taip PADAM SEMUA untuk sahkan", placeholder="PADAM SEMUA")
-        if col_del2.button("🗑️ PADAM SEMUA LAPORAN", type="primary", use_container_width=True):
-            if confirm_text == "PADAM SEMUA":
-                save_all_laporan([])
-                st.success("✅ SEMUA laporan telah dipadam oleh ADMIN!")
-                st.balloons()
-                st.rerun()
-            else:
-                st.error("❌ Sila taip tepat: PADAM SEMUA")
-from collections import Counter
-tarikh_all = [l.get('tarikh_lawatan','') for l in filtered_list]
-counter_tarikh = Counter(tarikh_all)
-unique_tarikh = sorted(set(tarikh_all), reverse=True)
-
-tarikh_options = ["📅 Semua Tarikh"] + [f"{t} ({counter_tarikh[t]} laporan)" for t in unique_tarikh]
-pilih_tarikh_raw = st.selectbox(f"📅 Pilih Tarikh Laporan ({len(unique_tarikh)} tarikh, {len(filtered_list)} laporan):", tarikh_options)
-
-if pilih_tarikh_raw == "📅 Semua Tarikh":
-    filtered_by_tarikh = filtered_list
-else:
-    tarikh_selected = pilih_tarikh_raw.split(" (")[0]
-    filtered_by_tarikh = [l for l in filtered_list if l.get('tarikh_lawatan','') == tarikh_selected]
-
-# ===== TAMBAH PILIH DAERAH UNTUK KPPK/PENGARAH SELEPAS PILIH TARIKH =====
-# Kalau KPPK/Pengarah pilih SPM kemudian Tarikh Lawatan kemudian Daerah Gombak, hanya keluar laporan Daerah Gombak sahaja
-if st.session_state.get('is_kppk', False) or st.session_state.is_admin:
-    # Kumpul senarai daerah dari laporan yang dah filter tarikh
-    from collections import Counter as CounterDaerah
-    daerah_list_raw = []
-    for l in filtered_by_tarikh:
-        # Cuba dapatkan daerah dari fungsi get_nama_daerah_from_pusat atau dari daerah_pemantau
-        try:
-            d = get_nama_daerah_from_pusat(l.get('no_pusat',''), l.get('kod_ppd',''))
-        except:
-            d = l.get('daerah_pemantau','') or l.get('kod_ppd','') or 'Tidak Diketahui'
-        if not d or str(d).strip() == '':
-            d = l.get('daerah_pemantau','Tidak Diketahui')
-        daerah_list_raw.append(str(d).strip())
-
-    counter_daerah = CounterDaerah(daerah_list_raw)
-    unique_daerah = sorted(set(daerah_list_raw))
-
-    if len(unique_daerah) > 1:
-        daerah_options = ["🌍 Semua Daerah"] + [f"{d} ({counter_daerah[d]} laporan)" for d in unique_daerah]
-        pilih_daerah_raw = st.selectbox(f"📍 Pilih Daerah (Selepas Tarikh) - {len(unique_daerah)} daerah:", daerah_options, key=f"pilih_daerah_kppk_{MODE}_{pilih_tarikh_raw}")
-
-        if pilih_daerah_raw == "🌍 Semua Daerah":
-            filtered_by_daerah = filtered_by_tarikh
-        else:
-            daerah_selected = pilih_daerah_raw.split(" (")[0]
-            filtered_by_daerah = []
-            for l in filtered_by_tarikh:
-                try:
-                    d = get_nama_daerah_from_pusat(l.get('no_pusat',''), l.get('kod_ppd',''))
-                except:
-                    d = l.get('daerah_pemantau','') or l.get('kod_ppd','') or 'Tidak Diketahui'
-                if str(d).strip() == daerah_selected:
-                    filtered_by_daerah.append(l)
-        st.info(f"📍 Filter: {pilih_tarikh_raw} + {pilih_daerah_raw} = {len(filtered_by_daerah)} laporan")
-    else:
-        filtered_by_daerah = filtered_by_tarikh
-        if unique_daerah:
-            st.caption(f"📍 Daerah: {unique_daerah[0]} - {len(filtered_by_daerah)} laporan")
-else:
-    filtered_by_daerah = filtered_by_tarikh
-
-filtered_by_tarikh = sorted(filtered_by_daerah, key=lambda x: (x.get('tarikh_lawatan',''), x.get('masa_lawatan',''), x.get('no_pusat','')))
-
-if len(filtered_by_tarikh) > 1:
-    pilihan_labels = []
-    for l in filtered_by_tarikh:
-        mp_short = l.get('mata_pelajaran','')[:35]
-        calon_info = f" H:{l.get('calon_hadir',0)}"
-        pilihan_labels.append(f"{l.get('no_pusat','')} | {l.get('nama_sekolah','')[:22]} | {l.get('masa_lawatan','')} | {mp_short}{calon_info}")
-    idx_pilih = st.selectbox(f"📑 Pilih Laporan {MODE} - {pilih_tarikh_raw}:", range(len(filtered_by_tarikh)), format_func=lambda i: pilihan_labels[i])
-    sel = filtered_by_tarikh[idx_pilih]
-else:
-    sel = filtered_by_tarikh[0]
-    st.success(f"📌 {sel['no_pusat']} | {sel['nama_sekolah']} | {sel['tarikh_lawatan']} {sel.get('masa_lawatan','')} | {sel['mata_pelajaran'][:40]}")
-
-for i, orig in enumerate(lap_list):
-    if orig == sel:
-        idx_in_main = i
-        break
-else:
-    idx_in_main = -1
-
-with st.container(border=True):
-    colA, colB, colC = st.columns([3,2,1])
-    with colA:
-        st.caption(f"📄 {sel['no_pusat']} | {sel['nama_sekolah'][:30]} | {sel['tarikh_lawatan']}")
-    with colB:
-        st.caption(f"👤 {sel['nama_pemantau']} | {sel['tarikh_submit']}")
-    with colC:
-        if st.session_state.is_admin and idx_in_main != -1:
-            if st.button("🗑️ Padam", key=f"del_{MODE}_{idx_in_main}", type="secondary", use_container_width=True):
-                new_list = [l for j,l in enumerate(lap_list) if j != idx_in_main]
-                save_all_laporan(new_list)
-                st.success(f"Laporan {sel['no_pusat']} dipadam!")
-                st.rerun()
-        else:
-            st.caption("🔒 Tiada akses padam")
-
-IMG_D = IMG_DEWAN_B64
-IMG_S = IMG_SEKOLAH_B64
-
-def buat_carta_pai_html(sel_data):
-    try:
-        hadir = int(sel_data.get('calon_hadir',0) or 0)
-        th = int(sel_data.get('calon_tidak_hadir',0) or 0)
-        cicir = int(sel_data.get('calon_cicir',0) or 0)
-        bantah = int(sel_data.get('calon_bantah',0) or 0)
-        menumpang = int(sel_data.get('calon_menumpang',0) or 0)
-        berdaftar = int(sel_data.get('calon_berdaftar',0) or 0)
-        sidang_lawatan = sel_data.get('sidang_lawatan', sel_data.get('sidang_no','')) or ''
-        mode_data = sel_data.get('jenis','')
-        
-        # ===== KHAS UNTUK AMALI - GRAF SIDANG LAWATAN SEBENAR - HANYA SIDANG 1 SAHAJA, BUKAN KESELURUHAN 62 =====
-        if mode_data == "AMALI" or str(sidang_lawatan).strip() != "":
-            # Untuk Amali, graf tunjuk Hadir Sidang vs TH Sidang - HANYA untuk sidang yang dilawati sahaja (20 max), bukan keseluruhan 62
-            # Jumlah sebenar sidang = yang pemantau taip (contoh 20), bukan calon berdaftar keseluruhan (62)
-            jumlah_sebenar_sidang = sel_data.get('jumlah_sebenar_sidang', 0) or sel_data.get('jumlah_sebenar', 0) or 20
-            # Jika tiada jumlah_sebenar_sidang, guna hadir+th atau 20
-            if jumlah_sebenar_sidang == 0:
-                jumlah_sebenar_sidang = berdaftar if berdaftar > 0 and berdaftar <= 20 else (hadir + th if (hadir+th) > 0 else 20)
-            
-            total_sidang = jumlah_sebenar_sidang
-            if total_sidang == 0:
-                total_sidang = 20
-            # TH = Sebenar - Hadir (contoh Sebenar 20 - Hadir 15 = TH 5, bukan 62-15=47)
-            th = total_sidang - hadir
-            if th < 0:
-                th = 0
-            
-            segments = []
-            if hadir > 0: 
-                label_hadir = f"Hadir Sidang {sidang_lawatan}" if sidang_lawatan else "Hadir Sidang"
-                segments.append((hadir, '#4CAF50', label_hadir))
-            if th > 0: 
-                label_th = f"TH Sidang {sidang_lawatan}" if sidang_lawatan else "TH Sidang"
-                segments.append((th, '#EF5350', label_th))
-            if not segments:
-                segments = [(total_sidang if total_sidang>0 else 1, '#42A5F5', f"Berdaftar Sidang {sidang_lawatan}")]
-                total_sidang = total_sidang if total_sidang>0 else 1
-            
-            gradient_parts = []
-            legend_html = ""
-            curr_pct = 0
-            for val, col2, label in segments:
-                pct = (val / total_sidang) * 100 if total_sidang>0 else 0
-                next_pct = curr_pct + pct
-                gradient_parts.append(f"{col2} {curr_pct:.1f}% {next_pct:.1f}%")
-                legend_html += f'<div style="display:flex; align-items:center; gap:5px; font-size:9px; margin:3px 0;"><div style="width:10px; height:10px; background:{col2}; border-radius:50%;"></div><span style="font-weight:700;">{label}</span> <span style="color:#333; font-weight:600;">{val} ({pct:.0f}%)</span></div>'
-                curr_pct = next_pct
-            gradient_str = ", ".join(gradient_parts)
-            chart_html = f"""
-            <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
-                <div style="font-size:9px; font-weight:800; color:#6A1B9A; margin-bottom:8px; background:#F3E5F5; padding:4px 10px; border-radius:20px;">📊 KEHADIRAN SIDANG {sidang_lawatan}</div>
-                <div style="position:relative; width:120px; height:120px;">
-                    <div style="width:120px; height:120px; border-radius:50%; background: conic-gradient({gradient_str}); box-shadow: 0 4px 15px rgba(0,0,0,0.15);"></div>
-                    <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:58px; height:58px; background:white; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                        <div style="font-size:16px; font-weight:900; color:#6A1B9A;">S{sidang_lawatan}</div>
-                        <div style="font-size:7px; font-weight:700; color:#78909C;">SIDANG</div>
-                        <div style="font-size:10px; font-weight:800; color:#2E7D32;">{hadir}/{total_sidang}</div>
-                    </div>
-                </div>
-                <div style="margin-top:10px; width:100%; background:#F3E5F5; border-radius:8px; padding:6px 8px; border:1px solid #E1BEE7;">{legend_html}<div style="margin-top:6px; padding-top:6px; border-top:1px dashed #CE93D8; font-size:8px; color:#6A1B9A; font-weight:700;">Jumlah Sebenar Sidang {sidang_lawatan}: {total_sidang} calon<br/>Hadir: {hadir} | TH: {th} (Sebenar - Hadir)</div></div>
-            </div>
-            """
-            return chart_html
-        
-        # ===== UNTUK MOD LAIN (SPM, UBBM, UBBI, STAM, MUET) - KEKAL ASAL =====
-        total = hadir + th + cicir + bantah + menumpang
-        if total == 0:
-            total = berdaftar if berdaftar>0 else 1
-            hadir = total
-        segments = []
-        if hadir > 0: segments.append((hadir, '#4CAF50', 'Hadir'))
-        if th > 0: segments.append((th, '#EF5350', 'TH'))
-        if menumpang > 0: segments.append((menumpang, '#42A5F5', 'Menumpang'))
-        if cicir > 0: segments.append((cicir, '#FFA726', 'Cicir'))
-        if bantah > 0: segments.append((bantah, '#AB47BC', 'Bantah'))
-        if not segments:
-            segments = [(berdaftar if berdaftar>0 else 1, '#42A5F5', 'Berdaftar')]
-            total = berdaftar if berdaftar>0 else 1
-        gradient_parts = []
-        legend_html = ""
-        curr_pct = 0
-        for val, col2, label in segments:
-            pct = (val / total) * 100 if total>0 else 0
-            next_pct = curr_pct + pct
-            gradient_parts.append(f"{col2} {curr_pct:.1f}% {next_pct:.1f}%")
-            legend_html += f'<div style="display:flex; align-items:center; gap:5px; font-size:9px; margin:2px 0;"><div style="width:10px; height:10px; background:{col2}; border-radius:50%;"></div><span style="font-weight:600;">{label}</span> <span style="color:#666;">{val} ({pct:.0f}%)</span></div>'
-            curr_pct = next_pct
-        gradient_str = ", ".join(gradient_parts)
-        chart_html = f"""
-        <div style="display:flex; flex-direction:column; align-items:center; width:100%;">
-            <div style="font-size:10px; font-weight:800; color:#0D47A1; margin-bottom:8px; background:#E3F2FD; padding:4px 10px; border-radius:20px;">📊 STATUS CALON</div>
-            <div style="position:relative; width:120px; height:120px;">
-                <div style="width:120px; height:120px; border-radius:50%; background: conic-gradient({gradient_str}); box-shadow: 0 4px 15px rgba(0,0,0,0.15);"></div>
-                <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:58px; height:58px; background:white; border-radius:50%; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <div style="font-size:18px; font-weight:900; color:#0D47A1;">{berdaftar}</div>
-                    <div style="font-size:7px; font-weight:700; color:#78909C;">BERDAFTAR</div>
-                </div>
-            </div>
-            <div style="margin-top:10px; width:100%; background:#F8FAFC; border-radius:8px; padding:6px 8px; border:1px solid #F1F5F9;">{legend_html}</div>
-        </div>
-        """
-        return chart_html
-    except Exception as e:
-        return f"<div>Error: {e}</div>"
-
-CHART_PAI_HTML = buat_carta_pai_html(sel)
-
-def badge(text, bg="#E3F2FD", color="#0D47A1"):
-    return f'<span style="display:inline-block; background:{bg}; color:{color}; font-size:11px; font-weight:700; padding:3px 10px; border-radius:20px; margin:1px;">{text}</span>'
-
-# Pemantau html - tambah bilik kebal jika Penyelia Kawasan (FIX NameError)
-b_kebal = sel.get('bilik_kebal_penyelia','')
-if b_kebal and "Penyelia Kawasan" in str(sel.get('jawatan_pemantau','')):
-    pemantau_html = f"👤 {sel['nama_pemantau']} | {badge(sel['jawatan_pemantau'], '#0D47A1', 'white')} {badge(sel['daerah_pemantau'], '#E0E7FF', '#4338CA')} {badge(f'🏦 Bilik Kebal: {b_kebal}', '#FFF3E0', '#EF6C00')}"
-else:
-    pemantau_html = f"👤 {sel['nama_pemantau']} | {badge(sel['jawatan_pemantau'], '#0D47A1', 'white')} {badge(sel['daerah_pemantau'], '#E0E7FF', '#4338CA')}"
-
-# Prepare values for html to avoid nested f-string issue
-b_pep = sel.get('bilik_peperiksaan',0)
-b_kuar = sel.get('bilik_kuarantin',0)
-b_sakit = sel.get('bilik_sakit',0)
-b_dewan = sel.get('dewan',0)
-b_total = sel.get('total_bilik',0)
-b_makmal = sel.get('bilik_makmal',0)
-b_makmal_ujian = sel.get('bilik_makmal_ujian', sel.get('bilik_peperiksaan',0))
-b_persediaan = sel.get('bilik_persediaan',0)
-b_sidang = sel.get('sidang_no','')
-b_ujian = sel.get('bilik_ujian',0)
-b_menunggu = sel.get('bilik_menunggu', sel.get('bilik_lapor',0))
-b_lapor = sel.get('bilik_lapor',0)
-b_station = sel.get('station',0)
-b_petugas = sel.get('petugas',0)
-b_kelas = sel.get('bilik_kelas',0)
-c_berdaftar = sel.get('calon_berdaftar',0)
-c_hadir = sel.get('calon_hadir',0)
-c_th = sel.get('calon_tidak_hadir',0)
-c_cicir = sel.get('calon_cicir',0)
-c_bantah = sel.get('calon_bantah',0)
-c_menumpang = sel.get('calon_menumpang',0)
-c_keseluruhan = sel.get('calon_keseluruhan',0)
-c_hari = sel.get('hari','')
-
-if MODE in ["SPM"]:
-    bilik_html = f"{badge(f'Pep: {b_pep}', '#E8F5E9', '#2E7D32')} {badge(f'Kuarantin: {b_kuar}', '#FFF3E0', '#EF6C00')} {badge(f'Sakit: {b_sakit}', '#FCE4EC', '#C2185B')} {badge(f'Dewan: {b_dewan}', '#E3F2FD', '#1565C0')} {badge(f'Total: {b_total}', '#0D47A1', 'white')}"
-    calon_html = f"{badge(f'Berdaftar: {c_berdaftar}', '#E3F2FD', '#0D47A1')} {badge(f'Hadir: {c_hadir}', '#E8F5E9', '#2E7D32')} {badge(f'TH: {c_th}', '#FFEBEE', '#C62828')} {badge(f'Cicir: {c_cicir}', '#FFF3E0', '#EF6C00')} {badge(f'Bantah: {c_bantah}', '#F3E5F5', '#6A1B9A')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
-    petugas_html = f"{badge(f'Bil Petugas: {b_petugas}', '#0D47A1', 'white')} {badge(f'Ketua Pengawas + Pengawas', '#E0F7FA', '#006064')}"
-elif MODE=="AMALI":
-    b_makmal_ujian = sel.get('bilik_makmal_ujian', sel.get('bilik_peperiksaan', 0))
-    b_persediaan = sel.get('bilik_persediaan', 0)
-    b_kuar_amali = sel.get('bilik_kuarantin', 0)
-    b_bilangan_sidang = sel.get('bilangan_sidang', sel.get('total_bilik', 0))
-    b_sidang_lawatan = sel.get('sidang_lawatan', sel.get('sidang_no',''))
-    bilik_html = f"{badge(f'Makmal: {b_makmal}', '#E8F5E9', '#2E7D32')} {badge(f'Bilik Ujian: {b_makmal_ujian}', '#E3F2FD', '#1565C0')} {badge(f'Persediaan: {b_persediaan}', '#FFF3E0', '#EF6C00')} {badge(f'Kuarantin: {b_kuar_amali}', '#FFEBEE', '#C62828')} {badge(f'Bil Sidang: {b_bilangan_sidang}', '#E0F7FA', '#006064')} {badge(f'Lawatan Sidang: {b_sidang_lawatan}', '#F3E5F5', '#6A1B9A')} {badge(f'Total Bilik: {b_total}', '#0D47A1', 'white')}"
-    calon_html = f"{badge(f'Berdaftar: {c_berdaftar}', '#E3F2FD', '#0D47A1')} {badge(f'Hadir: {c_hadir}', '#E8F5E9', '#2E7D32')} {badge(f'TH: {c_th}', '#FFEBEE', '#C62828')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
-    petugas_html = f"{badge(f'Bil Petugas: {b_petugas}', '#0D47A1', 'white')} {badge(f'Petugas Makmal Amali', '#E0F7FA', '#006064')}"
-elif MODE in ["UBBM","UBBI"]:
-    # FIX UBBM/UBBI BARU: Bilik Menunggu, Bilik Ujian, Bilik Kuarantin, Sidang Dipantau - Buang Station & Lapor Diri
-    bilik_html = f"{badge(f'Bilik Menunggu: {b_menunggu}', '#E3F2FD', '#1565C0')} {badge(f'Bilik Ujian: {b_ujian}', '#E8F5E9', '#2E7D32')} {badge(f'Kuarantin: {b_kuar}', '#FFF3E0', '#EF6C00')} {badge(f'Sidang Dipantau: {b_sidang}', '#E0F2F1', '#00695C')} {badge(f'Total: {b_total}', '#0D47A1', 'white')}"
-    petugas_html = f"{badge(f'Bil Petugas: {b_petugas}', '#0D47A1', 'white')} {badge(f'Ketua Pengawas + Pengawas', '#E0F7FA', '#006064')}"
-    calon_html = f"{badge(f'Berdaftar: {c_berdaftar}', '#E3F2FD', '#0D47A1')} {badge(f'Hadir: {c_hadir}', '#E8F5E9', '#2E7D32')} {badge(f'TH: {c_th}', '#FFEBEE', '#C62828')} {badge(f'Hari: {c_hari}', '#FFF8E1', '#F57F17')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
-elif MODE=="STAM":
-    # ===== FIX KHAS STAM SAHAJA - TEMPLATE KHAS STAM DENGAN KOD KERTAS, PUSAT BQ, BILIK KEBAL =====
-    # JANGAN KACAU MUET, SPM, AMALI, UBBM, UBBI
-    bilik_html = f"{badge(f'Kelas/Dewan: {b_kelas}', '#E8F5E9', '#2E7D32')} {badge(f'Kuarantin: {b_kuar}', '#FFF3E0', '#EF6C00')} {badge(f'Total: {b_total}', '#0D47A1', 'white')}"
-    calon_html = f"{badge(f'Berdaftar: {c_berdaftar}', '#E3F2FD', '#0D47A1')} {badge(f'Hadir: {c_hadir}', '#E8F5E9', '#2E7D32')} {badge(f'TH: {c_th}', '#FFEBEE', '#C62828')} {badge(f'Menumpang: {c_menumpang}', '#E0F7FA', '#006064')} {badge(f'Cicir: {c_cicir}', '#FFF3E0', '#EF6C00')} {badge(f'Bantah: {c_bantah}', '#F3E5F5', '#6A1B9A')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
-    petugas_html = f"{badge(f'Bil Petugas: {b_petugas}', '#0D47A1', 'white')} {badge(f'Ketua Pengawas + Pengawas', '#E0F7FA', '#006064')}"
-else:
-    # MUET sahaja - FIX TERBARU KASHAH: SAMA KONSEP SPM - Ada Hadir & TH
-    bilik_html = f"{badge(f'Kelas/Dewan: {b_kelas}', '#E8F5E9', '#2E7D32')} {badge(f'Kuarantin: {b_kuar}', '#FFF3E0', '#EF6C00')} {badge(f'Total: {b_total}', '#0D47A1', 'white')}"
-    calon_html = f"{badge(f'Berdaftar: {c_berdaftar}', '#E3F2FD', '#0D47A1')} {badge(f'Hadir: {c_hadir}', '#E8F5E9', '#2E7D32')} {badge(f'TH: {c_th}', '#FFEBEE', '#C62828')} {badge(f'Menumpang: {c_menumpang}', '#E0F7FA', '#006064')} {badge(f'Cicir: {c_cicir}', '#FFF3E0', '#EF6C00')} {badge(f'Bantah: {c_bantah}', '#F3E5F5', '#6A1B9A')} {badge(f'Keseluruhan: {c_keseluruhan}', '#0D47A1', 'white')}"
-    petugas_html = f"{badge(f'Bil Petugas: {b_petugas}', '#0D47A1', 'white')} {badge(f'Ketua Pengawas + Pengawas', '#E0F7FA', '#006064')}"
-
-jenis_label = sel.get('jenis','SPM')
-if jenis_label=="UBBM":
-    jenis_label_full = "UJIAN BERTUTUR BAHASA MELAYU"
-    jenis_icon = "🗣️"
-elif jenis_label=="UBBI":
-    jenis_label_full = "UJIAN BERTUTUR BAHASA INGGERIS"
-    jenis_icon = "🗣️"
-elif jenis_label=="STAM":
-    jenis_label_full = "SIJIL TINGGI AGAMA MALAYSIA (STAM)"
-    jenis_icon = "🕌"
-elif jenis_label=="MUET":
-    jenis_label_full = "MALAYSIAN UNIVERSITY ENGLISH TEST (MUET)"
-    jenis_icon = "🎓"
-elif jenis_label=="AMALI":
-    jenis_label_full = "AMALI SAINS SPM 2026"
-    jenis_icon = "🧪"
-else:
-    jenis_label_full = "SPM 2026"
-    jenis_icon = "📝"
-
-# ===== TEMPLATE MENGIKUT PEPERIKSAAN - ASING SETIAP JENIS =====
-# SPM - Template khas
-if MODE=="SPM":
-    table_rows = f'''
-                    <tr style="background:#F8FAFC; border-bottom:2px solid #E8EEF6;">
-                        <td style="padding:11px 14px; width:26%; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #EEF2F7;">🏫 NAMA PUSAT / SEKOLAH (SPM)</td>
-                        <td style="padding:11px 14px; font-weight:700; font-size:13px;">{sel['nama_sekolah']}</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">📍 NO PUSAT / DAERAH</td>
-                        <td style="padding:10px 14px;"><b style="color:#0D47A1;">{sel['no_pusat']}</b> <span style="margin-left:8px; background:#0D47A1; color:white; padding:4px 12px; border-radius:20px; font-weight:700; font-size:11px;">📍 {get_nama_daerah_from_pusat(sel['no_pusat'], sel.get('kod_ppd',''))} ({sel.get('kod_ppd','')})</span></td>
-                    </tr>
-                                                                                                                                                                                                                            <tr style="background:#FAFBFC; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;">📅 TARIKH & HARI LAWATAN</td>
-                        <td style="padding:10px 14px;"><span style="background:#0D47A1; color:white; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700;">📅 {sel['tarikh_lawatan']}</span> <span style="background:#E8F5E9; color:#2E7D32; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;">📆 {sel.get('hari','')}</span> <span style="background:#FFF8E1; color:#F57F17; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;">🕒 {sel['masa_lawatan']}</span></td>
-                    </tr>
-                    <tr style="background:#FFF9C4; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:800; color:#F57F17; font-size:11px; border-right:1px solid #FFE0B2;">📚 MATA PELAJARAN</td>
-                        <td style="padding:10px 14px;"><span style="background:#0D47A1; color:white; padding:5px 14px; border-radius:20px; font-size:12px; font-weight:800;">{sel['mata_pelajaran']}</span></td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">🚪 BILIK PEPERIKSAAN SPM</td>
-                        <td style="padding:10px 14px;">{bilik_html}</td>
-                    </tr>
-                    <tr style="background:#FFF3E0; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:800; color:#EF6C00; font-size:11px; border-right:1px solid #FFE0B2;">👮 KEHADIRAN PETUGAS SPM</td>
-                        <td style="padding:10px 14px;">{petugas_html}</td>
-                    </tr>
-                    <tr style="background:#FAFBFC; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;">👥 KEHADIRAN CALON SPM</td>
-                        <td style="padding:10px 14px;">{calon_html}</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">📝 ULASAN PEMANTAUAN SPM</td>
-                        <td style="padding:11px 14px; font-style:italic; background:#FFFEF7; border-left:3px solid #FFC107;">❝ {sel['ulasan'] or 'Tiada ulasan'} ❞</td>
-                    </tr>
-                    <tr style="background: linear-gradient(90deg, #EEF2FF 0%, #E0E7FF 100%);">
-                        <td style="padding:11px 14px; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #C7D2FE;">👮 PEMANTAU SPM</td>
-                        <td style="padding:11px 14px; font-weight:600;">{pemantau_html}</td>
-                    </tr>
-    '''
-# AMALI - Template khas dengan Nama Makmal, Bilangan Sidang, Sidang Lawatan
-elif MODE=="AMALI":
-    table_rows = f'''
-                    <tr style="background:#F8FAFC; border-bottom:2px solid #E8EEF6;">
-                        <td style="padding:11px 14px; width:26%; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #EEF2F7;">🏫 NAMA PUSAT / SEKOLAH (AMALI)</td>
-                        <td style="padding:11px 14px; font-weight:700; font-size:13px;">{sel['nama_sekolah']}</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">📍 NO PUSAT / DAERAH</td>
-                        <td style="padding:10px 14px;"><b style="color:#0D47A1;">{sel['no_pusat']}</b> <span style="margin-left:8px; background:#0D47A1; color:white; padding:4px 12px; border-radius:20px; font-weight:700; font-size:11px;">📍 {get_nama_daerah_from_pusat(sel['no_pusat'], sel.get('kod_ppd',''))} ({sel.get('kod_ppd','')})</span></td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9; background:#FFFEF7;">
-                        <td style="padding:11px 14px; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #EEF2F7;">🧪 NAMA MAKMAL</td>
-                        <td style="padding:10px 14px;"><b style="color:#2E7D32; background:#E8F5E9; padding:4px 12px; border-radius:20px; font-size:12px;">🔬 {sel.get('nama_makmal','-') or '-'}</b></td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9; background:#E0F7FA;">
-                        <td style="padding:11px 14px; font-weight:800; color:#006064; font-size:11px; border-right:1px solid #B2EBF2;">📊 BILANGAN SIDANG</td>
-                        <td style="padding:10px 14px;"><b style="color:white; background:#006064; padding:4px 14px; border-radius:20px; font-size:12px;">{sel.get('bilangan_sidang', sel.get('total_bilik', '-'))} Sidang</b></td>
-                    </tr>
-                    <tr style="background:#F3E5F5; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:800; color:#6A1B9A; font-size:11px; border-right:1px solid #E1BEE7;">⏰ SIDANG LAWATAN</td>
-                        <td style="padding:10px 14px;"><b style="color:white; background:#6A1B9A; padding:4px 14px; border-radius:20px; font-size:12px;">Sidang {sel.get('sidang_lawatan', sel.get('sidang_no','-')) or '-'}</b></td>
-                    </tr>
-                                                                                                                                                                                                                            <tr style="background:#FAFBFC; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;">📅 TARIKH & HARI LAWATAN AMALI</td>
-                        <td style="padding:10px 14px;"><span style="background:#0D47A1; color:white; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700;">📅 {sel['tarikh_lawatan']}</span> <span style="background:#E8F5E9; color:#2E7D32; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;">📆 {sel.get('hari','')}</span> <span style="background:#FFF8E1; color:#F57F17; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;">🕒 {sel['masa_lawatan']}</span></td>
-                    </tr>
-                    <tr style="background:#FFF9C4; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:800; color:#F57F17; font-size:11px; border-right:1px solid #FFE0B2;">📚 MATA PELAJARAN</td>
-                        <td style="padding:10px 14px;"><span style="background:#0D47A1; color:white; padding:5px 14px; border-radius:20px; font-size:12px; font-weight:800;">{sel['mata_pelajaran']}</span></td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">🔬 BILIK AMALI SAINS</td>
-                        <td style="padding:10px 14px;">{bilik_html}</td>
-                    </tr>
-                    <tr style="background:#F3E5F5; border-bottom:2px solid #E1BEE7;">
-                        <td style="padding:12px 14px; font-weight:800; color:#6A1B9A; font-size:11px; border-right:1px solid #E1BEE7;">⏰ SIDANG LAWATAN (DIPANTAU)</td>
-                        <td style="padding:10px 14px;"><b style="color:white; background:#6A1B9A; padding:6px 18px; border-radius:20px; font-size:13px; box-shadow:0 2px 8px rgba(106,27,154,0.3);">📌 Sidang {sel.get('sidang_lawatan', sel.get('sidang_no','-')) or '-'} DIPANTAU</b> <span style="margin-left:8px; background:#E0F7FA; color:#006064; padding:4px 12px; border-radius:20px; font-size:10px; font-weight:700;">Bilangan Sidang: {sel.get('bilangan_sidang','-')} | Lawatan Sidang {sel.get('sidang_lawatan','-')}</span></td>
-                    </tr>
-                    adalah jumlah sebenar calon yang sepatutnya hadir Sidang {sel.get('sidang_lawatan','-')}</span></td>
-                    </tr>
-                    <tr style="background:#E8F5E9; border-bottom:2px solid #A5D6A7;">
-                        <td style="padding:12px 14px; font-weight:800; color:#2E7D32; font-size:11px; border-right:1px solid #A5D6A7;">👥 JUMLAH CALON HADIR SIDANG {sel.get('sidang_lawatan', sel.get('sidang_no','-')) or '-'} </td>
-                        <td style="padding:10px 14px; background:#F1F8E9;"><span style="background:#2E7D32; color:white; padding:5px 14px; border-radius:20px; font-size:12px; font-weight:800;">✅ Hadir Sidang {sel.get('sidang_lawatan','-')}: {sel.get('calon_hadir',0)}</span> <span style="background:#FFEBEE; color:#C62828; padding:4px 10px; border-radius:20px; font-size:11px; font-weight:700; margin-left:6px;">❌ TH Sidang {sel.get('sidang_lawatan','-')}: {sel.get('calon_tidak_hadir',0)} (Sebenar {sel.get('calon_berdaftar',0)} - Hadir {sel.get('calon_hadir',0)})</span> <span style="background:#0D47A1; color:white; padding:4px 12px; border-radius:20px; font-size:11px; font-weight:700; margin-left:6px;">Keseluruhan: {sel.get('calon_keseluruhan', sel.get('calon_berdaftar',0))}</span></td>
-                    </tr>
-                    <tr style="background:#FFF3E0; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:800; color:#EF6C00; font-size:11px; border-right:1px solid #FFE0B2;">👮 KEHADIRAN PETUGAS AMALI</td>
-                        <td style="padding:10px 14px;">{petugas_html}</td>
-                    </tr>
-                    <tr style="background:#FAFBFC; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;">👥 KEHADIRAN CALON AMALI (SIDANG DIPANTAU)</td>
-                        <td style="padding:10px 14px;">{calon_html}</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">📝 ULASAN AMALI</td>
-                        <td style="padding:11px 14px; font-style:italic; background:#FFFEF7; border-left:3px solid #FFC107;">❝ {sel['ulasan'] or 'Tiada ulasan'} ❞</td>
-                    </tr>
-                    <tr style="background: linear-gradient(90deg, #EEF2FF 0%, #E0E7FF 100%);">
-                        <td style="padding:11px 14px; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #C7D2FE;">👮 PEMANTAU AMALI</td>
-                        <td style="padding:11px 14px; font-weight:600;">{pemantau_html}</td>
-                    </tr>
-    '''
-# UBBM / UBBI - Template Ujian Bertutur ada Station & Sidang
-elif MODE in ["UBBM","UBBI"]:
-    table_rows = f'''
-                    <tr style="background:#F8FAFC; border-bottom:2px solid #E8EEF6;">
-                        <td style="padding:11px 14px; width:26%; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #EEF2F7;">🏫 NAMA PUSAT / SEKOLAH ({MODE})</td>
-                        <td style="padding:11px 14px; font-weight:700; font-size:13px;">{sel['nama_sekolah']}</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">📍 NO PUSAT / DAERAH</td>
-                        <td style="padding:10px 14px;"><b style="color:#0D47A1;">{sel['no_pusat']}</b> <span style="margin-left:8px; background:#0D47A1; color:white; padding:4px 12px; border-radius:20px; font-weight:700; font-size:11px;">📍 {get_nama_daerah_from_pusat(sel['no_pusat'], sel.get('kod_ppd',''))} ({sel.get('kod_ppd','')})</span></td>
-                    </tr>
-                                                                                                                                                                                                                            <tr style="background:#FAFBFC; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;">📅 TARIKH, HARI & SIDANG</td>
-                        <td style="padding:10px 14px;"><span style="background:#0D47A1; color:white; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700;">📅 {sel['tarikh_lawatan']}</span> <span style="background:#E8F5E9; color:#2E7D32; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;">📆 {sel.get('hari','')}</span> <span style="background:#FFF8E1; color:#F57F17; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;">🕒 {sel['masa_lawatan']}</span></td>
-                    </tr>
-                    <tr style="background:#FFF9C4; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:800; color:#F57F17; font-size:11px; border-right:1px solid #FFE0B2;">📚 MATA PELAJARAN</td>
-                        <td style="padding:10px 14px;"><span style="background:#0D47A1; color:white; padding:5px 14px; border-radius:20px; font-size:12px; font-weight:800;">{sel['mata_pelajaran']}</span></td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">🗣️ BILIK UJIAN BERTUTUR {MODE} (Ada Station & Sidang)</td>
-                        <td style="padding:10px 14px;">{bilik_html}</td>
-                    </tr>
-                    <tr style="background:#FFF3E0; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:800; color:#EF6C00; font-size:11px; border-right:1px solid #FFE0B2;">👮 KEHADIRAN PETUGAS {MODE}</td>
-                        <td style="padding:10px 14px;">{petugas_html}</td>
-                    </tr>
-                    <tr style="background:#FAFBFC; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;">👥 KEHADIRAN CALON {MODE}</td>
-                        <td style="padding:10px 14px;">{calon_html}</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">📝 ULASAN {MODE}</td>
-                        <td style="padding:11px 14px; font-style:italic; background:#FFFEF7; border-left:3px solid #FFC107;">❝ {sel['ulasan'] or 'Tiada ulasan'} ❞</td>
-                    </tr>
-                    <tr style="background: linear-gradient(90deg, #EEF2FF 0%, #E0E7FF 100%);">
-                        <td style="padding:11px 14px; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #C7D2FE;">👮 PEMANTAU {MODE}</td>
-                        <td style="padding:11px 14px; font-weight:600;">{pemantau_html}</td>
-                    </tr>
-    '''
-# STAM - Template KHAS dengan Kod Kertas, Pusat BQ, Bilik Kebal dari Skrip Contoh Selangor 2026 - FIX STAM SAHAJA
-elif MODE=="STAM":
-    table_rows = f'''
-                    <tr style="background:#F8FAFC; border-bottom:2px solid #E8EEF6;">
-                        <td style="padding:11px 14px; width:26%; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #EEF2F7;">🕌 NAMA PUSAT STAM (Skrip Contoh)</td>
-                        <td style="padding:11px 14px; font-weight:700; font-size:13px;">{sel['nama_sekolah']}</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">📍 NO PUSAT STAM / DAERAH</td>
-                        <td style="padding:10px 14px;"><b style="color:#0D47A1;">{sel['no_pusat']}</b> <span style="margin-left:8px; background:#0D47A1; color:white; padding:4px 12px; border-radius:20px; font-weight:700; font-size:11px;">📍 {get_nama_daerah_from_pusat(sel['no_pusat'], sel.get('kod_ppd',''))} ({sel.get('kod_ppd','')})</span> <span style="margin-left:6px; background:#F3E5F5; color:#6A1B9A; padding:2px 8px; border-radius:10px; font-size:9px;">Skrip Contoh 2026</span></td>
-                    </tr>
-                    <tr style="background:#F3E5F5; border-bottom:2px solid #E1BEE7;">
-                        <td style="padding:12px 14px; font-weight:800; color:#6A1B9A; font-size:11px; border-right:1px solid #E1BEE7;">📄 KOD KERTAS STAM (Skrip Contoh)</td>
-                        <td style="padding:10px 14px;"><span style="background:#6A1B9A; color:white; padding:6px 16px; border-radius:20px; font-size:13px; font-weight:800;">{sel.get('kod_kertas_stam', sel.get('mata_pelajaran','-'))}</span> <span style="margin-left:8px; background:#F3E5F5; color:#6A1B9A; padding:4px 12px; border-radius:20px; font-size:10px; font-weight:700;">Contoh: S103/21 TAUHID DAN MANTIQ</span></td>
-                    </tr>
-                    <tr style="background:#EDE7F6; border-bottom:2px solid #D1C4E9;">
-                        <td style="padding:12px 14px; font-weight:800; color:#4527A0; font-size:11px; border-right:1px solid #D1C4E9;">🏫 PUSAT BQ STAM (Skrip Contoh)</td>
-                        <td style="padding:10px 14px;"><span style="background:#4527A0; color:white; padding:6px 16px; border-radius:20px; font-size:13px; font-weight:800;">{sel.get('pusat_bq_stam', '-')}</span> <span style="margin-left:8px; background:#EDE7F6; color:#4527A0; padding:4px 12px; border-radius:20px; font-size:10px; font-weight:700;">BQ11, BQ12, BQ21, BQ31, BQ41</span></td>
-                    </tr>
-                    <tr style="background:#FFF3E0; border-bottom:2px solid #FFE0B2;">
-                        <td style="padding:12px 14px; font-weight:800; color:#EF6C00; font-size:11px; border-right:1px solid #FFE0B2;">🏦 BILIK KEBAL STAM (Skrip Contoh)</td>
-                        <td style="padding:10px 14px;"><span style="background:#EF6C00; color:white; padding:6px 16px; border-radius:20px; font-size:13px; font-weight:700;">{sel.get('bilik_kebal_stam', sel.get('bilik_kebal_penyelia','-'))}</span></td>
-                    </tr>
-                                                                                                                                                                                                                            <tr style="background:#FAFBFC; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;">📅 TARIKH & HARI LAWATAN STAM</td>
-                        <td style="padding:10px 14px;"><span style="background:#0D47A1; color:white; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700;">📅 {sel['tarikh_lawatan']}</span> <span style="background:#E8F5E9; color:#2E7D32; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;">📆 {sel.get('hari','')}</span> <span style="background:#FFF8E1; color:#F57F17; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;">🕒 {sel['masa_lawatan']}</span></td>
-                    </tr>
-                    <tr style="background:#FFF9C4; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:800; color:#F57F17; font-size:11px; border-right:1px solid #FFE0B2;">📚 MATA PELAJARAN</td>
-                        <td style="padding:10px 14px;"><span style="background:#0D47A1; color:white; padding:5px 14px; border-radius:20px; font-size:12px; font-weight:800;">{sel['mata_pelajaran']}</span></td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">🕌 BILIK STAM (Tiada Sidang, Tiada Station)</td>
-                        <td style="padding:10px 14px;">{bilik_html}</td>
-                    </tr>
-                    <tr style="background:#FFF3E0; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:800; color:#EF6C00; font-size:11px; border-right:1px solid #FFE0B2;">👮 KEHADIRAN PETUGAS STAM</td>
-                        <td style="padding:10px 14px;">{petugas_html}</td>
-                    </tr>
-                    <tr style="background:#FAFBFC; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;">👥 KEHADIRAN CALON STAM</td>
-                        <td style="padding:10px 14px;">{calon_html}</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">📝 ULASAN STAM</td>
-                        <td style="padding:11px 14px; font-style:italic; background:#FFFEF7; border-left:3px solid #FFC107;">❝ {sel['ulasan'] or 'Tiada ulasan'} ❞</td>
-                    </tr>
-                    <tr style="background: linear-gradient(90deg, #EEF2FF 0%, #E0E7FF 100%);">
-                        <td style="padding:11px 14px; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #C7D2FE;">👮 PEMANTAU STAM</td>
-                        <td style="padding:11px 14px; font-weight:600;">{pemantau_html}</td>
-                    </tr>
-    '''
-# MUET - Template tiada Sidang, tiada Station
-else:  # MUET
-    table_rows = f'''
-                    <tr style="background:#F8FAFC; border-bottom:2px solid #E8EEF6;">
-                        <td style="padding:11px 14px; width:26%; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #EEF2F7;">🎓 NAMA PUSAT MUET (Isi Sendiri - Semua Bulan)</td>
-                        <td style="padding:11px 14px; font-weight:700; font-size:13px;">{sel['nama_sekolah']}</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">📍 NO PUSAT MUET / DAERAH</td>
-                        <td style="padding:10px 14px;"><b style="color:#0D47A1;">{sel['no_pusat']}</b> <span style="margin-left:8px; background:#0D47A1; color:white; padding:4px 12px; border-radius:20px; font-weight:700; font-size:11px;">📍 {get_nama_daerah_from_pusat(sel['no_pusat'], sel.get('kod_ppd',''))} ({sel.get('kod_ppd','')})</span> <span style="margin-left:6px; background:#E0F7FA; color:#006064; padding:2px 8px; border-radius:10px; font-size:9px;">Jan-Dis 2026</span></td>
-                    </tr>
-                                                                                                                                                                                                                            <tr style="background:#FAFBFC; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;">📅 TARIKH & HARI LAWATAN MUET</td>
-                        <td style="padding:10px 14px;"><span style="background:#0D47A1; color:white; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700;">📅 {sel['tarikh_lawatan']}</span> <span style="background:#E8F5E9; color:#2E7D32; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;">📆 {sel.get('hari','')}</span> <span style="background:#FFF8E1; color:#F57F17; padding:4px 10px; border-radius:8px; font-size:11px; font-weight:700; margin-left:6px;">🕒 {sel['masa_lawatan']}</span></td>
-                    </tr>
-                    <tr style="background:#FFF9C4; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:800; color:#F57F17; font-size:11px; border-right:1px solid #FFE0B2;">📚 MATA PELAJARAN</td>
-                        <td style="padding:10px 14px;"><span style="background:#0D47A1; color:white; padding:5px 14px; border-radius:20px; font-size:12px; font-weight:800;">{sel['mata_pelajaran']}</span></td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">🎓 BILIK MUET (Tiada Sidang, Tiada Station)</td>
-                        <td style="padding:10px 14px;">{bilik_html}</td>
-                    </tr>
-                    <tr style="background:#FFF3E0; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:800; color:#EF6C00; font-size:11px; border-right:1px solid #FFE0B2;">👮 KEHADIRAN PETUGAS MUET</td>
-                        <td style="padding:10px 14px;">{petugas_html}</td>
-                    </tr>
-                    <tr style="background:#FAFBFC; border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; border-right:1px solid #EEF2F7;">👥 KEHADIRAN CALON MUET</td>
-                        <td style="padding:10px 14px;">{calon_html}</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid #F1F5F9;">
-                        <td style="padding:11px 14px; font-weight:700; color:#475569; font-size:11px; background:#FAFBFC; border-right:1px solid #EEF2F7;">📝 ULASAN MUET</td>
-                        <td style="padding:11px 14px; font-style:italic; background:#FFFEF7; border-left:3px solid #FFC107;">❝ {sel['ulasan'] or 'Tiada ulasan'} ❞</td>
-                    </tr>
-                    <tr style="background: linear-gradient(90deg, #EEF2FF 0%, #E0E7FF 100%);">
-                        <td style="padding:11px 14px; font-weight:800; color:#0D47A1; font-size:11px; border-right:1px solid #C7D2FE;">👮 PEMANTAU MUET</td>
-                        <td style="padding:11px 14px; font-weight:600;">{pemantau_html}</td>
-                    </tr>
-    '''
-
-html_one = f"""
-<div style="width:100%; display:flex; justify-content:center; padding:12px 8px; background: linear-gradient(135deg, #EEF2F7 0%, #E3EAF3 100%);">
-    <div style="width:100%; max-width:860px; background:white; border-radius:20px; overflow:hidden; box-shadow: 0 20px 60px rgba(13,71,161,0.18); border:1px solid white; position:relative;">
-        <div style="height:5px; background: linear-gradient(90deg, #FFC107 0%, #FFD54F 50%, #FFC107 100%);"></div>
-        <div style="background: linear-gradient(135deg, #0A1931 0%, #0D47A1 45%, #1565C0 100%); padding:22px 26px; display:flex; justify-content:space-between; align-items:center;">
-            <div style="flex:1;">
-                <div style="background: rgba(255,193,7,0.2); color:#FFECB3; font-size:10px; font-weight:800; padding:3px 10px; border-radius:20px; display:inline-block; margin-bottom:6px;">{jenis_icon} SEKTOR PENTAKSIRAN & PEPERIKSAAN - {MODE}</div>
-                <div style="color:white; font-size:20px; font-weight:900;">JABATAN PENDIDIKAN NEGERI SELANGOR</div>
-                <div style="color:#90CAF9; font-size:11px; font-weight:700; margin-top:6px;">LAPORAN PEMANTAUAN {jenis_label_full} • {sel['tarikh_lawatan']} • {sel['masa_lawatan']}</div>
-            </div>
-            <div style="text-align:right; margin-left:20px;">
-                <div style="background:white; color:#0D2A54; font-size:20px; font-weight:900; padding:10px 18px; border-radius:12px;">{sel['no_pusat']}</div>
-                <div style="color:#FFECB3; font-size:9px; font-weight:700; margin-top:7px; text-align:center;">NO. PUSAT {MODE}</div>
-            </div>
-        </div>
-        <div style="padding:18px; background:#F8FAFC;">
-            <div style="display:flex; gap:14px;">
-                <div style="flex:1.25; position:relative; border-radius:14px; overflow:hidden; height:195px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); border:2px solid white;">
-                    <img src="data:image/jpeg;base64,{IMG_D}" style="width:100%; height:100%; object-fit:cover;">
-                    <div style="position:absolute; bottom:0; left:0; right:0; padding:12px; background: linear-gradient(transparent, rgba(0,0,0,0.7));">
-                        <div style="color:white; font-size:11px; font-weight:800;">📸 DEWAN / BILIK {MODE}</div>
-                    </div>
-                </div>
-                <div style="flex:1.25; position:relative; border-radius:14px; overflow:hidden; height:195px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); border:2px solid white;">
-                    <img src="data:image/jpeg;base64,{IMG_S}" style="width:100%; height:100%; object-fit:cover;">
-                    <div style="position:absolute; bottom:0; left:0; right:0; padding:12px; background: linear-gradient(transparent, rgba(0,0,0,0.7));">
-                        <div style="color:white; font-size:11px; font-weight:800;">🏫 BANGUNAN {MODE}</div>
-                    </div>
-                </div>
-                <div style="flex:0.95; background:white; border-radius:14px; padding:14px 12px; box-shadow: 0 8px 24px rgba(13,71,161,0.1); border:1px solid #E8EEF6; display:flex; flex-direction:column; align-items:center; justify-content:center;">
-                    {CHART_PAI_HTML}
-                </div>
-            </div>
-        </div>
-        <div style="padding:0 18px 18px;">
-            <div style="background:white; border-radius:14px; overflow:hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.06); border:1px solid #E8EEF6;">
-                <table style="width:100%; border-collapse:collapse; font-size:12.5px;">
-                    {table_rows}
-                </table>
-            </div>
-        </div>
-        <div style="padding:20px 26px; background:#F1F5F9; border-top:1px solid #E2E8F0; display:flex; justify-content:space-between; gap:24px;">
-            <div style="text-align:center; flex:1; border-top:2px solid #0D47A1; padding-top:10px; margin-top:30px;">
-                <div style="font-size:11px; font-weight:800; color:#0D47A1;">PEMANTAU</div>
-                <div style="font-size:12px; font-weight:700; margin-top:4px;">{sel['nama_pemantau']}</div>
-                <div style="font-size:9px; color:#64748B;">{sel['tarikh_submit']}</div>
-            </div>
-            <div style="text-align:center; flex:1; border-top:2px dashed #94A3B8; padding-top:10px; margin-top:30px;">
-                <div style="font-size:11px; font-weight:800; color:#475569;">COP SEKOLAH / PUSAT</div>
-                <div style="font-size:12px; font-weight:700; margin-top:4px;">{sel['no_pusat']}</div>
-            </div>
-            <div style="text-align:center; flex:1; border-top:2px solid #0D47A1; padding-top:10px; margin-top:30px;">
-                <div style="font-size:11px; font-weight:800; color:#0D47A1;">PENGESAHAN JPN / PPD</div>
-                <div style="font-size:9px; color:#64748B; margin-top:12px;">Tandatangan & Cop Rasmi</div>
-            </div>
-        </div>
-        <div style="background: linear-gradient(90deg, #0D47A1 0%, #1565C0 100%); padding:10px 26px; display:flex; justify-content:space-between;">
-            <div style="color:rgba(255,255,255,0.8); font-size:9px;">© 2026 JPN Selangor | e-Pemantauan • SPM, Amali, Ujian Bertutur, STAM & MUET | ✨ Created by Akashah Ismail</div>
-            <div style="color:#A5D6A7; font-size:9px;">● SAH & DIREKODKAN</div>
-        </div>
-        <div style="height:5px; background: linear-gradient(90deg, #FFC107 0%, #FFD54F 50%, #FFC107 100%);"></div>
-        <div style="background:#0A1931; padding:8px; text-align:center;">
-            <span style="color:#FFECB3; font-size:10px; letter-spacing:0.5px;">✨ Created by <b style="color:white;">Akashah Ismail</b> | Sektor Pentaksiran & Peperiksaan JPN Selangor | 2026</span>
-        </div>
-    </div>
-</div>
-"""
-
-components.html(html_one, height=740, scrolling=True)
-
-st.divider()
-c1, c2 = st.columns(2)
-with c1:
-    full_html = f"<html><head><meta charset='utf-8'></head><body>{html_one}</body></html>"
-    st.download_button("🖨️ Cetak PDF / Cetak", full_html, file_name=f"Laporan_{MODE}_{sel['no_pusat']}_{sel['tarikh_lawatan']}.html", mime="text/html", use_container_width=True, type="primary")
-with c2:
-    df_one = pd.DataFrame([sel])
-    out = BytesIO()
-    with pd.ExcelWriter(out, engine='openpyxl') as writer: df_one.to_excel(writer, index=False)
-    st.download_button("📊 Download Excel", out.getvalue(), file_name=f"{MODE}_{sel['no_pusat']}.xlsx", use_container_width=True)
-
-if st.session_state.is_admin and filtered_list:
-    df_all = pd.DataFrame(filtered_list)
-    out_all = BytesIO()
-    with pd.ExcelWriter(out_all, engine='openpyxl') as writer: df_all.to_excel(writer, index=False)
-    st.download_button(f"📊 Download SEMUA ({len(filtered_list)} laporan) - Admin", out_all.getvalue(), file_name=f"SEMUA_{MODE}_ADMIN.xlsx", use_container_width=True)
+            col1, col2 = st.columns(2)
+            with col1:
+                kertas_a = st.selectbox("Kertas A:", files, key="ka")
+            with col2:
+                kertas_b = st.selectbox("Kertas B:", files, index=1 if len(files)>1 else 0, key="kb")
+            if st.button("📊 BANDING SEKARANG", type="primary", use_container_width=True):
+                if kertas_a and kertas_b and kertas_a != kertas_b:
+                    _,_,_,_,_,_,_,data_a,_ = baca_csv(FOLDER / kertas_a)
+                    _,_,_,_,_,_,_,data_b,_ = baca_csv(FOLDER / kertas_b)
+                    set_a=set(data_a.keys()); set_b=set(data_b.keys()); sama=set_a & set_b
+                    if filter_huruf:
+                        sama={angka for angka in sama if data_a.get(angka, {}).get('Jenis_Huruf')==filter_huruf}
+                    hadir2=[]; hadir1=[]; ha_th=[]; th_ha=[]; th2=[]
+                    for angka in sama:
+                        sa=data_a[angka].get('Status Kehadiran','').strip()
+                        sb=data_b[angka].get('Status Kehadiran','').strip()
+                        if sa=='Hadir' and sb=='Hadir': hadir2.append(angka)
+                        elif sa=='Tidak Hadir' and sb=='Tidak Hadir': th2.append(angka)
+                        elif sa=='Hadir' and sb=='Tidak Hadir': ha_th.append(angka); hadir1.append(angka)
+                        elif sa=='Tidak Hadir' and sb=='Hadir': th_ha.append(angka); hadir1.append(angka)
+                    st.session_state['b']={"ka": kertas_a, "kb": kertas_b, "da": data_a, "db": data_b, "hadir2": hadir2, "hadir1": hadir1, "ha_th": ha_th, "th_ha": th_ha, "th2": th2, "sama": sama}
+            if 'b' in st.session_state:
+                b=st.session_state['b']
+                st.subheader(f"{b['ka']} vs {b['kb']} - {len(b['sama'])} calon sama")
+                c1,c2,c3=st.columns(3)
+                with c1:
+                    if st.button(f"✅ HADIR KEDUA-DUA\n{len(b['hadir2'])}", key="btn_h2", use_container_width=True, type="primary"):
+                        st.session_state['pilihan']="hadir2"
+                with c2:
+                    if st.button(f"⚠️ HADIR 1 & TH 1\n{len(b['hadir1'])}", key="btn_h1", use_container_width=True):
+                        st.session_state['pilihan']="hadir1"
+                with c3:
+                    if st.button(f"❌ TH KEDUA-DUA\n{len(b['th2'])}", key="btn_t2", use_container_width=True):
+                        st.session_state['pilihan']="th2"
+                d1,d2=st.columns(2)
+                with d1:
+                    if st.button(f"➡️ Hadir {b['ka']} TH {b['kb']} ({len(b['ha_th'])})", key="btn_a", use_container_width=True):
+                        st.session_state['pilihan']="ha_th"
+                with d2:
+                    if st.button(f"⬅️ TH {b['ka']} Hadir {b['kb']} ({len(b['th_ha'])})", key="btn_b", use_container_width=True):
+                        st.session_state['pilihan']="th_ha"
+                if 'pilihan' in st.session_state:
+                    p=st.session_state['pilihan']
+                    mapping={"hadir2": b['hadir2'], "hadir1": b['hadir1'], "th2": b['th2'], "ha_th": b['ha_th'], "th_ha": b['th_ha']}
+                    senarai=mapping.get(p, [])
+                    st.markdown(f"### {p} - {len(senarai)} calon")
+                    if senarai:
+                        rows=[{"Angka": a, "Nama": b['da'].get(a, {}).get('Nama',''), "Daerah": b['da'].get(a, {}).get('Daerah_Kod',''), "Jenis": b['da'].get(a, {}).get('Jenis_Huruf',''), f"Status {b['ka']}": b['da'].get(a, {}).get('Status Kehadiran',''), f"Status {b['kb']}": b['db'].get(a, {}).get('Status Kehadiran',''), "Pusat": b['da'].get(a, {}).get('Nama Pusat','')[:35]} for a in senarai[:1000]]
+                        st.dataframe(rows, use_container_width=True)
+
+st.caption(f"FIXED - Data: {FOLDER} | Sumber: {SUMBER} | Desktop: {FOLDER_DESKTOP} | Temp: {TEMP_FOLDER}")
